@@ -3,7 +3,7 @@ use clap::Parser;
 use csv::WriterBuilder;
 use rusqlite::Connection;
 use serde_json::Value;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::path::PathBuf;
 
@@ -214,7 +214,33 @@ fn get_field(obj: &Value, key: &str) -> String {
 
 // --- Header collection and row building ---
 
-fn collect_headers(values: &[Value]) -> Vec<String> {
+/// Scan all udiDis -> tradeNames arrays to discover which languages exist,
+/// returned in a stable sorted order.
+fn collect_trade_name_languages(values: &[Value]) -> Vec<String> {
+    let mut langs = BTreeSet::new();
+
+    for item in values {
+        if let Some(udi_arr) = item.get("udiDis").and_then(|v| v.as_array()) {
+            for udi in udi_arr {
+                if let Some(tn_arr) = udi.get("tradeNames").and_then(|v| v.as_array()) {
+                    for tn in tn_arr {
+                        let lang = tn
+                            .get("language")
+                            .or_else(|| tn.get("lang"))
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.trim().to_string())
+                            .unwrap_or_else(|| "ANY".to_string());
+                        langs.insert(lang);
+                    }
+                }
+            }
+        }
+    }
+
+    langs.into_iter().collect()
+}
+
+fn collect_headers(values: &[Value]) -> (Vec<String>, Vec<String>) {
     let mut seen = BTreeSet::new();
     let mut headers: Vec<String> = Vec::new();
 
@@ -231,13 +257,57 @@ fn collect_headers(values: &[Value]) -> Vec<String> {
         }
     }
 
+    let trade_name_langs = collect_trade_name_languages(values);
+
+    // Append udiDiCode, then one column per language
     headers.push("udiDiCode".to_string());
-    headers.push("tradeNames".to_string());
-    headers
+    for lang in &trade_name_langs {
+        headers.push(format!("tradeName_{}", lang));
+    }
+
+    (headers, trade_name_langs)
 }
 
-fn build_rows(values: &[Value], headers: &[String]) -> Vec<Vec<String>> {
-    let main_header_count = headers.len() - 2;
+/// Extract per-language trade names from a single udiDis entry.
+/// Returns a HashMap: language -> text.
+fn extract_trade_names_by_lang(udi: &Value) -> HashMap<String, String> {
+    let mut map = HashMap::new();
+
+    if let Some(tn_arr) = udi.get("tradeNames").and_then(|v| v.as_array()) {
+        for tn in tn_arr {
+            let lang = tn
+                .get("language")
+                .or_else(|| tn.get("lang"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.trim().to_string())
+                .unwrap_or_else(|| "ANY".to_string());
+
+            let text = tn
+                .get("textValue")
+                .or_else(|| tn.get("value"))
+                .or_else(|| tn.get("name"))
+                .and_then(|v| v.as_str())
+                .map(|s| sanitize(s.trim()))
+                .unwrap_or_default();
+
+            if !text.is_empty() {
+                // If multiple entries for the same language, join with " | "
+                map.entry(lang)
+                    .and_modify(|existing: &mut String| {
+                        existing.push_str(" | ");
+                        existing.push_str(&text);
+                    })
+                    .or_insert(text);
+            }
+        }
+    }
+
+    map
+}
+
+fn build_rows(values: &[Value], headers: &[String], trade_name_langs: &[String]) -> Vec<Vec<String>> {
+    // Main fields = everything before udiDiCode
+    let main_header_count = headers.len() - 1 - trade_name_langs.len();
     let mut rows = Vec::new();
 
     for item in values {
@@ -250,24 +320,27 @@ fn build_rows(values: &[Value], headers: &[String]) -> Vec<Vec<String>> {
             .map(|key| get_field(item, key))
             .collect();
 
-        let udi_entries: Vec<(String, String)> = item
+        // Collect udiDis entries with per-language trade names
+        let udi_entries: Vec<(String, HashMap<String, String>)> = item
             .get("udiDis")
             .and_then(|v| v.as_array())
             .map(|arr| {
                 arr.iter()
                     .map(|udi| {
                         let code = get_field(udi, "udiDiCode");
-                        let names = get_field(udi, "tradeNames");
-                        (code, names)
+                        let tn_map = extract_trade_names_by_lang(udi);
+                        (code, tn_map)
                     })
                     .collect()
             })
-            .unwrap_or_else(|| vec![(String::new(), String::new())]);
+            .unwrap_or_else(|| vec![(String::new(), HashMap::new())]);
 
-        for (code, names) in &udi_entries {
+        for (code, tn_map) in &udi_entries {
             let mut row = main_fields.clone();
             row.push(code.clone());
-            row.push(names.clone());
+            for lang in trade_name_langs {
+                row.push(tn_map.get(lang).cloned().unwrap_or_default());
+            }
             rows.push(row);
         }
     }
@@ -338,14 +411,21 @@ fn write_sqlite(
     }
     tx.commit()?;
 
-    for col in &["udiDiCode", "tradeNames"] {
-        if headers.contains(&col.to_string()) {
-            let idx_sql = format!(
-                "CREATE INDEX IF NOT EXISTS idx_{} ON swissdamed(\"{}\")",
-                col, col
-            );
-            conn.execute(&idx_sql, [])?;
-        }
+    // Create index on udiDiCode
+    if headers.contains(&"udiDiCode".to_string()) {
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_udiDiCode ON swissdamed(\"udiDiCode\")",
+            [],
+        )?;
+    }
+
+    // Create indexes on trade name columns
+    for col in headers.iter().filter(|h| h.starts_with("tradeName_")) {
+        let idx_sql = format!(
+            "CREATE INDEX IF NOT EXISTS idx_{} ON swissdamed(\"{}\")",
+            col, col
+        );
+        conn.execute(&idx_sql, [])?;
     }
 
     Ok(())
@@ -374,8 +454,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    let headers = collect_headers(&values);
-    let rows = build_rows(&values, &headers);
+    let (headers, trade_name_langs) = collect_headers(&values);
+    let rows = build_rows(&values, &headers, &trade_name_langs);
 
     eprintln!(
         "Processed {} items, generated {} rows with {} columns.",
