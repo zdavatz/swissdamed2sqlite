@@ -24,7 +24,7 @@ No tests exist. No linter/formatter configuration — use `cargo fmt` and `cargo
 
 Single-file application (`src/main.rs`, ~500 lines). Key flow:
 
-1. **CLI parsing** — `clap` derive API (`Args` struct). Flags: `--csv`, `--sqlite`, `--file`, `--page-size`, `--deploy`, `--scp`. If neither `--csv` nor `--sqlite` is given, both are produced.
+1. **CLI parsing** — `clap` derive API (`Args` struct). Flags: `--csv`, `--sqlite`, `--file`, `--page-size`, `--deploy`, `--scp`. If neither `--csv` nor `--sqlite` is given, both are produced. `--deploy` implies `--sqlite`.
 2. **Data acquisition** — `download_all_pages()` paginates POST requests to the swissdamed.ch public API, or `load_json_file()` reads a local JSON file.
 3. **Schema discovery** — `collect_headers()` scans all JSON objects to discover columns dynamically. The `udiDis` nested array is flattened: each UDI DI entry becomes a separate row with `udiDiCode` + per-language `tradeName_{lang}` columns.
 4. **Row building** — `build_rows()` produces a flat `Vec<Vec<String>>` with one row per udiDis entry, duplicating parent fields.
