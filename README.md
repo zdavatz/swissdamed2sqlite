@@ -33,6 +33,9 @@ swissdamed2sqlite --sqlite --deploy
 
 # Deploy to a custom scp target
 swissdamed2sqlite --sqlite --deploy --scp user@host:/path/to/swissdamed.db
+
+# Diff two CSV files (output to diff/ folder)
+swissdamed2sqlite --diff swissdamed_24.02.2026.csv swissdamed_25.02.2026.csv
 ```
 
 Output files are date-stamped, e.g. `swissdamed_25.02.2026.csv` and `swissdamed_25.02.2026.db`.
@@ -43,6 +46,8 @@ Output files are date-stamped, e.g. `swissdamed_25.02.2026.csv` and `swissdamed_
 - **SQLite** — single `swissdamed` table with all TEXT columns, indexed on `udiDiCode` and `tradeName_*` columns
 
 The nested `udiDis` array from the API is flattened: each UDI DI entry becomes its own row with a `udiDiCode` column and per-language `tradeName_{lang}` columns.
+
+- **Diff** — compares two CSVs by `udiDiCode`, outputs to `diff/diff_swissdamed_DD.MM.YYYY_DD.MM.YYYY.csv` with a `diff_status` column (`added`, `removed`, `changed_old`, `changed_new`)
 
 ## License
 
