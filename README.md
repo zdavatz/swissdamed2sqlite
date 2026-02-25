@@ -1,6 +1,6 @@
 # swissdamed2sqlite
 
-Download Swiss DAMED UDI (Unique Device Identification) data from [swissdamed.ch](https://swissdamed.ch) and export it as CSV and/or SQLite.
+Download swissdamed UDI (Unique Device Identification) data from [swissdamed.ch](https://swissdamed.ch) and export it as CSV and/or SQLite.
 
 ## Installation
 
