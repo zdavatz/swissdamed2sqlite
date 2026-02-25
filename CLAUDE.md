@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Single-binary Rust CLI that downloads Swiss DAMED UDI (Unique Device Identification) data from `swissdamed.ch` and exports it as CSV and/or SQLite. Output files are date-stamped (e.g., `swissdamed_25.02.2026.csv`).
+Single-binary Rust CLI that downloads swissdamed UDI (Unique Device Identification) data from `swissdamed.ch` and exports it as CSV and/or SQLite. Output files are date-stamped (e.g., `swissdamed_25.02.2026.csv`).
 
 ## Build & Run
 
