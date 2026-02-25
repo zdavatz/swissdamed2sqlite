@@ -6,17 +6,18 @@ use serde_json::Value;
 use std::collections::{BTreeSet, HashMap};
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 
 /// Download Swiss DAMED UDI data and convert to CSV or SQLite
 #[derive(Parser, Debug)]
 #[command(name = "swissdamed2sqlite", version, about)]
 struct Args {
     /// Output as CSV file
-    #[arg(long, group = "format")]
+    #[arg(long)]
     csv: bool,
 
     /// Output as SQLite database
-    #[arg(long, group = "format")]
+    #[arg(long)]
     sqlite: bool,
 
     /// Use an existing JSON file instead of downloading
@@ -26,6 +27,14 @@ struct Args {
     /// Page size for API requests (default: 50)
     #[arg(long, default_value_t = 50)]
     page_size: u32,
+
+    /// Deploy SQLite DB to remote server via scp
+    #[arg(long)]
+    deploy: bool,
+
+    /// Remote scp target (default: zdavatz@65.109.137.20:/var/www/pillbox.oddb.org/swissdamed.db)
+    #[arg(long, default_value = "zdavatz@65.109.137.20:/var/www/pillbox.oddb.org/swissdamed.db")]
+    scp: String,
 }
 
 fn date_stamp() -> String {
@@ -436,8 +445,11 @@ fn write_sqlite(
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
+    // --deploy implies --sqlite
     let (do_csv, do_sqlite) = if !args.csv && !args.sqlite {
         (true, true)
+    } else if args.deploy && !args.sqlite {
+        (args.csv, true)
     } else {
         (args.csv, args.sqlite)
     };
@@ -474,6 +486,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let filename = output_filename("db");
         write_sqlite(&headers, &rows, &filename)?;
         eprintln!("SQLite written: {}", filename);
+
+        if args.deploy {
+            eprintln!("Deploying {} to {} ...", filename, args.scp);
+            let status = Command::new("scp")
+                .arg(&filename)
+                .arg(&args.scp)
+                .status()?;
+
+            if status.success() {
+                eprintln!("Deploy successful.");
+            } else {
+                eprintln!("Deploy failed with exit code: {}", status);
+                return Err("scp failed".into());
+            }
+        }
     }
 
     Ok(())
