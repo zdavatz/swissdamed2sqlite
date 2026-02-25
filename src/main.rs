@@ -3,7 +3,7 @@ use clap::Parser;
 use csv::WriterBuilder;
 use rusqlite::Connection;
 use serde_json::Value;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -35,6 +35,10 @@ struct Args {
     /// Remote scp target (default: zdavatz@65.109.137.20:/var/www/pillbox.oddb.org/swissdamed.db)
     #[arg(long, default_value = "zdavatz@65.109.137.20:/var/www/pillbox.oddb.org/swissdamed.db")]
     scp: String,
+
+    /// Diff two CSV files and output changes to diff/ folder
+    #[arg(long, num_args = 2, value_names = ["OLD_CSV", "NEW_CSV"])]
+    diff: Option<Vec<PathBuf>>,
 }
 
 fn date_stamp() -> String {
@@ -440,10 +444,152 @@ fn write_sqlite(
     Ok(())
 }
 
+// --- Diff ---
+
+fn extract_date_from_filename(path: &PathBuf) -> Option<String> {
+    let stem = path.file_stem()?.to_str()?;
+    // Expected format: swissdamed_dd.mm.yyyy
+    let date = stem.rsplit('_').next()?;
+    if date.len() == 10 && date.chars().filter(|c| *c == '.').count() == 2 {
+        Some(date.to_string())
+    } else {
+        None
+    }
+}
+
+fn read_csv_rows(path: &PathBuf) -> Result<(Vec<String>, Vec<Vec<String>>), Box<dyn std::error::Error>> {
+    let data = fs::read(path)?;
+    // Skip UTF-8 BOM if present
+    let data = if data.starts_with(&[0xEF, 0xBB, 0xBF]) {
+        &data[3..]
+    } else {
+        &data
+    };
+    let mut rdr = csv::ReaderBuilder::new().from_reader(data);
+    let headers: Vec<String> = rdr.headers()?.iter().map(|s| s.to_string()).collect();
+    let mut rows = Vec::new();
+    for result in rdr.records() {
+        let record = result?;
+        rows.push(record.iter().map(|s| s.to_string()).collect());
+    }
+    Ok((headers, rows))
+}
+
+fn diff_csv_files(old_path: &PathBuf, new_path: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+    let (old_headers, old_rows) = read_csv_rows(old_path)?;
+    let (new_headers, new_rows) = read_csv_rows(new_path)?;
+
+    if old_headers != new_headers {
+        return Err("CSV files have different headers — cannot diff".into());
+    }
+
+    let key_col = "udiDiCode";
+    let key_idx = old_headers.iter().position(|h| h == key_col)
+        .ok_or_else(|| format!("Column '{}' not found in headers", key_col))?;
+
+    // Build maps: udiDiCode -> Vec<row> (multiple rows can share same key)
+    let mut old_map: HashMap<String, Vec<Vec<String>>> = HashMap::new();
+    for row in &old_rows {
+        old_map.entry(row[key_idx].clone()).or_default().push(row.clone());
+    }
+    let mut new_map: HashMap<String, Vec<Vec<String>>> = HashMap::new();
+    for row in &new_rows {
+        new_map.entry(row[key_idx].clone()).or_default().push(row.clone());
+    }
+
+    let old_keys: HashSet<String> = old_map.keys().cloned().collect();
+    let new_keys: HashSet<String> = new_map.keys().cloned().collect();
+
+    let mut diff_rows: Vec<(String, Vec<String>)> = Vec::new();
+
+    // Added: keys only in new
+    for key in &new_keys {
+        if !old_keys.contains(key) {
+            for row in &new_map[key] {
+                diff_rows.push(("added".to_string(), row.clone()));
+            }
+        }
+    }
+
+    // Removed: keys only in old
+    for key in &old_keys {
+        if !new_keys.contains(key) {
+            for row in &old_map[key] {
+                diff_rows.push(("removed".to_string(), row.clone()));
+            }
+        }
+    }
+
+    // Changed: keys in both but rows differ
+    for key in old_keys.intersection(&new_keys) {
+        let old_set: HashSet<&Vec<String>> = old_map[key].iter().collect();
+        let new_set: HashSet<&Vec<String>> = new_map[key].iter().collect();
+        if old_set != new_set {
+            for row in &old_map[key] {
+                if !new_set.contains(row) {
+                    diff_rows.push(("changed_old".to_string(), row.clone()));
+                }
+            }
+            for row in &new_map[key] {
+                if !old_set.contains(row) {
+                    diff_rows.push(("changed_new".to_string(), row.clone()));
+                }
+            }
+        }
+    }
+
+    if diff_rows.is_empty() {
+        eprintln!("No differences found.");
+        return Ok(());
+    }
+
+    // Build output filename from dates in input filenames
+    let old_date = extract_date_from_filename(old_path)
+        .unwrap_or_else(|| "unknown".to_string());
+    let new_date = extract_date_from_filename(new_path)
+        .unwrap_or_else(|| "unknown".to_string());
+    let out_filename = format!("diff/diff_swissdamed_{}_{}.csv", old_date, new_date);
+
+    fs::create_dir_all("diff")?;
+
+    let mut out_headers = vec!["diff_status".to_string()];
+    out_headers.extend(old_headers);
+
+    let mut wtr = WriterBuilder::new().from_writer(Vec::new());
+    wtr.write_record(&out_headers)?;
+    for (status, row) in &diff_rows {
+        let mut full_row = vec![status.clone()];
+        full_row.extend(row.clone());
+        wtr.write_record(&full_row)?;
+    }
+    let data = wtr.into_inner()?;
+
+    let mut output = Vec::with_capacity(3 + data.len());
+    output.extend_from_slice(b"\xEF\xBB\xBF");
+    output.extend_from_slice(&data);
+
+    fs::write(&out_filename, output)?;
+
+    let added = diff_rows.iter().filter(|(s, _)| s == "added").count();
+    let removed = diff_rows.iter().filter(|(s, _)| s == "removed").count();
+    let changed = diff_rows.iter().filter(|(s, _)| s == "changed_new").count();
+    eprintln!(
+        "Diff written: {} ({} added, {} removed, {} changed)",
+        out_filename, added, removed, changed,
+    );
+
+    Ok(())
+}
+
 // --- Main ---
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
+
+    // Handle --diff mode
+    if let Some(ref diff_files) = args.diff {
+        return diff_csv_files(&diff_files[0], &diff_files[1]);
+    }
 
     // --deploy implies --sqlite
     let (do_csv, do_sqlite) = if !args.csv && !args.sqlite {
