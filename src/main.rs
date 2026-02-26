@@ -4,6 +4,7 @@ use chrono::Local;
 use clap::Parser;
 use csv::WriterBuilder;
 use migel::{build_keyword_index, find_best_migel_match, parse_migel_items};
+use rayon::prelude::*;
 use rusqlite::Connection;
 use serde_json::Value;
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -654,60 +655,62 @@ fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     migel_headers.push("migel_bezeichnung".to_string());
     migel_headers.push("migel_limitation".to_string());
 
-    let mut matched_rows: Vec<Vec<String>> = Vec::new();
+    let matched_rows: Vec<Vec<String>> = rows
+        .par_iter()
+        .filter_map(|row| {
+            // Combine all tradeName columns into DE/FR/IT buckets for matching.
+            // ANY and EN text is added to all three language descriptions so that
+            // products with only tradeName_ANY or tradeName_EN can still match.
+            let mut desc_de = String::new();
+            let mut desc_fr = String::new();
+            let mut desc_it = String::new();
 
-    for row in &rows {
-        // Combine all tradeName columns into DE/FR/IT buckets for matching.
-        // ANY and EN text is added to all three language descriptions so that
-        // products with only tradeName_ANY or tradeName_EN can still match.
-        let mut desc_de = String::new();
-        let mut desc_fr = String::new();
-        let mut desc_it = String::new();
-
-        for (col_name, idx) in &trade_name_indices {
-            let val = row.get(*idx).cloned().unwrap_or_default();
-            if val.is_empty() {
-                continue;
-            }
-            match col_name.as_str() {
-                "tradeName_DE" => desc_de = format!("{} {}", desc_de, val),
-                "tradeName_FR" => desc_fr = format!("{} {}", desc_fr, val),
-                "tradeName_IT" => desc_it = format!("{} {}", desc_it, val),
-                _ => {
-                    // ANY, EN, or other languages — add to all three
-                    desc_de = format!("{} {}", desc_de, val);
-                    desc_fr = format!("{} {}", desc_fr, val);
-                    desc_it = format!("{} {}", desc_it, val);
+            for (col_name, idx) in &trade_name_indices {
+                let val = row.get(*idx).cloned().unwrap_or_default();
+                if val.is_empty() {
+                    continue;
+                }
+                match col_name.as_str() {
+                    "tradeName_DE" => desc_de = format!("{} {}", desc_de, val),
+                    "tradeName_FR" => desc_fr = format!("{} {}", desc_fr, val),
+                    "tradeName_IT" => desc_it = format!("{} {}", desc_it, val),
+                    _ => {
+                        // ANY, EN, or other languages — add to all three
+                        desc_de = format!("{} {}", desc_de, val);
+                        desc_fr = format!("{} {}", desc_fr, val);
+                        desc_it = format!("{} {}", desc_it, val);
+                    }
                 }
             }
-        }
 
-        // Also include deviceName and modelName for better matching
-        let device = idx_device.and_then(|i| row.get(i)).cloned().unwrap_or_default();
-        let model = idx_model.and_then(|i| row.get(i)).cloned().unwrap_or_default();
-        if !device.is_empty() {
-            desc_de = format!("{} {}", desc_de, device);
-            desc_fr = format!("{} {}", desc_fr, device);
-            desc_it = format!("{} {}", desc_it, device);
-        }
-        if !model.is_empty() {
-            desc_de = format!("{} {}", desc_de, model);
-            desc_fr = format!("{} {}", desc_fr, model);
-            desc_it = format!("{} {}", desc_it, model);
-        }
+            // Also include deviceName and modelName for better matching
+            let device = idx_device.and_then(|i| row.get(i)).cloned().unwrap_or_default();
+            let model = idx_model.and_then(|i| row.get(i)).cloned().unwrap_or_default();
+            if !device.is_empty() {
+                desc_de = format!("{} {}", desc_de, device);
+                desc_fr = format!("{} {}", desc_fr, device);
+                desc_it = format!("{} {}", desc_it, device);
+            }
+            if !model.is_empty() {
+                desc_de = format!("{} {}", desc_de, model);
+                desc_fr = format!("{} {}", desc_fr, model);
+                desc_it = format!("{} {}", desc_it, model);
+            }
 
-        let brand = idx_brand.and_then(|i| row.get(i)).cloned().unwrap_or_default();
+            let brand = idx_brand.and_then(|i| row.get(i)).cloned().unwrap_or_default();
 
-        if let Some(migel) = find_best_migel_match(
-            &desc_de, &desc_fr, &desc_it, &brand, &migel_items, &keyword_index,
-        ) {
-            let mut matched_row = row.clone();
-            matched_row.push(migel.position_nr.clone());
-            matched_row.push(migel.bezeichnung.clone());
-            matched_row.push(migel.limitation.clone());
-            matched_rows.push(matched_row);
-        }
-    }
+            find_best_migel_match(
+                &desc_de, &desc_fr, &desc_it, &brand, &migel_items, &keyword_index,
+            )
+            .map(|migel| {
+                let mut matched_row = row.clone();
+                matched_row.push(migel.position_nr.clone());
+                matched_row.push(migel.bezeichnung.clone());
+                matched_row.push(migel.limitation.clone());
+                matched_row
+            })
+        })
+        .collect();
 
     eprintln!(
         "MiGel matches: {} out of {} rows",
