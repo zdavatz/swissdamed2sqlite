@@ -1,6 +1,9 @@
+mod migel;
+
 use chrono::Local;
 use clap::Parser;
 use csv::WriterBuilder;
+use migel::{build_keyword_index, find_best_migel_match, parse_migel_items};
 use rusqlite::Connection;
 use serde_json::Value;
 use std::collections::{BTreeSet, HashMap, HashSet};
@@ -39,6 +42,10 @@ struct Args {
     /// Diff two CSV files and output changes to diff/ folder
     #[arg(long, num_args = 2, value_names = ["OLD_CSV", "NEW_CSV"])]
     diff: Option<Vec<PathBuf>>,
+
+    /// Match UDI entries against MiGel codes and output matched results
+    #[arg(long)]
+    migel: bool,
 }
 
 fn date_stamp() -> String {
@@ -581,6 +588,146 @@ fn diff_csv_files(old_path: &PathBuf, new_path: &PathBuf) -> Result<(), Box<dyn 
     Ok(())
 }
 
+// --- MiGel matching ---
+
+fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    // 1. Get swissdamed data
+    let values = if let Some(ref path) = args.file {
+        eprintln!("Loading from file: {}", path.display());
+        load_json_file(path)?
+    } else {
+        download_all_pages(args.page_size)?
+    };
+
+    if values.is_empty() {
+        eprintln!("No data found.");
+        return Ok(());
+    }
+
+    let (headers, trade_name_langs) = collect_headers(&values);
+    let rows = build_rows(&values, &headers, &trade_name_langs);
+    eprintln!(
+        "Processed {} items, generated {} rows with {} columns.",
+        values.len(),
+        rows.len(),
+        headers.len()
+    );
+
+    // 2. Download MiGel XLSX
+    let migel_url = "https://www.bag.admin.ch/dam/de/sd-web/77j5rwUTzbkq/Mittel-%20und%20Gegenst%C3%A4ndeliste%20per%2001.01.2026%20in%20Excel-Format.xlsx";
+    let migel_file = "migel.xlsx";
+
+    eprintln!("Downloading MiGel XLSX...");
+    let client = reqwest::blocking::Client::builder()
+        .user_agent("swissdamed2sqlite/0.1")
+        .build()?;
+    let response = client.get(migel_url).send()?;
+    if !response.status().is_success() {
+        return Err(format!("Failed to download MiGel XLSX: HTTP {}", response.status()).into());
+    }
+    let bytes = response.bytes()?;
+    fs::write(migel_file, &bytes)?;
+    eprintln!("MiGel XLSX saved ({} bytes)", bytes.len());
+
+    // 3. Parse MiGel items and build keyword index
+    eprintln!("Parsing MiGel items...");
+    let migel_items = parse_migel_items(migel_file)?;
+    eprintln!("Found {} MiGel items with position numbers", migel_items.len());
+
+    let keyword_index = build_keyword_index(&migel_items);
+    eprintln!("Built keyword index with {} unique keywords", keyword_index.len());
+
+    // 4. Find column indices for matching — collect ALL tradeName columns
+    let trade_name_indices: Vec<(String, usize)> = headers
+        .iter()
+        .enumerate()
+        .filter(|(_, h)| h.starts_with("tradeName_"))
+        .map(|(i, h)| (h.clone(), i))
+        .collect();
+    let idx_brand = headers.iter().position(|h| h == "companyName");
+    let idx_device = headers.iter().position(|h| h == "deviceName");
+    let idx_model = headers.iter().position(|h| h == "modelName");
+
+    // 5. Match each row against MiGel
+    let mut migel_headers = headers.clone();
+    migel_headers.push("migel_code".to_string());
+    migel_headers.push("migel_bezeichnung".to_string());
+    migel_headers.push("migel_limitation".to_string());
+
+    let mut matched_rows: Vec<Vec<String>> = Vec::new();
+
+    for row in &rows {
+        // Combine all tradeName columns into DE/FR/IT buckets for matching.
+        // ANY and EN text is added to all three language descriptions so that
+        // products with only tradeName_ANY or tradeName_EN can still match.
+        let mut desc_de = String::new();
+        let mut desc_fr = String::new();
+        let mut desc_it = String::new();
+
+        for (col_name, idx) in &trade_name_indices {
+            let val = row.get(*idx).cloned().unwrap_or_default();
+            if val.is_empty() {
+                continue;
+            }
+            match col_name.as_str() {
+                "tradeName_DE" => desc_de = format!("{} {}", desc_de, val),
+                "tradeName_FR" => desc_fr = format!("{} {}", desc_fr, val),
+                "tradeName_IT" => desc_it = format!("{} {}", desc_it, val),
+                _ => {
+                    // ANY, EN, or other languages — add to all three
+                    desc_de = format!("{} {}", desc_de, val);
+                    desc_fr = format!("{} {}", desc_fr, val);
+                    desc_it = format!("{} {}", desc_it, val);
+                }
+            }
+        }
+
+        // Also include deviceName and modelName for better matching
+        let device = idx_device.and_then(|i| row.get(i)).cloned().unwrap_or_default();
+        let model = idx_model.and_then(|i| row.get(i)).cloned().unwrap_or_default();
+        if !device.is_empty() {
+            desc_de = format!("{} {}", desc_de, device);
+            desc_fr = format!("{} {}", desc_fr, device);
+            desc_it = format!("{} {}", desc_it, device);
+        }
+        if !model.is_empty() {
+            desc_de = format!("{} {}", desc_de, model);
+            desc_fr = format!("{} {}", desc_fr, model);
+            desc_it = format!("{} {}", desc_it, model);
+        }
+
+        let brand = idx_brand.and_then(|i| row.get(i)).cloned().unwrap_or_default();
+
+        if let Some(migel) = find_best_migel_match(
+            &desc_de, &desc_fr, &desc_it, &brand, &migel_items, &keyword_index,
+        ) {
+            let mut matched_row = row.clone();
+            matched_row.push(migel.position_nr.clone());
+            matched_row.push(migel.bezeichnung.clone());
+            matched_row.push(migel.limitation.clone());
+            matched_rows.push(matched_row);
+        }
+    }
+
+    eprintln!(
+        "MiGel matches: {} out of {} rows",
+        matched_rows.len(),
+        rows.len()
+    );
+
+    if matched_rows.is_empty() {
+        eprintln!("No MiGel matches found.");
+        return Ok(());
+    }
+
+    // 6. Write matched rows to SQLite
+    let db_filename = format!("swissdamed_migel_{}.db", date_stamp());
+    write_sqlite(&migel_headers, &matched_rows, &db_filename)?;
+    eprintln!("SQLite written: {}", db_filename);
+
+    Ok(())
+}
+
 // --- Main ---
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -589,6 +736,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --diff mode
     if let Some(ref diff_files) = args.diff {
         return diff_csv_files(&diff_files[0], &diff_files[1]);
+    }
+
+    // Handle --migel mode
+    if args.migel {
+        return run_migel(&args);
     }
 
     // --deploy implies --sqlite
