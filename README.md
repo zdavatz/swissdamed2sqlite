@@ -49,14 +49,14 @@ swissdamed2sqlite --actors --mandates
 swissdamed2sqlite --ar-mandates
 
 # Diff two CSV files (output to diff/ folder)
-swissdamed2sqlite --diff swissdamed_24.02.2026.csv swissdamed_25.02.2026.csv
+swissdamed2sqlite --diff csv/swissdamed_24.02.2026.csv csv/swissdamed_25.02.2026.csv
 ```
 
-Output files are date-stamped:
-- UDI: `swissdamed_25.02.2026.csv` / `.db`
-- Actors: `actors_25.02.2026.csv` / `.db`
-- Mandates: `mandates_25.02.2026.csv` / `.db`
-- AR Mandates: `ar_mandates_25.02.2026.csv` / `.db`
+Output files are date-stamped and organized into subdirectories:
+- UDI: `csv/swissdamed_25.02.2026.csv` / `db/swissdamed_25.02.2026.db`
+- Actors: `csv/actors_25.02.2026.csv` / `db/actors_25.02.2026.db`
+- Mandates: `csv/mandates_25.02.2026.csv` / `db/mandates_25.02.2026.db`
+- AR Mandates: `csv/ar_mandates_25.02.2026.csv` / `db/ar_mandates_25.02.2026.db`
 
 ## Output Format
 

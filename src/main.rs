@@ -65,8 +65,14 @@ fn date_stamp() -> String {
     Local::now().format("%d.%m.%Y").to_string()
 }
 
-fn output_filename(ext: &str) -> String {
-    format!("swissdamed_{}.{}", date_stamp(), ext)
+fn output_csv(name: &str) -> String {
+    fs::create_dir_all("csv").ok();
+    format!("csv/{}_{}.csv", name, date_stamp())
+}
+
+fn output_db(name: &str) -> String {
+    fs::create_dir_all("db").ok();
+    format!("db/{}_{}.db", name, date_stamp())
 }
 
 // --- Download ---
@@ -777,7 +783,7 @@ fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // 6. Write matched rows to SQLite
-    let db_filename = format!("swissdamed_migel_{}.db", date_stamp());
+    let db_filename = output_db("swissdamed_migel");
     write_sqlite(&migel_headers, &matched_rows, &db_filename)?;
     eprintln!("SQLite written: {}", db_filename);
 
@@ -975,13 +981,13 @@ fn run_ar_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
 
     let name = "ar_mandates";
     if do_csv {
-        let filename = format!("{}_{}.csv", name, date_stamp());
+        let filename = output_csv(name);
         write_csv(&joined_headers, &rows, &filename)?;
         eprintln!("CSV written: {}", filename);
     }
 
     if do_sqlite {
-        let filename = format!("{}_{}.db", name, date_stamp());
+        let filename = output_db(name);
         write_sqlite_table(&joined_headers, &rows, &filename, name)?;
         eprintln!("SQLite written: {}", filename);
     }
@@ -1017,13 +1023,13 @@ fn download_and_export(
     );
 
     if do_csv {
-        let filename = format!("{}_{}.csv", name, date_stamp());
+        let filename = output_csv(name);
         write_csv(&headers, &rows, &filename)?;
         eprintln!("[{}] CSV written: {}", name, filename);
     }
 
     if do_sqlite {
-        let filename = format!("{}_{}.db", name, date_stamp());
+        let filename = output_db(name);
         write_sqlite_table(&headers, &rows, &filename, name)?;
         eprintln!("[{}] SQLite written: {}", name, filename);
     }
@@ -1114,13 +1120,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     if do_csv {
-        let filename = output_filename("csv");
+        let filename = output_csv("swissdamed");
         write_csv(&headers, &rows, &filename)?;
         eprintln!("CSV written: {}", filename);
     }
 
     if do_sqlite {
-        let filename = output_filename("db");
+        let filename = output_db("swissdamed");
         write_sqlite(&headers, &rows, &filename)?;
         eprintln!("SQLite written: {}", filename);
 
