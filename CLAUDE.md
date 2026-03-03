@@ -37,7 +37,7 @@ Single-file application (`src/main.rs`). Key flow:
 6. **Deploy** — optional `scp` to a remote server.
 7. **Diff** — `diff_csv_files()` compares two CSVs by `udiDiCode` key, outputs a diff CSV to `diff/` with a `diff_status` column (`added`, `removed`, `changed_old`, `changed_new`).
 8. **Actors/Mandates** — `download_and_export()` handles flat data download and export for actors and mandates endpoints.
-9. **AR Mandates** — `run_ar_mandates()` downloads both actors and mandates, filters AR-type actors, and produces a joined output with `actor_`/`mandate_` prefixed columns.
+9. **AR Mandates** — `run_ar_mandates()` downloads both actors and mandates, filters AR-type actors, fetches individual mandate details via `/public/act/mandates/{id}` (provides SRN, mandateType, validFrom/validTo, full address), and produces a joined output with `actor_`/`mandate_` prefixed columns.
 
 ## Key Details
 

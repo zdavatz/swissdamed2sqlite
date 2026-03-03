@@ -67,7 +67,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 
 - **Actors** — flat export from `swissdamed.ch/public/act/actors` (table: `actors`)
 - **Mandates** — flat export from `swissdamed.ch/public/act/mandates` (table: `mandates`)
-- **AR Mandates** — joins AR-type actors with their mandates into a single table (`ar_mandates`) with `actor_`/`mandate_` prefixed columns
+- **AR Mandates** — joins AR-type actors with their mandates into a single table (`ar_mandates`) with `actor_`/`mandate_` prefixed columns. Fetches full mandate details (SRN, mandateType, validFrom/validTo, full address) via the `/public/act/mandates/{id}` detail endpoint
 - **Diff** — compares two CSVs by `udiDiCode`, outputs to `diff/diff_swissdamed_DD.MM.YYYY_DD.MM.YYYY.csv` with a `diff_status` column (`added`, `removed`, `changed_old`, `changed_new`)
 
 ## License

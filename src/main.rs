@@ -784,7 +784,68 @@ fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// --- AR mandates (join AR actors with their mandates) ---
+// --- AR mandates (join AR actors with their mandates + detail) ---
+
+/// Flatten a mandate detail JSON into a stable set of key-value pairs.
+/// Nested objects like `address` and `actorInfo` are flattened with prefix.
+fn flatten_mandate_detail(detail: &Value) -> Vec<(String, String)> {
+    let mut fields = Vec::new();
+
+    if let Value::Object(map) = detail {
+        for (key, val) in map {
+            match val {
+                Value::Object(inner) => {
+                    for (inner_key, inner_val) in inner {
+                        fields.push((
+                            format!("{}_{}", key, inner_key),
+                            value_to_string(inner_val),
+                        ));
+                    }
+                }
+                _ => {
+                    fields.push((key.clone(), value_to_string(val)));
+                }
+            }
+        }
+    }
+
+    fields
+}
+
+fn fetch_mandate_details(
+    client: &reqwest::blocking::Client,
+    mandate_ids: &[String],
+) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
+    let total = mandate_ids.len();
+    let mut details = Vec::with_capacity(total);
+
+    for (i, id) in mandate_ids.iter().enumerate() {
+        if (i + 1) % 50 == 0 || i + 1 == total {
+            eprintln!("[mandate-details] Fetching {}/{} ...", i + 1, total);
+        }
+
+        let url = format!("https://swissdamed.ch/public/act/mandates/{}", id);
+        let resp = client
+            .get(&url)
+            .header("Accept", "application/json, text/plain, */*")
+            .send()?;
+
+        if resp.status().is_success() {
+            let body: Value = resp.json()?;
+            details.push(body);
+        } else {
+            eprintln!(
+                "[mandate-details] Warning: HTTP {} for mandate {}",
+                resp.status(),
+                id
+            );
+            details.push(Value::Null);
+        }
+    }
+
+    eprintln!("[mandate-details] Fetched {} details.", details.len());
+    Ok(details)
+}
 
 fn run_ar_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     // 1. Download actors
@@ -822,42 +883,81 @@ fn run_ar_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
 
-    // 4. Collect headers: actor fields (prefixed) + mandate fields (prefixed)
+    // 4. Collect AR mandate IDs for detail fetching
+    let ar_mandate_ids: Vec<(String, String)> = mandate_values
+        .iter()
+        .filter_map(|m| {
+            let actor_id = m.get("actorId").and_then(|v| v.as_str())?;
+            if !actor_map.contains_key(actor_id) {
+                return None;
+            }
+            let mandate_id = m.get("id").and_then(|v| v.as_str())?;
+            Some((actor_id.to_string(), mandate_id.to_string()))
+        })
+        .collect();
+
+    eprintln!(
+        "Fetching details for {} AR mandates...",
+        ar_mandate_ids.len()
+    );
+
+    // 5. Fetch mandate details
+    let client = reqwest::blocking::Client::builder()
+        .cookie_store(true)
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
+        .build()?;
+
+    let ids_only: Vec<String> = ar_mandate_ids.iter().map(|(_, mid)| mid.clone()).collect();
+    let details = fetch_mandate_details(&client, &ids_only)?;
+
+    // 6. Build headers from actor fields + flattened detail fields
     let actor_headers = collect_flat_headers(&actor_values);
-    let mandate_headers = collect_flat_headers(&mandate_values);
+
+    // Discover all detail keys by scanning all details
+    let mut detail_key_set = BTreeSet::new();
+    let mut detail_key_order: Vec<String> = Vec::new();
+    for detail in &details {
+        for (key, _) in flatten_mandate_detail(detail) {
+            if detail_key_set.insert(key.clone()) {
+                detail_key_order.push(key);
+            }
+        }
+    }
 
     let mut joined_headers: Vec<String> = actor_headers
         .iter()
         .map(|h| format!("actor_{}", h))
         .collect();
-    for h in &mandate_headers {
-        if h == "actorId" {
-            continue; // skip redundant join key
+    for key in &detail_key_order {
+        if key == "actorId" || key.starts_with("actorInfo_") {
+            continue; // skip redundant actor info from detail
         }
-        joined_headers.push(format!("mandate_{}", h));
+        joined_headers.push(format!("mandate_{}", key));
     }
 
-    // 5. Build joined rows
+    // 7. Build joined rows
     let mut rows: Vec<Vec<String>> = Vec::new();
-    for mandate in &mandate_values {
-        let actor_id = mandate
-            .get("actorId")
-            .and_then(|v| v.as_str())
-            .unwrap_or_default();
+    for (i, (actor_id, _)) in ar_mandate_ids.iter().enumerate() {
+        let actor = match actor_map.get(actor_id) {
+            Some(a) => a,
+            None => continue,
+        };
+        let detail = &details[i];
+        let detail_fields: HashMap<String, String> =
+            flatten_mandate_detail(detail).into_iter().collect();
 
-        if let Some(actor) = actor_map.get(actor_id) {
-            let mut row: Vec<String> = actor_headers
-                .iter()
-                .map(|key| get_field(actor, key))
-                .collect();
-            for h in &mandate_headers {
-                if h == "actorId" {
-                    continue;
-                }
-                row.push(get_field(mandate, h));
+        let mut row: Vec<String> = actor_headers
+            .iter()
+            .map(|key| get_field(actor, key))
+            .collect();
+        for key in &detail_key_order {
+            if key == "actorId" || key.starts_with("actorInfo_") {
+                continue;
             }
-            rows.push(row);
+            row.push(detail_fields.get(key).cloned().unwrap_or_default());
         }
+        rows.push(row);
     }
 
     eprintln!(
@@ -866,7 +966,7 @@ fn run_ar_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         joined_headers.len()
     );
 
-    // 6. Output
+    // 8. Output
     let (do_csv, do_sqlite) = if !args.csv && !args.sqlite {
         (true, true)
     } else {
