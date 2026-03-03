@@ -47,6 +47,18 @@ struct Args {
     /// Match UDI entries against MiGel codes and output matched results
     #[arg(long)]
     migel: bool,
+
+    /// Download actors data
+    #[arg(long)]
+    actors: bool,
+
+    /// Download mandates data
+    #[arg(long)]
+    mandates: bool,
+
+    /// Show all mandates for actors of type AR (joined output)
+    #[arg(long)]
+    ar_mandates: bool,
 }
 
 fn date_stamp() -> String {
@@ -60,6 +72,10 @@ fn output_filename(ext: &str) -> String {
 // --- Download ---
 
 fn download_all_pages(page_size: u32) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
+    download_all_pages_from("https://swissdamed.ch/public/udi/basic-udis", "UDI", page_size)
+}
+
+fn download_all_pages_from(base_url: &str, label: &str, page_size: u32) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
     let client = reqwest::blocking::Client::builder()
         .cookie_store(true)
         .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
@@ -70,10 +86,10 @@ fn download_all_pages(page_size: u32) -> Result<Vec<Value>, Box<dyn std::error::
 
     loop {
         let url = format!(
-            "https://swissdamed.ch/public/udi/basic-udis?page={}&size={}",
-            page, page_size
+            "{}?page={}&size={}",
+            base_url, page, page_size
         );
-        eprintln!("Fetching page {} ...", page);
+        eprintln!("[{}] Fetching page {} ...", label, page);
 
         let resp = client
             .post(&url)
@@ -99,7 +115,7 @@ fn download_all_pages(page_size: u32) -> Result<Vec<Value>, Box<dyn std::error::
 
         let count = values.len();
         all_values.extend(values.iter().cloned());
-        eprintln!("  got {} items (total so far: {})", count, all_values.len());
+        eprintln!("[{}]   got {} items (total so far: {})", label, count, all_values.len());
 
         if (count as u32) < page_size {
             break;
@@ -108,7 +124,7 @@ fn download_all_pages(page_size: u32) -> Result<Vec<Value>, Box<dyn std::error::
         page += 1;
     }
 
-    eprintln!("Download complete: {} items total.", all_values.len());
+    eprintln!("[{}] Download complete: {} items total.", label, all_values.len());
     Ok(all_values)
 }
 
@@ -369,6 +385,33 @@ fn build_rows(values: &[Value], headers: &[String], trade_name_langs: &[String])
     rows
 }
 
+// --- Flat data processing (actors, mandates) ---
+
+fn collect_flat_headers(values: &[Value]) -> Vec<String> {
+    let mut seen = BTreeSet::new();
+    let mut headers: Vec<String> = Vec::new();
+
+    for item in values {
+        if let Value::Object(map) = item {
+            for key in map.keys() {
+                if seen.insert(key.clone()) {
+                    headers.push(key.clone());
+                }
+            }
+        }
+    }
+
+    headers
+}
+
+fn build_flat_rows(values: &[Value], headers: &[String]) -> Vec<Vec<String>> {
+    values
+        .iter()
+        .filter(|item| item.is_object())
+        .map(|item| headers.iter().map(|key| get_field(item, key)).collect())
+        .collect()
+}
+
 // --- Output writers ---
 
 fn write_csv(
@@ -397,6 +440,15 @@ fn write_sqlite(
     rows: &[Vec<String>],
     filename: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    write_sqlite_table(headers, rows, filename, "swissdamed")
+}
+
+fn write_sqlite_table(
+    headers: &[String],
+    rows: &[Vec<String>],
+    filename: &str,
+    table_name: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     if std::path::Path::new(filename).exists() {
         fs::remove_file(filename)?;
     }
@@ -407,12 +459,13 @@ fn write_sqlite(
         .iter()
         .map(|h| format!("\"{}\" TEXT", h))
         .collect();
-    let create_sql = format!("CREATE TABLE swissdamed ({})", col_defs.join(", "));
+    let create_sql = format!("CREATE TABLE \"{}\" ({})", table_name, col_defs.join(", "));
     conn.execute(&create_sql, [])?;
 
     let placeholders: Vec<&str> = vec!["?"; headers.len()];
     let insert_sql = format!(
-        "INSERT INTO swissdamed ({}) VALUES ({})",
+        "INSERT INTO \"{}\" ({}) VALUES ({})",
+        table_name,
         headers
             .iter()
             .map(|h| format!("\"{}\"", h))
@@ -435,7 +488,7 @@ fn write_sqlite(
     // Create index on udiDiCode
     if headers.contains(&"udiDiCode".to_string()) {
         conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_udiDiCode ON swissdamed(\"udiDiCode\")",
+            &format!("CREATE INDEX IF NOT EXISTS idx_udiDiCode ON \"{}\"(\"udiDiCode\")", table_name),
             [],
         )?;
     }
@@ -443,8 +496,8 @@ fn write_sqlite(
     // Create indexes on trade name columns
     for col in headers.iter().filter(|h| h.starts_with("tradeName_")) {
         let idx_sql = format!(
-            "CREATE INDEX IF NOT EXISTS idx_{} ON swissdamed(\"{}\")",
-            col, col
+            "CREATE INDEX IF NOT EXISTS idx_{} ON \"{}\"(\"{}\")",
+            col, table_name, col
         );
         conn.execute(&idx_sql, [])?;
     }
@@ -731,6 +784,153 @@ fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+// --- AR mandates (join AR actors with their mandates) ---
+
+fn run_ar_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    // 1. Download actors
+    let actor_values = download_all_pages_from(
+        "https://swissdamed.ch/public/act/actors",
+        "actors",
+        50,
+    )?;
+
+    // 2. Download mandates
+    let mandate_values = download_all_pages_from(
+        "https://swissdamed.ch/public/act/mandates",
+        "mandates",
+        50,
+    )?;
+
+    // 3. Filter AR actors and build a lookup by id
+    let ar_actors: Vec<&Value> = actor_values
+        .iter()
+        .filter(|v| v.get("actorType").and_then(|t| t.as_str()) == Some("AR"))
+        .collect();
+
+    eprintln!(
+        "Found {} AR actors out of {} total actors.",
+        ar_actors.len(),
+        actor_values.len()
+    );
+
+    let actor_map: HashMap<String, &Value> = ar_actors
+        .iter()
+        .filter_map(|v| {
+            v.get("id")
+                .and_then(|id| id.as_str())
+                .map(|id| (id.to_string(), *v))
+        })
+        .collect();
+
+    // 4. Collect headers: actor fields (prefixed) + mandate fields (prefixed)
+    let actor_headers = collect_flat_headers(&actor_values);
+    let mandate_headers = collect_flat_headers(&mandate_values);
+
+    let mut joined_headers: Vec<String> = actor_headers
+        .iter()
+        .map(|h| format!("actor_{}", h))
+        .collect();
+    for h in &mandate_headers {
+        if h == "actorId" {
+            continue; // skip redundant join key
+        }
+        joined_headers.push(format!("mandate_{}", h));
+    }
+
+    // 5. Build joined rows
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    for mandate in &mandate_values {
+        let actor_id = mandate
+            .get("actorId")
+            .and_then(|v| v.as_str())
+            .unwrap_or_default();
+
+        if let Some(actor) = actor_map.get(actor_id) {
+            let mut row: Vec<String> = actor_headers
+                .iter()
+                .map(|key| get_field(actor, key))
+                .collect();
+            for h in &mandate_headers {
+                if h == "actorId" {
+                    continue;
+                }
+                row.push(get_field(mandate, h));
+            }
+            rows.push(row);
+        }
+    }
+
+    eprintln!(
+        "Joined {} mandate rows for AR actors ({} columns).",
+        rows.len(),
+        joined_headers.len()
+    );
+
+    // 6. Output
+    let (do_csv, do_sqlite) = if !args.csv && !args.sqlite {
+        (true, true)
+    } else {
+        (args.csv, args.sqlite)
+    };
+
+    let name = "ar_mandates";
+    if do_csv {
+        let filename = format!("{}_{}.csv", name, date_stamp());
+        write_csv(&joined_headers, &rows, &filename)?;
+        eprintln!("CSV written: {}", filename);
+    }
+
+    if do_sqlite {
+        let filename = format!("{}_{}.db", name, date_stamp());
+        write_sqlite_table(&joined_headers, &rows, &filename, name)?;
+        eprintln!("SQLite written: {}", filename);
+    }
+
+    Ok(())
+}
+
+// --- Generic download and export (actors, mandates) ---
+
+fn download_and_export(
+    base_url: &str,
+    name: &str,
+    page_size: u32,
+    do_csv: bool,
+    do_sqlite: bool,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let values = download_all_pages_from(base_url, name, page_size)?;
+
+    if values.is_empty() {
+        eprintln!("[{}] No data found.", name);
+        return Ok(());
+    }
+
+    let headers = collect_flat_headers(&values);
+    let rows = build_flat_rows(&values, &headers);
+
+    eprintln!(
+        "[{}] Processed {} items, {} rows with {} columns.",
+        name,
+        values.len(),
+        rows.len(),
+        headers.len()
+    );
+
+    if do_csv {
+        let filename = format!("{}_{}.csv", name, date_stamp());
+        write_csv(&headers, &rows, &filename)?;
+        eprintln!("[{}] CSV written: {}", name, filename);
+    }
+
+    if do_sqlite {
+        let filename = format!("{}_{}.db", name, date_stamp());
+        write_sqlite_table(&headers, &rows, &filename, name)?;
+        eprintln!("[{}] SQLite written: {}", name, filename);
+    }
+
+    Ok(())
+}
+
 // --- Main ---
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -744,6 +944,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --migel mode
     if args.migel {
         return run_migel(&args);
+    }
+
+    // Handle --ar-mandates mode
+    if args.ar_mandates {
+        return run_ar_mandates(&args);
+    }
+
+    // Handle --actors and --mandates
+    if args.actors || args.mandates {
+        let (do_csv, do_sqlite) = if !args.csv && !args.sqlite {
+            (true, true)
+        } else {
+            (args.csv, args.sqlite)
+        };
+
+        if args.actors {
+            download_and_export(
+                "https://swissdamed.ch/public/act/actors",
+                "actors",
+                50,
+                do_csv,
+                do_sqlite,
+            )?;
+        }
+
+        if args.mandates {
+            download_and_export(
+                "https://swissdamed.ch/public/act/mandates",
+                "mandates",
+                50,
+                do_csv,
+                do_sqlite,
+            )?;
+        }
+
+        return Ok(());
     }
 
     // --deploy implies --sqlite
