@@ -59,6 +59,10 @@ struct Args {
     /// Show all mandates for actors of type AR (joined output)
     #[arg(long)]
     ar_mandates: bool,
+
+    /// CH-REP only: companies with only AR/IM roles (no MF or PR under same UID)
+    #[arg(long)]
+    ch_rep: bool,
 }
 
 fn date_stamp() -> String {
@@ -790,6 +794,83 @@ fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+// --- CH-REP only (companies with only AR/IM roles, no MF/PR) ---
+
+fn run_ch_rep(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    let actor_values = download_all_pages_from(
+        "https://swissdamed.ch/public/act/actors",
+        "actors",
+        50,
+    )?;
+
+    // Group actorTypes by companyUid
+    let mut uid_roles: HashMap<String, HashSet<String>> = HashMap::new();
+    for v in &actor_values {
+        let uid = v.get("companyUid").and_then(|u| u.as_str()).unwrap_or("");
+        let role = v.get("actorType").and_then(|t| t.as_str()).unwrap_or("");
+        if !uid.is_empty() && !role.is_empty() {
+            uid_roles.entry(uid.to_string()).or_default().insert(role.to_string());
+        }
+    }
+
+    // Keep UIDs that have ONLY AR and/or IM roles
+    let ch_rep_uids: HashSet<String> = uid_roles
+        .into_iter()
+        .filter(|(_, roles)| {
+            !roles.is_empty()
+                && roles.iter().all(|r| r == "AR" || r == "IM")
+        })
+        .map(|(uid, _)| uid)
+        .collect();
+
+    eprintln!(
+        "Found {} CH-REP only companies (AR/IM only, no MF/PR) out of all actors.",
+        ch_rep_uids.len()
+    );
+
+    // Filter actor rows to only those UIDs
+    let filtered: Vec<&Value> = actor_values
+        .iter()
+        .filter(|v| {
+            v.get("companyUid")
+                .and_then(|u| u.as_str())
+                .map(|uid| ch_rep_uids.contains(uid))
+                .unwrap_or(false)
+        })
+        .collect();
+
+    let filtered_owned: Vec<Value> = filtered.into_iter().cloned().collect();
+    let headers = collect_flat_headers(&filtered_owned);
+    let rows = build_flat_rows(&filtered_owned, &headers);
+
+    eprintln!(
+        "CH-REP output: {} rows with {} columns.",
+        rows.len(),
+        headers.len()
+    );
+
+    let (do_csv, do_sqlite) = if !args.csv && !args.sqlite {
+        (true, true)
+    } else {
+        (args.csv, args.sqlite)
+    };
+
+    let name = "ch_rep";
+    if do_csv {
+        let filename = output_csv(name);
+        write_csv(&headers, &rows, &filename)?;
+        eprintln!("CSV written: {}", filename);
+    }
+
+    if do_sqlite {
+        let filename = output_db(name);
+        write_sqlite_table(&headers, &rows, &filename, name)?;
+        eprintln!("SQLite written: {}", filename);
+    }
+
+    Ok(())
+}
+
 // --- AR mandates (join AR actors with their mandates + detail) ---
 
 /// Flatten a mandate detail JSON into a stable set of key-value pairs.
@@ -1050,6 +1131,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --migel mode
     if args.migel {
         return run_migel(&args);
+    }
+
+    // Handle --ch-rep mode
+    if args.ch_rep {
+        return run_ch_rep(&args);
     }
 
     // Handle --ar-mandates mode
