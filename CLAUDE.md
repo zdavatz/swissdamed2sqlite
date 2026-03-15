@@ -52,12 +52,13 @@ Two-file application: `src/main.rs` (CLI, download, output) + `src/migel.rs` (Mi
 
 ## MiGeL Matching (src/migel.rs)
 
-Shared matching engine (identical to fb2sqlite). Key features:
+Shared matching engine (identical to fb2sqlite). 781 matches from ~6,931 rows. Key features:
 - **Aho-Corasick** automaton for single-pass candidate finding
 - **IDF-weighted ranking** (capped at 5.0) for choosing the best MiGeL code
-- **English-to-German enrichment**: ~60 medical terms translated (e.g., "knee" → "knie knieorthese"); context-aware: "ortho" + "rehab" → "spezialschuhe"
+- **English-to-German enrichment**: ~80 medical terms translated (e.g., "knee" → "knie knieorthese", "nebulizer" → "vernebler aerosol", "scoli" → "skoliose rumpf orthesen"); context-aware: "ortho" + "rehab" → "spezialschuhe"
 - **Category hierarchy keywords** from MiGeL XLSX parent categories
 - **Per-language scoring**: DE (suffix + fuzzy >= 6 chars + compound decomposition), FR/IT (exact word only)
 - **Precision filters**: stop words, universal exclusions (PTA/stent/ERCP/surgical gloves), negative keywords per MiGeL code, company exclusions (Varian, Sunstar)
 - **Thresholds**: 2+ keywords: score >= 0.3, max len >= 6; single keyword: score >= 0.5, len >= 8 (>= 0.7 for verbose)
 - swissdamed-specific: company exclusions for radiation therapy (Varian) and dental (Sunstar) in main.rs
+- Key matches: Künzli shoes (464), Aspen orthoses (272), PRIM (15), Angelini ThermaCare (14), O2 concentrators (4), nebulizers (2), CGM sensors (1), condoms (2), prosthetics (1)
