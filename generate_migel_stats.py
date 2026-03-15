@@ -83,7 +83,7 @@ timestamp_display = now.strftime('%Hh%M-%d.%m.%Y')
 timestamp_file = now.strftime('%Hh%M.%d.%m.%Y')
 
 fig.suptitle('swissdamed MiGeL Matching Results',
-             fontsize=25, fontweight='bold', color=accent, y=0.96)
+             fontsize=25, fontweight='bold', color=accent, y=0.98)
 fig.text(0.95, 0.02, timestamp_display, ha='right', fontsize=13, color=text_color)
 
 # --- Top left: Key metrics ---
@@ -113,8 +113,23 @@ ax1.text(0.05, 1.05, 'Key Metrics', fontsize=17, fontweight='bold',
 ax2 = fig.add_subplot(gs[0, 1])
 ax2.set_facecolor(bg_color)
 
-company_names = [r[0] for r in company_rows]
-company_values = [r[1] for r in company_rows]
+# Group small companies (< 1.5% of total) into "Other"
+threshold = total_matched * 0.015
+main_names = []
+main_values = []
+other_total = 0
+for name, val in zip([r[0] for r in company_rows], [r[1] for r in company_rows]):
+    if val >= threshold:
+        main_names.append(name)
+        main_values.append(val)
+    else:
+        other_total += val
+if other_total > 0:
+    main_names.append('Other')
+    main_values.append(other_total)
+
+company_names = main_names
+company_values = main_values
 colors = company_colors[:len(company_names)]
 
 def short_name(name):
@@ -125,12 +140,12 @@ def short_name(name):
 wedges, texts, autotexts = ax2.pie(
     company_values, labels=None, autopct='%1.0f%%',
     colors=colors, startangle=90,
-    pctdistance=0.78, wedgeprops=dict(width=0.45, edgecolor=bg_color, linewidth=2)
+    pctdistance=0.78, wedgeprops=dict(width=0.45, edgecolor=bg_color, linewidth=3)
 )
 for t in autotexts:
     t.set_fontsize(12)
     t.set_fontweight('bold')
-    t.set_color('#1a1a2e')
+    t.set_color('#e0e0e0')
 # Hide small percentages
 for t, v in zip(autotexts, company_values):
     if v / total_matched < 0.03:
@@ -140,7 +155,7 @@ ax2.text(0, 0, f'{total_matched}\nmatches', ha='center', va='center',
          fontsize=17, fontweight='bold', color=accent)
 
 ax2.set_title('Matches by Company', fontsize=17, fontweight='bold',
-              color=title_color, pad=12)
+              color=title_color, pad=20)
 
 legend = ax2.legend(
     [mpatches.Patch(facecolor=c, edgecolor=bg_color) for c in colors],
