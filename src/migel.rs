@@ -139,6 +139,36 @@ const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     ("infusion", &["infusion", "infusionsset"]),
     ("injection", &["injektion"]),
     ("pump", &["pumpe"]),
+    // Ankle/foot
+    ("ankle-foot", &["sprunggelenk", "fussorthese", "unterschenkel"]),
+    ("scoliosis", &["skoliose", "rumpf", "orthesen"]),
+    ("scoli", &["skoliose", "rumpf", "orthesen"]),
+    ("tlso", &["rumpf", "orthesen", "thorakolumbal"]),
+    ("sacroiliac", &["iliosakral"]),
+    // Glucose monitoring
+    ("glucose", &["glukose", "blutzucker"]),
+    ("monitoring", &["ueberwachung", "monitoring"]),
+    ("continuous", &["kontinuierlich"]),
+    ("sensor", &["sensor", "sensoren"]),
+    // Nebulizer / aerosol
+    ("nebulizer", &["vernebler", "inhalationsgeraet", "aerosol"]),
+    ("nebuliser", &["vernebler", "inhalationsgeraet", "aerosol"]),
+    ("aerosol", &["aerosol", "vernebler"]),
+    ("mesh", &["netz"]),
+    // Condoms
+    ("condom", &["kondom", "praservativ"]),
+    // Stimulation / TENS
+    ("stimulator", &["stimulator", "stimulationsgeraet"]),
+    ("stimulation", &["stimulation"]),
+    ("electrode", &["elektrode"]),
+    ("transcranial", &["transkraniell"]),
+    // Cotton / wound care basics
+    ("cotton", &["watte", "baumwolle"]),
+    // Auto-injector
+    ("injector", &["injektor", "injektionshilfe"]),
+    ("auto-injector", &["injektionshilfe", "pen"]),
+    // Elbow
+    ("cuff", &["manschette", "bandage"]),
     // General
     ("glove", &["handschuh"]),
     ("wheelchair", &["rollstuhl"]),
