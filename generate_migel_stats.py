@@ -45,12 +45,13 @@ migel_rows = conn.execute(
 conn.close()
 
 # --- Build chart ---
-fig = plt.figure(figsize=(16, 9), facecolor='#ffffff')
-gs = GridSpec(2, 2, figure=fig, hspace=0.35, wspace=0.3,
-             left=0.08, right=0.95, top=0.88, bottom=0.08)
+fig = plt.figure(figsize=(16, 12), facecolor='#ffffff')
+gs = GridSpec(2, 2, figure=fig, hspace=0.55, wspace=0.3,
+             left=0.08, right=0.95, top=0.91, bottom=0.06)
 
 now = datetime.now()
-timestamp = now.strftime('%Hh%M-%d.%m.%Y')
+timestamp_display = now.strftime('%Hh%M-%d.%m.%Y')
+timestamp_file = now.strftime('%M_%H.%d.%m.%Y')
 title_color = '#222222'
 text_color = '#444444'
 accent = '#2e7d32'  # green accent for MiGeL
@@ -63,7 +64,7 @@ company_colors = [
 
 fig.suptitle('swissdamed MiGeL Matching Results',
              fontsize=22, fontweight='bold', color=accent, y=0.96)
-fig.text(0.95, 0.02, timestamp, ha='right', fontsize=10, color=text_color)
+fig.text(0.95, 0.02, timestamp_display, ha='right', fontsize=10, color=text_color)
 
 # --- Top left: Key metrics ---
 ax1 = fig.add_subplot(gs[0, 0])
@@ -124,7 +125,7 @@ ax2.set_title('Matches by Company', fontsize=14, fontweight='bold',
 legend = ax2.legend(
     [mpatches.Patch(facecolor=c, edgecolor='#ffffff') for c in colors],
     [f'{short_name(n)}  ({v:,})' for n, v in zip(company_names, company_values)],
-    loc='lower center', bbox_to_anchor=(0.5, -0.22),
+    loc='lower center', bbox_to_anchor=(0.5, -0.30),
     ncol=2, fontsize=9, frameon=False,
 )
 for t in legend.get_texts():
@@ -172,7 +173,7 @@ ax3.spines['bottom'].set_color('#ccc')
 ax3.spines['left'].set_visible(False)
 ax3.xaxis.set_visible(False)
 
-output_ts = f'swissdamed_migel_stats_{timestamp}.png'
+output_ts = f'swissdamed_migel_stats_{timestamp_file}.png'
 output_stable = 'swissdamed_migel_stats.png'
 plt.savefig(output_ts, dpi=150, facecolor=fig.get_facecolor())
 plt.savefig(output_stable, dpi=150, facecolor=fig.get_facecolor())
