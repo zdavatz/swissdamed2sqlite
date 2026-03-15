@@ -78,7 +78,11 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - **AR Mandates** — joins AR-type actors with their mandates into a single table (`ar_mandates`) with `actor_`/`mandate_` prefixed columns. Fetches full mandate details (SRN, mandateType, validFrom/validTo, full address) via the `/public/act/mandates/{id}` detail endpoint
 - **CH-REP** — filters actors to companies that only have AR and/or IM roles (no MF or PR under the same `companyUid`). Useful for identifying CH-REP only companies
 - **Diff** — compares two CSVs by `udiDiCode`, outputs to `diff/diff_swissdamed_DD.MM.YYYY_DD.MM.YYYY.csv` with a `diff_status` column (`added`, `removed`, `changed_old`, `changed_new`)
-- **MiGeL** — matches UDI devices against MiGeL (Mittel- und Gegenständeliste) codes. 781 matches from ~6,931 rows including: Künzli orthopedic shoes (464), Aspen braces/orthoses (272), PRIM shoulder orthoses (15), Angelini ThermaCare (14), portable oxygen concentrators (4), nebulizers (2), CGM glucose sensors (1), condoms (2), prosthetics (1). Uses Aho-Corasick candidate finding, IDF-weighted multi-language scoring, English-to-German medical term translation (~80 terms with context-aware combinations like "ortho"+"rehab"→"spezialschuhe"), and precision filters (company exclusions for radiation therapy/dental/surgical equipment). Output: `db/swissdamed_migel_DD.MM.YYYY.db`
+- **MiGeL** — matches UDI devices against MiGeL (Mittel- und Gegenständeliste) codes. Uses Aho-Corasick candidate finding, IDF-weighted multi-language scoring, English-to-German medical term translation (~80 terms with context-aware combinations like "ortho"+"rehab"→"spezialschuhe"), and precision filters. Output: `db/swissdamed_migel_DD.MM.YYYY.db`. Auto-generates a stats PNG after each run.
+
+### MiGeL Matching Results
+
+![MiGeL Matching Stats](swissdamed_migel_stats.png)
 
 ## Dependencies
 

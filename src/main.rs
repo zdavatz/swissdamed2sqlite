@@ -808,6 +808,17 @@ fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     write_sqlite(&migel_headers, &matched_rows, &db_filename)?;
     eprintln!("SQLite written: {}", db_filename);
 
+    // 7. Generate stats PNG
+    let python = "/opt/homebrew/Cellar/python-matplotlib/3.10.8/libexec/bin/python3";
+    let script = "generate_migel_stats.py";
+    if std::path::Path::new(script).exists() && std::path::Path::new(python).exists() {
+        match std::process::Command::new(python).arg(script).status() {
+            Ok(s) if s.success() => {}
+            Ok(s) => eprintln!("Stats script exited with: {:?}", s.code()),
+            Err(e) => eprintln!("Could not run stats script: {}", e),
+        }
+    }
+
     Ok(())
 }
 
