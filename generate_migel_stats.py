@@ -51,7 +51,7 @@ gs = GridSpec(2, 2, figure=fig, hspace=0.55, wspace=0.3,
 
 now = datetime.now()
 timestamp_display = now.strftime('%Hh%M-%d.%m.%Y')
-timestamp_file = now.strftime('%M_%H.%d.%m.%Y')
+timestamp_file = now.strftime('%Hh%M.%d.%m.%Y')
 title_color = '#222222'
 text_color = '#444444'
 accent = '#2e7d32'  # green accent for MiGeL
