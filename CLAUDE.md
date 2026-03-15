@@ -62,3 +62,4 @@ Shared matching engine (identical to fb2sqlite). 781 matches from ~6,931 rows. K
 - **Thresholds**: 2+ keywords: score >= 0.3, max len >= 6; single keyword: score >= 0.5, len >= 8 (>= 0.7 for verbose)
 - swissdamed-specific: company exclusions for radiation therapy (Varian) and dental (Sunstar) in main.rs
 - Key matches: Künzli shoes (464), Aspen orthoses (272), PRIM (15), Angelini ThermaCare (14), O2 concentrators (4), nebulizers (2), CGM sensors (1), condoms (2), prosthetics (1)
+- Auto-generates `swissdamed_migel_stats.png` dashboard after each run (via `generate_migel_stats.py`, matplotlib). Timestamped copies saved as `swissdamed_migel_stats_hhHmm.dd.mm.yyyy.png`
