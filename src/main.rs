@@ -3,7 +3,7 @@ mod migel;
 use chrono::Local;
 use clap::Parser;
 use csv::WriterBuilder;
-use migel::{build_keyword_index, find_best_migel_match, parse_migel_items};
+use migel::{build_search_index, find_best_migel_match, parse_migel_items};
 use rayon::prelude::*;
 use rusqlite::Connection;
 use serde_json::Value;
@@ -698,8 +698,8 @@ fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let migel_items = parse_migel_items(migel_file)?;
     eprintln!("Found {} MiGel items with position numbers", migel_items.len());
 
-    let keyword_index = build_keyword_index(&migel_items);
-    eprintln!("Built keyword index with {} unique keywords", keyword_index.len());
+    let search_index = build_search_index(&migel_items);
+    eprintln!("Built Aho-Corasick search index");
 
     // 4. Find column indices for matching — collect ALL tradeName columns
     let trade_name_indices: Vec<(String, usize)> = headers
@@ -718,9 +718,26 @@ fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     migel_headers.push("migel_bezeichnung".to_string());
     migel_headers.push("migel_limitation".to_string());
 
+    // Companies whose products are not MiGeL patient-facing devices
+    let excluded_companies: &[&str] = &[
+        "Varian Medical Systems Inc",   // Radiation therapy / brachytherapy
+        "Varian Medical Systems Inc.",
+        "Sunstar Europe SA",            // Dental products (GUM brand)
+    ];
+    let idx_company = headers.iter().position(|h| h == "companyName");
+
     let matched_rows: Vec<Vec<String>> = rows
         .par_iter()
         .filter_map(|row| {
+            // Skip excluded companies
+            if let Some(ci) = idx_company {
+                if let Some(company) = row.get(ci) {
+                    if excluded_companies.contains(&company.as_str()) {
+                        return None;
+                    }
+                }
+            }
+
             // Combine all tradeName columns into DE/FR/IT buckets for matching.
             // ANY and EN text is added to all three language descriptions so that
             // products with only tradeName_ANY or tradeName_EN can still match.
@@ -763,7 +780,7 @@ fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             let brand = idx_brand.and_then(|i| row.get(i)).cloned().unwrap_or_default();
 
             find_best_migel_match(
-                &desc_de, &desc_fr, &desc_it, &brand, &migel_items, &keyword_index,
+                &desc_de, &desc_fr, &desc_it, &brand, &migel_items, &search_index,
             )
             .map(|migel| {
                 let mut matched_row = row.clone();
