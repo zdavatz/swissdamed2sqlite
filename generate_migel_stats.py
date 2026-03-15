@@ -208,9 +208,28 @@ ax3.spines['left'].set_visible(False)
 ax3.xaxis.set_visible(False)
 
 output_ts = f'swissdamed_migel_stats_{timestamp_file}.png'
-output_stable = 'swissdamed_migel_stats.png'
 plt.savefig(output_ts, dpi=150, facecolor=fig.get_facecolor())
-plt.savefig(output_stable, dpi=150, facecolor=fig.get_facecolor())
 plt.close()
 print(f'Saved {output_ts}')
-print(f'Saved {output_stable}')
+
+# Update README.md to reference the new timestamped PNG
+import re, os
+readme_path = 'README.md'
+if os.path.exists(readme_path):
+    with open(readme_path, 'r') as f:
+        content = f.read()
+    new_content = re.sub(
+        r'!\[MiGeL Matching Stats\]\(swissdamed_migel_stats[^)]*\.png\)',
+        f'![MiGeL Matching Stats]({output_ts})',
+        content
+    )
+    if new_content != content:
+        with open(readme_path, 'w') as f:
+            f.write(new_content)
+        print(f'Updated README.md -> {output_ts}')
+
+# Remove old timestamped PNGs (keep only the latest)
+for old in glob.glob('swissdamed_migel_stats_*.png'):
+    if old != output_ts:
+        os.remove(old)
+        print(f'Removed old {old}')
