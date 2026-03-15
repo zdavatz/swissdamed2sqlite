@@ -51,6 +51,10 @@ swissdamed2sqlite --ar-mandates
 # CH-REP only companies (only AR/IM roles, no MF/PR under same UID)
 swissdamed2sqlite --ch-rep
 
+# MiGeL matching — map UDI devices to MiGeL codes
+swissdamed2sqlite --migel
+swissdamed2sqlite --migel --deploy
+
 # Diff two CSV files (output to diff/ folder)
 swissdamed2sqlite --diff csv/swissdamed_24.02.2026.csv csv/swissdamed_25.02.2026.csv
 ```
@@ -74,6 +78,20 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - **AR Mandates** — joins AR-type actors with their mandates into a single table (`ar_mandates`) with `actor_`/`mandate_` prefixed columns. Fetches full mandate details (SRN, mandateType, validFrom/validTo, full address) via the `/public/act/mandates/{id}` detail endpoint
 - **CH-REP** — filters actors to companies that only have AR and/or IM roles (no MF or PR under the same `companyUid`). Useful for identifying CH-REP only companies
 - **Diff** — compares two CSVs by `udiDiCode`, outputs to `diff/diff_swissdamed_DD.MM.YYYY_DD.MM.YYYY.csv` with a `diff_status` column (`added`, `removed`, `changed_old`, `changed_new`)
+- **MiGeL** — matches UDI devices against MiGeL (Mittel- und Gegenständeliste) codes using Aho-Corasick candidate finding, IDF-weighted multi-language keyword scoring, English-to-German medical term translation (~60 terms), compound word decomposition, phrase matching, and precision filters (stop words, universal exclusions, negative keywords per MiGeL code, company exclusions). Output: `db/swissdamed_migel_DD.MM.YYYY.db` with `migel_code`, `migel_bezeichnung`, `migel_limitation` columns
+
+## Dependencies
+
+- [reqwest](https://crates.io/crates/reqwest) — HTTP client (blocking, JSON, cookies)
+- [serde](https://crates.io/crates/serde) / [serde_json](https://crates.io/crates/serde_json) — JSON parsing
+- [csv](https://crates.io/crates/csv) — CSV output
+- [rusqlite](https://crates.io/crates/rusqlite) — SQLite (bundled)
+- [calamine](https://crates.io/crates/calamine) — XLSX parsing (MiGeL)
+- [rayon](https://crates.io/crates/rayon) — Parallel matching
+- [clap](https://crates.io/crates/clap) — CLI argument parsing
+- [chrono](https://crates.io/crates/chrono) — Date/time formatting
+- [aho-corasick](https://crates.io/crates/aho-corasick) — Multi-pattern string matching
+- [unicode-normalization](https://crates.io/crates/unicode-normalization) — Unicode NFC normalization
 
 ## License
 
