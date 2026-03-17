@@ -22,6 +22,8 @@ cargo run -- --mandates              # download mandates (CSV + SQLite)
 cargo run -- --actors --mandates     # download both
 cargo run -- --ar-mandates           # join AR actors with their mandates
 cargo run -- --ch-rep                # CH-REP only companies (only AR/IM, no MF/PR)
+cargo run -- --ch-rep-mandates       # CH-REP companies ranked by mandate count
+cargo run -- --ch-rep-mandates --ar-only  # AR-only CH-REPs ranked by mandate count
 cargo run -- --migel                 # match UDI devices to MiGeL codes
 cargo run -- --migel --deploy        # match and deploy to remote server
 ```
@@ -32,7 +34,7 @@ No tests exist. No linter/formatter configuration — use `cargo fmt` and `cargo
 
 Two-file application: `src/main.rs` (CLI, download, output) + `src/migel.rs` (MiGeL matching engine, shared with fb2sqlite). Key flow:
 
-1. **CLI parsing** — `clap` derive API (`Args` struct). Flags: `--csv`, `--sqlite`, `--file`, `--page-size`, `--deploy`, `--scp`, `--diff`, `--actors`, `--mandates`, `--ar-mandates`, `--ch-rep`. If neither `--csv` nor `--sqlite` is given, both are produced. `--deploy` implies `--sqlite`. `--diff` takes two CSV paths and skips download/export.
+1. **CLI parsing** — `clap` derive API (`Args` struct). Flags: `--csv`, `--sqlite`, `--file`, `--page-size`, `--deploy`, `--scp`, `--diff`, `--actors`, `--mandates`, `--ar-mandates`, `--ch-rep`, `--ch-rep-mandates`, `--ar-only`. If neither `--csv` nor `--sqlite` is given, both are produced. `--deploy` implies `--sqlite`. `--diff` takes two CSV paths and skips download/export.
 2. **Data acquisition** — `download_all_pages_from(base_url, label, page_size)` paginates POST requests to the swissdamed.ch public API, or `load_json_file()` reads a local JSON file. Three endpoints: UDI (`/public/udi/basic-udis`), actors (`/public/act/actors`), mandates (`/public/act/mandates`).
 3. **Schema discovery** — `collect_headers()` for UDI (flattens `udiDis` nested array), `collect_flat_headers()` for actors/mandates (flat JSON).
 4. **Row building** — `build_rows()` for UDI (one row per udiDis entry), `build_flat_rows()` for actors/mandates.
@@ -42,6 +44,7 @@ Two-file application: `src/main.rs` (CLI, download, output) + `src/migel.rs` (Mi
 8. **Actors/Mandates** — `download_and_export()` handles flat data download and export for actors and mandates endpoints.
 9. **CH-REP** — `run_ch_rep()` downloads all actors, groups by `companyUid`, keeps only companies where all roles are AR and/or IM (no MF or PR under the same UID). Outputs filtered actor rows.
 10. **AR Mandates** — `run_ar_mandates()` downloads both actors and mandates, filters AR-type actors, fetches individual mandate details via `/public/act/mandates/{id}` (provides SRN, mandateType, validFrom/validTo, full address), and produces a joined output with `actor_`/`mandate_` prefixed columns.
+11. **CH-REP Mandates** — `run_ch_rep_mandates()` downloads actors and mandates, counts mandates per CH-REP company, outputs a ranked list (rank, companyName, companyUid, city, country, mandate_count). `--ar-only` restricts to companies with AR role (true CH-REPs, ~1,109 companies) vs all AR/IM companies (~2,271).
 
 ## Key Details
 

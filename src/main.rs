@@ -63,6 +63,14 @@ struct Args {
     /// CH-REP only: companies with only AR/IM roles (no MF or PR under same UID)
     #[arg(long)]
     ch_rep: bool,
+
+    /// CH-REP companies ranked by number of mandates
+    #[arg(long)]
+    ch_rep_mandates: bool,
+
+    /// Restrict --ch-rep-mandates to AR role only (true CH-REPs)
+    #[arg(long)]
+    ar_only: bool,
 }
 
 fn date_stamp() -> String {
@@ -899,6 +907,164 @@ fn run_ch_rep(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+// --- CH-REP mandate count ranking ---
+
+fn run_ch_rep_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    // 1. Download actors
+    let actor_values = download_all_pages_from(
+        "https://swissdamed.ch/public/act/actors",
+        "actors",
+        50,
+    )?;
+
+    // 2. Identify CH-REP UIDs
+    let mut uid_roles: HashMap<String, HashSet<String>> = HashMap::new();
+    for v in &actor_values {
+        let uid = v.get("companyUid").and_then(|u| u.as_str()).unwrap_or("");
+        let role = v.get("actorType").and_then(|t| t.as_str()).unwrap_or("");
+        if !uid.is_empty() && !role.is_empty() {
+            uid_roles.entry(uid.to_string()).or_default().insert(role.to_string());
+        }
+    }
+
+    let ch_rep_uids: HashSet<String> = if args.ar_only {
+        // --ar-only: UIDs that have an AR role (and no MF/PR)
+        uid_roles
+            .into_iter()
+            .filter(|(_, roles)| {
+                roles.contains("AR")
+                    && roles.iter().all(|r| r == "AR" || r == "IM")
+            })
+            .map(|(uid, _)| uid)
+            .collect()
+    } else {
+        // Default: all UIDs with only AR/IM roles
+        uid_roles
+            .into_iter()
+            .filter(|(_, roles)| {
+                !roles.is_empty()
+                    && roles.iter().all(|r| r == "AR" || r == "IM")
+            })
+            .map(|(uid, _)| uid)
+            .collect()
+    };
+
+    let mode_label = if args.ar_only { "AR-only" } else { "AR/IM" };
+    eprintln!(
+        "Found {} CH-REP companies ({}).",
+        ch_rep_uids.len(), mode_label
+    );
+
+    // 3. Build actor_id -> companyUid lookup (for CH-REP actors only)
+    //    With --ar-only, only map AR actor entries (not IM) so mandate count is accurate
+    let mut actor_id_to_uid: HashMap<String, String> = HashMap::new();
+    let mut uid_to_info: HashMap<String, (String, String, String)> = HashMap::new(); // uid -> (companyName, city, country)
+    for v in &actor_values {
+        let uid = v.get("companyUid").and_then(|u| u.as_str()).unwrap_or("");
+        if !ch_rep_uids.contains(uid) {
+            continue;
+        }
+        let role = v.get("actorType").and_then(|t| t.as_str()).unwrap_or("");
+        if args.ar_only && role != "AR" {
+            continue;
+        }
+        if let Some(actor_id) = v.get("id").and_then(|id| id.as_str()) {
+            actor_id_to_uid.insert(actor_id.to_string(), uid.to_string());
+        }
+        uid_to_info.entry(uid.to_string()).or_insert_with(|| {
+            let name = v.get("companyName").and_then(|n| n.as_str()).unwrap_or("").to_string();
+            let city = v.get("city").and_then(|c| c.as_str()).unwrap_or("").to_string();
+            let country = v.get("country").and_then(|c| c.as_str()).unwrap_or("").to_string();
+            (name, city, country)
+        });
+    }
+
+    // 4. Download mandates and count per CH-REP company
+    let mandate_values = download_all_pages_from(
+        "https://swissdamed.ch/public/act/mandates",
+        "mandates",
+        50,
+    )?;
+
+    let mut uid_mandate_count: HashMap<String, u32> = HashMap::new();
+    for m in &mandate_values {
+        let actor_id = m.get("actorId").and_then(|v| v.as_str()).unwrap_or("");
+        if let Some(uid) = actor_id_to_uid.get(actor_id) {
+            *uid_mandate_count.entry(uid.clone()).or_insert(0) += 1;
+        }
+    }
+
+    // 5. Build rows sorted by mandate count descending
+    let mut ranked: Vec<(String, String, String, String, u32)> = uid_to_info
+        .iter()
+        .map(|(uid, (name, city, country))| {
+            let count = uid_mandate_count.get(uid).copied().unwrap_or(0);
+            (name.clone(), uid.clone(), city.clone(), country.clone(), count)
+        })
+        .collect();
+    ranked.sort_by(|a, b| b.4.cmp(&a.4).then(a.0.cmp(&b.0)));
+
+    // Add rank column
+    let headers = vec![
+        "rank".to_string(),
+        "companyName".to_string(),
+        "companyUid".to_string(),
+        "city".to_string(),
+        "country".to_string(),
+        "mandate_count".to_string(),
+    ];
+
+    let rows: Vec<Vec<String>> = ranked
+        .iter()
+        .enumerate()
+        .map(|(i, (name, uid, city, country, count))| {
+            vec![
+                (i + 1).to_string(),
+                name.clone(),
+                uid.clone(),
+                city.clone(),
+                country.clone(),
+                count.to_string(),
+            ]
+        })
+        .collect();
+
+    eprintln!(
+        "CH-REP mandate ranking: {} companies, {} total mandates.",
+        rows.len(),
+        ranked.iter().map(|r| r.4).sum::<u32>()
+    );
+
+    // Print top 20 to stderr
+    eprintln!("\nTop 20 CH-REP by mandate count:");
+    eprintln!("{:<4} {:<50} {:>6}", "Rank", "Company", "Mandates");
+    eprintln!("{}", "-".repeat(62));
+    for (i, (name, _, _, _, count)) in ranked.iter().take(20).enumerate() {
+        eprintln!("{:<4} {:<50} {:>6}", i + 1, name, count);
+    }
+
+    let (do_csv, do_sqlite) = if !args.csv && !args.sqlite {
+        (true, true)
+    } else {
+        (args.csv, args.sqlite)
+    };
+
+    let name = if args.ar_only { "ch_rep_mandates_ar_only" } else { "ch_rep_mandates" };
+    if do_csv {
+        let filename = output_csv(name);
+        write_csv(&headers, &rows, &filename)?;
+        eprintln!("CSV written: {}", filename);
+    }
+
+    if do_sqlite {
+        let filename = output_db(name);
+        write_sqlite_table(&headers, &rows, &filename, name)?;
+        eprintln!("SQLite written: {}", filename);
+    }
+
+    Ok(())
+}
+
 // --- AR mandates (join AR actors with their mandates + detail) ---
 
 /// Flatten a mandate detail JSON into a stable set of key-value pairs.
@@ -1164,6 +1330,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --ch-rep mode
     if args.ch_rep {
         return run_ch_rep(&args);
+    }
+
+    // Handle --ch-rep-mandates mode
+    if args.ch_rep_mandates {
+        return run_ch_rep_mandates(&args);
     }
 
     // Handle --ar-mandates mode
