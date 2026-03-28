@@ -71,6 +71,10 @@ struct Args {
     /// Restrict --ch-rep-mandates to AR role only (true CH-REPs)
     #[arg(long)]
     ar_only: bool,
+
+    /// Look up all SRNs for a given CHRN (e.g. CHRN-AR-20000807)
+    #[arg(long)]
+    lookup_chrn: Option<String>,
 }
 
 fn date_stamp() -> String {
@@ -1065,6 +1069,153 @@ fn run_ch_rep_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+// --- Lookup CHRN → SRNs ---
+
+fn run_lookup_chrn(chrn: &str) -> Result<(), Box<dyn std::error::Error>> {
+    // 1. Download actors
+    let actor_values = download_all_pages_from(
+        "https://swissdamed.ch/public/act/actors",
+        "actors",
+        50,
+    )?;
+
+    // 2. Find actor(s) matching the CHRN by actorNumber
+    let matching_actors: Vec<&Value> = actor_values
+        .iter()
+        .filter(|v| v.get("chrn").and_then(|n| n.as_str()) == Some(chrn))
+        .collect();
+
+    if matching_actors.is_empty() {
+        eprintln!("No actor found with actorNumber = {}", chrn);
+        return Ok(());
+    }
+
+    eprintln!(
+        "Found {} actor record(s) for {}.",
+        matching_actors.len(),
+        chrn
+    );
+
+    // Collect actor IDs
+    let actor_ids: HashSet<String> = matching_actors
+        .iter()
+        .filter_map(|v| v.get("id").and_then(|id| id.as_str()).map(|s| s.to_string()))
+        .collect();
+
+    // 3. Download mandates
+    let mandate_values = download_all_pages_from(
+        "https://swissdamed.ch/public/act/mandates",
+        "mandates",
+        50,
+    )?;
+
+    // 4. Filter mandates belonging to this actor
+    let matching_mandate_ids: Vec<(String, String)> = mandate_values
+        .iter()
+        .filter_map(|m| {
+            let actor_id = m.get("actorId").and_then(|v| v.as_str())?;
+            if !actor_ids.contains(actor_id) {
+                return None;
+            }
+            let mandate_id = m.get("id").and_then(|v| v.as_str())?;
+            Some((actor_id.to_string(), mandate_id.to_string()))
+        })
+        .collect();
+
+    if matching_mandate_ids.is_empty() {
+        eprintln!("No mandates found for {}.", chrn);
+        return Ok(());
+    }
+
+    eprintln!(
+        "Fetching details for {} mandates of {} ...",
+        matching_mandate_ids.len(),
+        chrn
+    );
+
+    // 5. Fetch mandate details
+    let client = reqwest::blocking::Client::builder()
+        .cookie_store(true)
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
+        .build()?;
+
+    let ids_only: Vec<String> = matching_mandate_ids.iter().map(|(_, mid)| mid.clone()).collect();
+    let details = fetch_mandate_details(&client, &ids_only)?;
+
+    // 6. Build headers from actor fields + flattened detail fields
+    let actor_headers = collect_flat_headers(&actor_values);
+
+    let mut detail_key_set = BTreeSet::new();
+    let mut detail_key_order: Vec<String> = Vec::new();
+    for detail in &details {
+        for (key, _) in flatten_mandate_detail(detail) {
+            if detail_key_set.insert(key.clone()) {
+                detail_key_order.push(key);
+            }
+        }
+    }
+
+    let mut joined_headers: Vec<String> = actor_headers
+        .iter()
+        .map(|h| format!("actor_{}", h))
+        .collect();
+    for key in &detail_key_order {
+        if key == "actorId" || key.starts_with("actorInfo_") {
+            continue;
+        }
+        joined_headers.push(format!("mandate_{}", key));
+    }
+
+    // 7. Build joined rows
+    let actor_map: HashMap<String, &Value> = matching_actors
+        .iter()
+        .filter_map(|v| {
+            v.get("id")
+                .and_then(|id| id.as_str())
+                .map(|id| (id.to_string(), *v))
+        })
+        .collect();
+
+    let mut rows: Vec<Vec<String>> = Vec::new();
+    for (i, (actor_id, _)) in matching_mandate_ids.iter().enumerate() {
+        let actor = match actor_map.get(actor_id) {
+            Some(a) => a,
+            None => continue,
+        };
+        let detail = &details[i];
+        let detail_fields: HashMap<String, String> =
+            flatten_mandate_detail(detail).into_iter().collect();
+
+        let mut row: Vec<String> = actor_headers
+            .iter()
+            .map(|key| get_field(actor, key))
+            .collect();
+        for key in &detail_key_order {
+            if key == "actorId" || key.starts_with("actorInfo_") {
+                continue;
+            }
+            row.push(detail_fields.get(key).cloned().unwrap_or_default());
+        }
+        rows.push(row);
+    }
+
+    eprintln!(
+        "Found {} SRN rows for {} ({} columns).",
+        rows.len(),
+        chrn,
+        joined_headers.len()
+    );
+
+    // 8. Output CSV with timestamped filename: csv/CHRN-AR-20000807_14h30.28.03.2026.csv
+    fs::create_dir_all("csv").ok();
+    let timestamp = Local::now().format("%Hh%M.%d.%m.%Y").to_string();
+    let filename = format!("csv/{}_{}.csv", chrn, timestamp);
+    write_csv(&joined_headers, &rows, &filename)?;
+
+    Ok(())
+}
+
 // --- AR mandates (join AR actors with their mandates + detail) ---
 
 /// Flatten a mandate detail JSON into a stable set of key-value pairs.
@@ -1330,6 +1481,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --ch-rep mode
     if args.ch_rep {
         return run_ch_rep(&args);
+    }
+
+    // Handle --lookup-chrn mode
+    if let Some(ref chrn) = args.lookup_chrn {
+        return run_lookup_chrn(chrn);
     }
 
     // Handle --ch-rep-mandates mode
