@@ -107,6 +107,10 @@ struct Args {
     /// Rank companies by number of UDI products (descending)
     #[arg(long)]
     company_ranking: bool,
+
+    /// Export unique SRNs with manufacturer and mandate holder info
+    #[arg(long)]
+    unique_srns: bool,
 }
 
 fn date_stamp() -> String {
@@ -1481,6 +1485,138 @@ fn run_company_ranking(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+// --- Unique SRNs export ---
+
+fn run_unique_srns(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    // Download actors
+    let actors = download_all_pages_from("https://swissdamed.ch/public/act/actors", "actors", 50)?;
+    let actor_headers = collect_flat_headers(&actors);
+    let actor_rows = build_flat_rows(&actors, &actor_headers);
+
+    // Build actor lookup by id -> (chrn, companyName, companyUid)
+    let id_idx = actor_headers.iter().position(|h| h == "id");
+    let chrn_idx = actor_headers.iter().position(|h| h == "chrn");
+    let name_idx = actor_headers.iter().position(|h| h == "companyName");
+    let uid_idx = actor_headers.iter().position(|h| h == "companyUid");
+    let type_idx = actor_headers.iter().position(|h| h == "actorType");
+
+    // Only AR actors
+    let mut actor_map: std::collections::HashMap<String, (String, String, String)> =
+        std::collections::HashMap::new();
+    for row in &actor_rows {
+        let actor_type = type_idx.and_then(|i| row.get(i)).map(|s| s.as_str()).unwrap_or("");
+        if actor_type != "AR" {
+            continue;
+        }
+        let id = id_idx.and_then(|i| row.get(i)).cloned().unwrap_or_default();
+        let chrn = chrn_idx.and_then(|i| row.get(i)).cloned().unwrap_or_default();
+        let name = name_idx.and_then(|i| row.get(i)).cloned().unwrap_or_default();
+        let uid = uid_idx.and_then(|i| row.get(i)).cloned().unwrap_or_default();
+        if !id.is_empty() {
+            actor_map.insert(id, (chrn, name, uid));
+        }
+    }
+
+    // Download mandates
+    let mandates = download_all_pages_from("https://swissdamed.ch/public/act/mandates", "mandates", 50)?;
+    let mandate_headers = collect_flat_headers(&mandates);
+    let mandate_rows = build_flat_rows(&mandates, &mandate_headers);
+
+    let m_id_idx = mandate_headers.iter().position(|h| h == "id");
+    let m_actor_idx = mandate_headers.iter().position(|h| h == "actorId");
+
+    // Filter mandates belonging to AR actors
+    let ar_mandate_ids: Vec<(String, String)> = mandate_rows
+        .iter()
+        .filter_map(|row| {
+            let mid = m_id_idx.and_then(|i| row.get(i))?.clone();
+            let aid = m_actor_idx.and_then(|i| row.get(i))?.clone();
+            if actor_map.contains_key(&aid) {
+                Some((mid, aid))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    eprintln!("Fetching details for {} AR mandates...", ar_mandate_ids.len());
+
+    let client = reqwest::blocking::Client::builder()
+        .cookie_store(true)
+        .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
+        .build()?;
+
+    // Fetch mandate details and collect unique SRNs
+    // Key: SRN -> (mandate_companyName, mandate_mandateType, mandate_country, actor_chrn, actor_companyName, actor_companyUid)
+    let mut srn_map: std::collections::HashMap<String, (String, String, String, String, String, String)> =
+        std::collections::HashMap::new();
+
+    for (i, (mid, aid)) in ar_mandate_ids.iter().enumerate() {
+        if (i + 1) % 50 == 0 || i + 1 == ar_mandate_ids.len() {
+            eprintln!("[mandate-details] Fetching {}/{} ...", i + 1, ar_mandate_ids.len());
+        }
+        let url = format!("https://swissdamed.ch/public/act/mandates/{}", mid);
+        let resp = client
+            .get(&url)
+            .header("Accept", "application/json")
+            .send();
+        if let Ok(resp) = resp {
+            if let Ok(detail) = resp.json::<Value>() {
+                let srn = detail.get("srn").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                if srn.is_empty() {
+                    continue;
+                }
+                let mfr_name = detail.get("companyName").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let mtype = detail.get("mandateType").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let country = detail.get("address")
+                    .and_then(|a| a.get("country"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let (actor_chrn, actor_name, actor_uid) = actor_map.get(aid)
+                    .cloned()
+                    .unwrap_or_default();
+                srn_map.entry(srn).or_insert((mfr_name, mtype, country, actor_chrn, actor_name, actor_uid));
+            }
+        }
+    }
+
+    // Sort by SRN
+    let mut sorted: Vec<_> = srn_map.into_iter().collect();
+    sorted.sort_by(|a, b| a.0.cmp(&b.0));
+
+    eprintln!("Unique SRNs: {}", sorted.len());
+
+    let out_headers = vec![
+        "srn".to_string(),
+        "manufacturer".to_string(),
+        "mandateType".to_string(),
+        "manufacturer_country".to_string(),
+        "mandate_holder_chrn".to_string(),
+        "mandate_holder_name".to_string(),
+        "mandate_holder_uid".to_string(),
+    ];
+    let out_rows: Vec<Vec<String>> = sorted
+        .iter()
+        .map(|(srn, (mfr, mtype, country, chrn, name, uid))| {
+            vec![srn.clone(), mfr.clone(), mtype.clone(), country.clone(), chrn.clone(), name.clone(), uid.clone()]
+        })
+        .collect();
+
+    let filename = output_csv("unique_srns");
+    write_csv(&out_headers, &out_rows, &filename)?;
+    eprintln!("CSV written: {}", filename);
+
+    if args.gdrive {
+        gdrive_upload_csv(args, &filename)?;
+    }
+    if let Some(ref to) = args.mailto {
+        send_email_with_attachment(args, &filename, to)?;
+    }
+
+    Ok(())
+}
+
 // --- Lookup CHRN → SRNs ---
 
 fn run_lookup_chrn(chrn: &str, args: &Args) -> Result<(), Box<dyn std::error::Error>> {
@@ -1913,6 +2049,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --company-ranking mode
     if args.company_ranking {
         return run_company_ranking(&args);
+    }
+
+    // Handle --unique-srns mode
+    if args.unique_srns {
+        return run_unique_srns(&args);
     }
 
     // Handle --ch-rep mode

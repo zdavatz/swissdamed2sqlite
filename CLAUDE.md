@@ -28,6 +28,7 @@ cargo run -- --migel                 # match UDI devices to MiGeL codes
 cargo run -- --migel --deploy        # match and deploy to remote server
 cargo run -- --lookup-chrn CHRN-AR-20000807  # find all SRNs for a given CHRN
 cargo run -- --company-ranking               # rank companies by product count
+cargo run -- --unique-srns                   # export all unique SRNs with manufacturer + mandate holder
 cargo run -- --csv --gdrive --gdrive-sub user@domain.com  # upload CSV to Google Drive
 cargo run -- --company-ranking --mailto "a@gs1.ch,b@gs1.ch" --mail-subject "Subject" --gdrive-sub user@domain.com  # email CSV
 ```
@@ -38,7 +39,7 @@ No tests exist. No linter/formatter configuration — use `cargo fmt` and `cargo
 
 Two-file application: `src/main.rs` (CLI, download, output) + `src/migel.rs` (MiGeL matching engine, shared with fb2sqlite). Key flow:
 
-1. **CLI parsing** — `clap` derive API (`Args` struct). Flags: `--csv`, `--sqlite`, `--file`, `--page-size`, `--deploy`, `--scp`, `--diff`, `--actors`, `--mandates`, `--ar-mandates`, `--ch-rep`, `--ch-rep-mandates`, `--ar-only`, `--lookup-chrn`, `--gdrive`, `--gdrive-folder`, `--gdrive-key`, `--gdrive-email`, `--gdrive-sub`, `--mailto`, `--mail-subject`, `--company-ranking`. If neither `--csv` nor `--sqlite` is given, both are produced. `--deploy` implies `--sqlite`. `--diff` takes two CSV paths and skips download/export.
+1. **CLI parsing** — `clap` derive API (`Args` struct). Flags: `--csv`, `--sqlite`, `--file`, `--page-size`, `--deploy`, `--scp`, `--diff`, `--actors`, `--mandates`, `--ar-mandates`, `--ch-rep`, `--ch-rep-mandates`, `--ar-only`, `--lookup-chrn`, `--gdrive`, `--gdrive-folder`, `--gdrive-key`, `--gdrive-email`, `--gdrive-sub`, `--mailto`, `--mail-subject`, `--company-ranking`, `--unique-srns`. If neither `--csv` nor `--sqlite` is given, both are produced. `--deploy` implies `--sqlite`. `--diff` takes two CSV paths and skips download/export.
 2. **Data acquisition** — `download_all_pages_from(base_url, label, page_size)` paginates POST requests to the swissdamed.ch public API, or `load_json_file()` reads a local JSON file. Three endpoints: UDI (`/public/udi/basic-udis`), actors (`/public/act/actors`), mandates (`/public/act/mandates`).
 3. **Schema discovery** — `collect_headers()` for UDI (flattens `udiDis` nested array), `collect_flat_headers()` for actors/mandates (flat JSON).
 4. **Row building** — `build_rows()` for UDI (one row per udiDis entry), `build_flat_rows()` for actors/mandates.
@@ -53,6 +54,7 @@ Two-file application: `src/main.rs` (CLI, download, output) + `src/migel.rs` (Mi
 13. **Google Drive upload** — `gdrive_upload_csv()` uploads CSV to Google Drive via service account .p12 key with domain-wide delegation. Uses JWT (RS256) auth, multipart/related upload to Drive API v3.
 14. **Email attachment** — `send_email_with_attachment()` sends CSV as email attachment via Gmail API. Uses same service account delegation with `gmail.send` scope. Builds RFC 2822 MIME message with base64-encoded attachment. Supports `--mail-subject` for custom subject and comma-separated `--mailto` for multiple recipients.
 15. **Company Ranking** — `run_company_ranking()` downloads UDI data, counts unique `udiDiCode` per `companyName`, outputs a ranked CSV (`csv/company_ranking_DD.MM.YYYY.csv`) with columns: rank, companyName, produkte. Supports `--mailto` and `--gdrive`.
+16. **Unique SRNs** — `run_unique_srns()` downloads actors and mandates, fetches mandate details for all AR actors, deduplicates by SRN, outputs `csv/unique_srns_DD.MM.YYYY.csv` with columns: srn, manufacturer, mandateType, manufacturer_country, mandate_holder_chrn, mandate_holder_name, mandate_holder_uid.
 
 ## Key Details
 

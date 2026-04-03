@@ -64,6 +64,10 @@ swissdamed2sqlite --lookup-chrn CHRN-AR-20000807
 swissdamed2sqlite --company-ranking
 swissdamed2sqlite --company-ranking --mailto recipient@example.com --gdrive-sub user@domain.com
 
+# Export unique SRNs with manufacturer and mandate holder info
+swissdamed2sqlite --unique-srns
+swissdamed2sqlite --unique-srns --mailto recipient@example.com --gdrive-sub user@domain.com
+
 # MiGeL matching — map UDI devices to MiGeL codes
 swissdamed2sqlite --migel
 swissdamed2sqlite --migel --deploy
@@ -92,6 +96,7 @@ Output files are date-stamped and organized into subdirectories:
 - CH-REP Mandates (AR-only): `csv/ch_rep_mandates_ar_only_25.02.2026.csv` / `db/ch_rep_mandates_ar_only_25.02.2026.db`
 - Lookup CHRN: `csv/CHRN-AR-20000807_14h30.28.03.2026.csv`
 - Company Ranking: `csv/company_ranking_03.04.2026.csv`
+- Unique SRNs: `csv/unique_srns_03.04.2026.csv`
 
 ## Output Format
 
@@ -107,6 +112,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - **CH-REP Mandates** — ranks CH-REP companies by number of mandates (SRNs). Columns: rank, companyName, companyUid, city, country, mandate_count. Use `--ar-only` to restrict to companies with AR role (true CH-REPs, ~1,109) vs all AR/IM (~2,271)
 - **Diff** — compares two CSVs by `udiDiCode`, outputs to `diff/diff_swissdamed_DD.MM.YYYY_DD.MM.YYYY.csv` with a `diff_status` column (`added`, `removed`, `changed_old`, `changed_new`)
 - **Company Ranking** — ranks all UDI companies by number of unique products (udiDiCode), outputs CSV with rank, companyName, produkte columns
+- **Unique SRNs** — exports all unique SRNs with manufacturer info (name, type, country) and mandate holder info (CHRN, name, UID). Columns: srn, manufacturer, mandateType, manufacturer_country, mandate_holder_chrn, mandate_holder_name, mandate_holder_uid
 - **Lookup CHRN** — finds all SRNs for a given CHRN (e.g. `CHRN-AR-20000807`). Downloads actors, matches by `chrn` field, fetches mandate details (which contain SRN), outputs timestamped CSV
 - **Google Drive** — uploads CSV to Google Drive using a service account .p12 key with domain-wide delegation (`--gdrive --gdrive-sub user@domain.com`)
 - **Email** — sends CSV as attachment via Gmail API using the same service account delegation (`--mailto recipient@example.com --gdrive-sub user@domain.com`)
