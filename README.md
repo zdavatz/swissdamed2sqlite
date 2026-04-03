@@ -96,7 +96,7 @@ Output files are date-stamped and organized into subdirectories:
 - CH-REP Mandates (AR-only): `csv/ch_rep_mandates_ar_only_25.02.2026.csv` / `db/ch_rep_mandates_ar_only_25.02.2026.db`
 - Lookup CHRN: `csv/CHRN-AR-20000807_14h30.28.03.2026.csv`
 - Company Ranking: `csv/company_ranking_03.04.2026.csv`
-- Unique SRNs: `csv/unique_srns_03.04.2026.csv`
+- Unique SRNs: `csv/unique_srns_03.04.2026.csv` (date-stamped), `csv/srn_unique.csv` (latest, checked into repo)
 
 ## Output Format
 

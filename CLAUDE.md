@@ -54,7 +54,7 @@ Three-file application: `src/main.rs` (CLI, download, output) + `src/migel.rs` (
 13. **Google Drive upload** — `gdrive_upload_csv()` uploads CSV to Google Drive via service account .p12 key with domain-wide delegation. Uses JWT (RS256) auth, multipart/related upload to Drive API v3.
 14. **Email attachment** — `send_email_with_attachment()` sends CSV as email attachment via Gmail API. Uses same service account delegation with `gmail.send` scope. Builds RFC 2822 MIME message with base64-encoded attachment. Supports `--mail-subject` for custom subject and comma-separated `--mailto` for multiple recipients.
 15. **Company Ranking** — `run_company_ranking()` downloads UDI data, counts unique `udiDiCode` per `companyName`, outputs a ranked CSV (`csv/company_ranking_DD.MM.YYYY.csv`) with columns: rank, companyName, produkte. Supports `--mailto` and `--gdrive`.
-16. **Unique SRNs** — `run_unique_srns()` downloads actors and mandates, fetches mandate details for all AR actors, deduplicates by SRN, outputs `csv/unique_srns_DD.MM.YYYY.csv` with columns: srn, manufacturer, mandateType, manufacturer_country, mandate_holder_chrn, mandate_holder_name, mandate_holder_uid. Invalid SRNs are filtered and written to an HTML error report.
+16. **Unique SRNs** — `run_unique_srns()` downloads actors and mandates, fetches mandate details for all AR actors, deduplicates by SRN, outputs `csv/unique_srns_DD.MM.YYYY.csv` (date-stamped) and `csv/srn_unique.csv` (latest snapshot, checked into repo) with columns: srn, manufacturer, mandateType, manufacturer_country, mandate_holder_chrn, mandate_holder_name, mandate_holder_uid. Invalid SRNs are filtered and written to an HTML error report.
 
 ## SRN Validation (src/error_report.rs)
 
