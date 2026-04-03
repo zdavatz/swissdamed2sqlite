@@ -1,6 +1,8 @@
+mod error_report;
 mod migel;
 
 use chrono::Local;
+use error_report::{is_valid_srn, write_srn_error_report, InvalidSrn};
 use clap::Parser;
 use csv::WriterBuilder;
 use migel::{build_search_index, find_best_migel_match, parse_migel_items};
@@ -1550,6 +1552,8 @@ fn run_unique_srns(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     // Key: SRN -> (mandate_companyName, mandate_mandateType, mandate_country, actor_chrn, actor_companyName, actor_companyUid)
     let mut srn_map: std::collections::HashMap<String, (String, String, String, String, String, String)> =
         std::collections::HashMap::new();
+    // Collect invalid SRNs for error report
+    let mut invalid_srns: Vec<InvalidSrn> = Vec::new();
 
     for (i, (mid, aid)) in ar_mandate_ids.iter().enumerate() {
         if (i + 1) % 50 == 0 || i + 1 == ar_mandate_ids.len() {
@@ -1562,7 +1566,7 @@ fn run_unique_srns(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             .send();
         if let Ok(resp) = resp {
             if let Ok(detail) = resp.json::<Value>() {
-                let srn = detail.get("srn").and_then(|v| v.as_str()).unwrap_or("").to_string();
+                let srn = detail.get("srn").and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
                 if srn.is_empty() {
                     continue;
                 }
@@ -1576,6 +1580,17 @@ fn run_unique_srns(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                 let (actor_chrn, actor_name, actor_uid) = actor_map.get(aid)
                     .cloned()
                     .unwrap_or_default();
+                if !is_valid_srn(&srn) {
+                    invalid_srns.push(InvalidSrn {
+                        srn,
+                        manufacturer: mfr_name,
+                        mandate_type: mtype,
+                        mandate_holder_chrn: actor_chrn,
+                        mandate_holder_name: actor_name,
+                        mandate_holder_uid: actor_uid,
+                    });
+                    continue;
+                }
                 srn_map.entry(srn).or_insert((mfr_name, mtype, country, actor_chrn, actor_name, actor_uid));
             }
         }
@@ -1585,7 +1600,10 @@ fn run_unique_srns(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let mut sorted: Vec<_> = srn_map.into_iter().collect();
     sorted.sort_by(|a, b| a.0.cmp(&b.0));
 
-    eprintln!("Unique SRNs: {}", sorted.len());
+    eprintln!("Unique SRNs: {} ({} invalid filtered)", sorted.len(), invalid_srns.len());
+
+    // Write HTML error report for invalid SRNs
+    write_srn_error_report(&invalid_srns);
 
     let out_headers = vec![
         "srn".to_string(),
