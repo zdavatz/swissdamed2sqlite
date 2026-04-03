@@ -2,6 +2,7 @@
 """Generate MiGeL matching stats PNG for swissdamed2sqlite, reading from the latest migel DB."""
 
 import glob
+import os
 import sqlite3
 import sys
 from datetime import datetime
@@ -12,7 +13,7 @@ import matplotlib.patches as mpatches
 from matplotlib.gridspec import GridSpec
 
 # --- Find latest migel database ---
-db_files = sorted(glob.glob('db/swissdamed_migel_*.db'))
+db_files = sorted(glob.glob('db/swissdamed_migel_*.db'), key=lambda f: os.path.getmtime(f))
 if not db_files:
     print("No swissdamed_migel_*.db found in db/", file=sys.stderr)
     sys.exit(1)
@@ -20,7 +21,7 @@ DB_PATH = db_files[-1]
 print(f"Reading from {DB_PATH}")
 
 # --- Find latest full swissdamed database for total product count ---
-full_db_files = sorted(glob.glob('db/swissdamed_[0-9]*.db'))
+full_db_files = sorted(glob.glob('db/swissdamed_[0-9]*.db'), key=lambda f: os.path.getmtime(f))
 total_products = 0
 if full_db_files:
     try:
