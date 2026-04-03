@@ -37,7 +37,7 @@ No tests exist. No linter/formatter configuration — use `cargo fmt` and `cargo
 
 ## Architecture
 
-Two-file application: `src/main.rs` (CLI, download, output) + `src/migel.rs` (MiGeL matching engine, shared with fb2sqlite). Key flow:
+Three-file application: `src/main.rs` (CLI, download, output) + `src/migel.rs` (MiGeL matching engine, shared with fb2sqlite) + `src/error_report.rs` (SRN validation and HTML error reports). Key flow:
 
 1. **CLI parsing** — `clap` derive API (`Args` struct). Flags: `--csv`, `--sqlite`, `--file`, `--page-size`, `--deploy`, `--scp`, `--diff`, `--actors`, `--mandates`, `--ar-mandates`, `--ch-rep`, `--ch-rep-mandates`, `--ar-only`, `--lookup-chrn`, `--gdrive`, `--gdrive-folder`, `--gdrive-key`, `--gdrive-email`, `--gdrive-sub`, `--mailto`, `--mail-subject`, `--company-ranking`, `--unique-srns`. If neither `--csv` nor `--sqlite` is given, both are produced. `--deploy` implies `--sqlite`. `--diff` takes two CSV paths and skips download/export.
 2. **Data acquisition** — `download_all_pages_from(base_url, label, page_size)` paginates POST requests to the swissdamed.ch public API, or `load_json_file()` reads a local JSON file. Three endpoints: UDI (`/public/udi/basic-udis`), actors (`/public/act/actors`), mandates (`/public/act/mandates`).
@@ -54,7 +54,13 @@ Two-file application: `src/main.rs` (CLI, download, output) + `src/migel.rs` (Mi
 13. **Google Drive upload** — `gdrive_upload_csv()` uploads CSV to Google Drive via service account .p12 key with domain-wide delegation. Uses JWT (RS256) auth, multipart/related upload to Drive API v3.
 14. **Email attachment** — `send_email_with_attachment()` sends CSV as email attachment via Gmail API. Uses same service account delegation with `gmail.send` scope. Builds RFC 2822 MIME message with base64-encoded attachment. Supports `--mail-subject` for custom subject and comma-separated `--mailto` for multiple recipients.
 15. **Company Ranking** — `run_company_ranking()` downloads UDI data, counts unique `udiDiCode` per `companyName`, outputs a ranked CSV (`csv/company_ranking_DD.MM.YYYY.csv`) with columns: rank, companyName, produkte. Supports `--mailto` and `--gdrive`.
-16. **Unique SRNs** — `run_unique_srns()` downloads actors and mandates, fetches mandate details for all AR actors, deduplicates by SRN, outputs `csv/unique_srns_DD.MM.YYYY.csv` with columns: srn, manufacturer, mandateType, manufacturer_country, mandate_holder_chrn, mandate_holder_name, mandate_holder_uid.
+16. **Unique SRNs** — `run_unique_srns()` downloads actors and mandates, fetches mandate details for all AR actors, deduplicates by SRN, outputs `csv/unique_srns_DD.MM.YYYY.csv` with columns: srn, manufacturer, mandateType, manufacturer_country, mandate_holder_chrn, mandate_holder_name, mandate_holder_uid. Invalid SRNs are filtered and written to an HTML error report.
+
+## SRN Validation (src/error_report.rs)
+
+- `is_valid_srn()` validates SRN format: 2-3 letter country code + `-MF-` or `-PR-` + 6+ digits. Tolerates minor variants (underscores, unicode dashes, missing dash before digits). Rejects `-AR-`/`-IM-` role types.
+- `InvalidSrn` struct holds invalid SRN with manufacturer and mandate holder context.
+- `write_srn_error_report()` generates `html/srn_error_report_HHhMM.dd.mm.yyyy.html` with styled table of invalid entries, deduplicated by SRN.
 
 ## Key Details
 
