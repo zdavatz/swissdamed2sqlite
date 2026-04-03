@@ -96,9 +96,17 @@ struct Args {
     #[arg(long)]
     gdrive_sub: Option<String>,
 
-    /// Send CSV as email attachment to this address
+    /// Send CSV as email attachment to this address (comma-separated for multiple)
     #[arg(long)]
     mailto: Option<String>,
+
+    /// Custom email subject line (default: "swissdamed2sqlite: <filename>")
+    #[arg(long)]
+    mail_subject: Option<String>,
+
+    /// Rank companies by number of UDI products (descending)
+    #[arg(long)]
+    company_ranking: bool,
 }
 
 fn date_stamp() -> String {
@@ -337,7 +345,7 @@ fn send_email_with_attachment(
     let encoded_attachment = engine.encode(&file_content);
 
     let boundary = "swissdamed2sqlite_email_boundary";
-    let subject = format!("swissdamed2sqlite: {}", file_name);
+    let subject = args.mail_subject.clone().unwrap_or_else(|| format!("swissdamed2sqlite: {}", file_name));
 
     let raw_email = format!(
         "From: {from}\r\n\
@@ -1381,6 +1389,98 @@ fn run_ch_rep_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+// --- Company ranking by product count ---
+
+fn run_company_ranking(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+    let values = if let Some(ref path) = args.file {
+        eprintln!("Loading from file: {}", path.display());
+        load_json_file(path)?
+    } else {
+        download_all_pages(args.page_size)?
+    };
+
+    if values.is_empty() {
+        eprintln!("No data found.");
+        return Ok(());
+    }
+
+    let (headers, trade_name_langs) = collect_headers(&values);
+    let rows = build_rows(&values, &headers, &trade_name_langs);
+
+    // Find column indices for companyName and udiDiCode
+    let company_idx = headers.iter().position(|h| h == "companyName");
+    let code_idx = headers.iter().position(|h| h == "udiDiCode");
+
+    if company_idx.is_none() || code_idx.is_none() {
+        return Err("Missing companyName or udiDiCode column".into());
+    }
+    let company_idx = company_idx.unwrap();
+    let code_idx = code_idx.unwrap();
+
+    // Count unique udiDiCodes per companyName
+    let mut company_codes: std::collections::HashMap<String, std::collections::HashSet<String>> =
+        std::collections::HashMap::new();
+    for row in &rows {
+        let company = row.get(company_idx).map(|s| s.as_str()).unwrap_or("");
+        let code = row.get(code_idx).map(|s| s.as_str()).unwrap_or("");
+        if !company.is_empty() && !code.is_empty() {
+            company_codes
+                .entry(company.to_string())
+                .or_default()
+                .insert(code.to_string());
+        }
+    }
+
+    // Sort by count descending
+    let mut ranked: Vec<(String, usize)> = company_codes
+        .into_iter()
+        .map(|(name, codes)| (name, codes.len()))
+        .collect();
+    ranked.sort_by(|a, b| b.1.cmp(&a.1));
+
+    // Build output rows
+    let out_headers = vec![
+        "rank".to_string(),
+        "companyName".to_string(),
+        "produkte".to_string(),
+    ];
+    let out_rows: Vec<Vec<String>> = ranked
+        .iter()
+        .enumerate()
+        .map(|(i, (name, count))| {
+            vec![(i + 1).to_string(), name.clone(), count.to_string()]
+        })
+        .collect();
+
+    let total: usize = ranked.iter().map(|(_, c)| c).sum();
+    eprintln!(
+        "Company ranking: {} companies, {} total products.",
+        ranked.len(),
+        total
+    );
+
+    // Print top 20
+    eprintln!("\nTop 20 companies by product count:");
+    eprintln!("{:<6} {:<55} {:>8}", "Rank", "Company", "Products");
+    eprintln!("{}", "-".repeat(71));
+    for (i, (name, count)) in ranked.iter().take(20).enumerate() {
+        eprintln!("{:<6} {:<55} {:>8}", i + 1, name, count);
+    }
+
+    let filename = output_csv("company_ranking");
+    write_csv(&out_headers, &out_rows, &filename)?;
+    eprintln!("CSV written: {}", filename);
+
+    if args.gdrive {
+        gdrive_upload_csv(args, &filename)?;
+    }
+    if let Some(ref to) = args.mailto {
+        send_email_with_attachment(args, &filename, to)?;
+    }
+
+    Ok(())
+}
+
 // --- Lookup CHRN → SRNs ---
 
 fn run_lookup_chrn(chrn: &str, args: &Args) -> Result<(), Box<dyn std::error::Error>> {
@@ -1527,6 +1627,9 @@ fn run_lookup_chrn(chrn: &str, args: &Args) -> Result<(), Box<dyn std::error::Er
     eprintln!("CSV written: {}", filename);
     if args.gdrive {
         gdrive_upload_csv(args, &filename)?;
+    }
+    if let Some(ref to) = args.mailto {
+        send_email_with_attachment(args, &filename, to)?;
     }
 
     Ok(())
@@ -1805,6 +1908,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --migel mode
     if args.migel {
         return run_migel(&args);
+    }
+
+    // Handle --company-ranking mode
+    if args.company_ranking {
+        return run_company_ranking(&args);
     }
 
     // Handle --ch-rep mode

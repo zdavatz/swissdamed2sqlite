@@ -60,6 +60,10 @@ swissdamed2sqlite --ch-rep-mandates --ar-only
 # Look up all SRNs for a given CHRN
 swissdamed2sqlite --lookup-chrn CHRN-AR-20000807
 
+# Rank companies by number of UDI products (descending)
+swissdamed2sqlite --company-ranking
+swissdamed2sqlite --company-ranking --mailto recipient@example.com --gdrive-sub user@domain.com
+
 # MiGeL matching — map UDI devices to MiGeL codes
 swissdamed2sqlite --migel
 swissdamed2sqlite --migel --deploy
@@ -70,8 +74,9 @@ swissdamed2sqlite --diff csv/swissdamed_24.02.2026.csv csv/swissdamed_25.02.2026
 # Upload CSV to Google Drive (requires .p12 service account key + domain-wide delegation)
 swissdamed2sqlite --csv --gdrive --gdrive-sub user@domain.com
 
-# Send CSV as email attachment via Gmail API
+# Send CSV as email attachment via Gmail API (with custom subject)
 swissdamed2sqlite --lookup-chrn CHRN-AR-20000807 --mailto recipient@example.com --gdrive-sub user@domain.com
+swissdamed2sqlite --company-ranking --mailto "a@example.com,b@example.com" --mail-subject "Custom Subject" --gdrive-sub user@domain.com
 
 # Combine: lookup + upload to Drive + email
 swissdamed2sqlite --lookup-chrn CHRN-AR-20000807 --gdrive --mailto recipient@example.com --gdrive-sub user@domain.com
@@ -86,6 +91,7 @@ Output files are date-stamped and organized into subdirectories:
 - CH-REP Mandates: `csv/ch_rep_mandates_25.02.2026.csv` / `db/ch_rep_mandates_25.02.2026.db`
 - CH-REP Mandates (AR-only): `csv/ch_rep_mandates_ar_only_25.02.2026.csv` / `db/ch_rep_mandates_ar_only_25.02.2026.db`
 - Lookup CHRN: `csv/CHRN-AR-20000807_14h30.28.03.2026.csv`
+- Company Ranking: `csv/company_ranking_03.04.2026.csv`
 
 ## Output Format
 
@@ -100,6 +106,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - **CH-REP** — filters actors to companies that only have AR and/or IM roles (no MF or PR under the same `companyUid`). Useful for identifying CH-REP only companies
 - **CH-REP Mandates** — ranks CH-REP companies by number of mandates (SRNs). Columns: rank, companyName, companyUid, city, country, mandate_count. Use `--ar-only` to restrict to companies with AR role (true CH-REPs, ~1,109) vs all AR/IM (~2,271)
 - **Diff** — compares two CSVs by `udiDiCode`, outputs to `diff/diff_swissdamed_DD.MM.YYYY_DD.MM.YYYY.csv` with a `diff_status` column (`added`, `removed`, `changed_old`, `changed_new`)
+- **Company Ranking** — ranks all UDI companies by number of unique products (udiDiCode), outputs CSV with rank, companyName, produkte columns
 - **Lookup CHRN** — finds all SRNs for a given CHRN (e.g. `CHRN-AR-20000807`). Downloads actors, matches by `chrn` field, fetches mandate details (which contain SRN), outputs timestamped CSV
 - **Google Drive** — uploads CSV to Google Drive using a service account .p12 key with domain-wide delegation (`--gdrive --gdrive-sub user@domain.com`)
 - **Email** — sends CSV as attachment via Gmail API using the same service account delegation (`--mailto recipient@example.com --gdrive-sub user@domain.com`)
