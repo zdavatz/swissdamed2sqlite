@@ -57,12 +57,24 @@ swissdamed2sqlite --ch-rep-mandates
 # AR-only CH-REPs ranked by mandate count (~1,109 true CH-REPs)
 swissdamed2sqlite --ch-rep-mandates --ar-only
 
+# Look up all SRNs for a given CHRN
+swissdamed2sqlite --lookup-chrn CHRN-AR-20000807
+
 # MiGeL matching — map UDI devices to MiGeL codes
 swissdamed2sqlite --migel
 swissdamed2sqlite --migel --deploy
 
 # Diff two CSV files (output to diff/ folder)
 swissdamed2sqlite --diff csv/swissdamed_24.02.2026.csv csv/swissdamed_25.02.2026.csv
+
+# Upload CSV to Google Drive (requires .p12 service account key + domain-wide delegation)
+swissdamed2sqlite --csv --gdrive --gdrive-sub user@domain.com
+
+# Send CSV as email attachment via Gmail API
+swissdamed2sqlite --lookup-chrn CHRN-AR-20000807 --mailto recipient@example.com --gdrive-sub user@domain.com
+
+# Combine: lookup + upload to Drive + email
+swissdamed2sqlite --lookup-chrn CHRN-AR-20000807 --gdrive --mailto recipient@example.com --gdrive-sub user@domain.com
 ```
 
 Output files are date-stamped and organized into subdirectories:
@@ -73,6 +85,7 @@ Output files are date-stamped and organized into subdirectories:
 - CH-REP: `csv/ch_rep_25.02.2026.csv` / `db/ch_rep_25.02.2026.db`
 - CH-REP Mandates: `csv/ch_rep_mandates_25.02.2026.csv` / `db/ch_rep_mandates_25.02.2026.db`
 - CH-REP Mandates (AR-only): `csv/ch_rep_mandates_ar_only_25.02.2026.csv` / `db/ch_rep_mandates_ar_only_25.02.2026.db`
+- Lookup CHRN: `csv/CHRN-AR-20000807_14h30.28.03.2026.csv`
 
 ## Output Format
 
@@ -87,6 +100,9 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - **CH-REP** — filters actors to companies that only have AR and/or IM roles (no MF or PR under the same `companyUid`). Useful for identifying CH-REP only companies
 - **CH-REP Mandates** — ranks CH-REP companies by number of mandates (SRNs). Columns: rank, companyName, companyUid, city, country, mandate_count. Use `--ar-only` to restrict to companies with AR role (true CH-REPs, ~1,109) vs all AR/IM (~2,271)
 - **Diff** — compares two CSVs by `udiDiCode`, outputs to `diff/diff_swissdamed_DD.MM.YYYY_DD.MM.YYYY.csv` with a `diff_status` column (`added`, `removed`, `changed_old`, `changed_new`)
+- **Lookup CHRN** — finds all SRNs for a given CHRN (e.g. `CHRN-AR-20000807`). Downloads actors, matches by `chrn` field, fetches mandate details (which contain SRN), outputs timestamped CSV
+- **Google Drive** — uploads CSV to Google Drive using a service account .p12 key with domain-wide delegation (`--gdrive --gdrive-sub user@domain.com`)
+- **Email** — sends CSV as attachment via Gmail API using the same service account delegation (`--mailto recipient@example.com --gdrive-sub user@domain.com`)
 - **MiGeL** — matches UDI devices against MiGeL (Mittel- und Gegenständeliste) codes. Uses Aho-Corasick candidate finding, IDF-weighted multi-language scoring, English-to-German medical term translation (~80 terms with context-aware combinations like "ortho"+"rehab"→"spezialschuhe"), and precision filters. Output: `db/swissdamed_migel_DD.MM.YYYY.db`. Auto-generates a stats PNG after each run.
 
 ### MiGeL Matching Results
@@ -105,6 +121,8 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - [chrono](https://crates.io/crates/chrono) — Date/time formatting
 - [aho-corasick](https://crates.io/crates/aho-corasick) — Multi-pattern string matching
 - [unicode-normalization](https://crates.io/crates/unicode-normalization) — Unicode NFC normalization
+- [jsonwebtoken](https://crates.io/crates/jsonwebtoken) — JWT signing for Google service account auth
+- [base64](https://crates.io/crates/base64) — Base64 encoding for Gmail API
 
 ## License
 
