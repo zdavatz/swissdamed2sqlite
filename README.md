@@ -115,7 +115,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - **Unique SRNs** — exports all unique SRNs with manufacturer info (name, type, country) and mandate holder info (CHRN, name, UID). Columns: srn, manufacturer, mandateType, manufacturer_country, mandate_holder_chrn, mandate_holder_name, mandate_holder_uid. Invalid SRNs are validated by `src/error_report.rs` and written to an HTML error report (`html/srn_error_report_HHhMM.dd.mm.yyyy.html`)
 - **Lookup CHRN** — finds all SRNs for a given CHRN (e.g. `CHRN-AR-20000807`). Downloads actors, matches by `chrn` field, fetches mandate details (which contain SRN), outputs timestamped CSV
 - **Google Drive** — uploads CSV to Google Drive using a service account .p12 key with domain-wide delegation (`--gdrive --gdrive-sub user@domain.com`)
-- **Email** — sends CSV as attachment via Gmail API using the same service account delegation (`--mailto recipient@example.com --gdrive-sub user@domain.com`)
+- **Email** — sends CSV as attachment via Gmail API using the same service account delegation (`--mailto recipient@example.com --gdrive-sub user@domain.com`). Non-ASCII subject lines (umlauts etc.) are RFC 2047 encoded.
 - **MiGeL** — matches UDI devices against MiGeL (Mittel- und Gegenständeliste) codes. Uses Aho-Corasick candidate finding, IDF-weighted multi-language scoring, English-to-German medical term translation (~80 terms with context-aware combinations like "ortho"+"rehab"→"spezialschuhe"), and precision filters. Output: `db/swissdamed_migel_DD.MM.YYYY.db`. Auto-generates a stats PNG after each run.
 
 ### MiGeL Matching Results

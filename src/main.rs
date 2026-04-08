@@ -351,7 +351,12 @@ fn send_email_with_attachment(
     let encoded_attachment = engine.encode(&file_content);
 
     let boundary = "swissdamed2sqlite_email_boundary";
-    let subject = args.mail_subject.clone().unwrap_or_else(|| format!("swissdamed2sqlite: {}", file_name));
+    let subject_raw = args.mail_subject.clone().unwrap_or_else(|| format!("swissdamed2sqlite: {}", file_name));
+    let subject = if subject_raw.is_ascii() {
+        subject_raw
+    } else {
+        format!("=?UTF-8?B?{}?=", engine.encode(subject_raw.as_bytes()))
+    };
 
     let raw_email = format!(
         "From: {from}\r\n\
