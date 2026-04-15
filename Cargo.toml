@@ -1,6 +1,6 @@
 [package]
 name = "swissdamed2sqlite"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 description = "Download Swiss DAMED UDI data and convert to CSV or SQLite"
 
