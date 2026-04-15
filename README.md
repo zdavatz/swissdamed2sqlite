@@ -20,6 +20,7 @@ Launch the app without any arguments to open the GUI:
 swissdamed2sqlite
 ```
 
+![macOS Screenshot](screenshots/macos/screenshot_2560x1600.png)
 ![Windows Screenshot](screenshots/windows/screenshot_1366x768.png)
 
 The GUI provides:
@@ -169,6 +170,10 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - [eframe](https://crates.io/crates/eframe) — Cross-platform GUI framework (egui + winit + wgpu)
 - [image](https://crates.io/crates/image) — PNG icon loading for GUI
 - [open](https://crates.io/crates/open) — Open files/URLs in system apps
+
+## App Store Compliance
+
+The `winit` windowing library is patched locally (`winit-patched/`) to remove the private macOS API call `_CGSSetWindowBackgroundBlurRadius`, which would cause App Store rejection. The patch is applied via `[patch.crates-io]` in `Cargo.toml`.
 
 ## License
 

@@ -99,7 +99,11 @@ Triggered by `git tag v* && git push --tags`. Builds for all platforms in parall
 
 Platform configs: `build.rs` (Windows icon), `entitlements.plist` / `entitlements-appstore.plist` (macOS), `windows/AppxManifest.xml` + `windows/assets/` (MSIX/Store).
 
-Store screenshots: `screenshots/windows/` (PNG, 1366x768+).
+Store screenshots: `screenshots/windows/` (PNG, 1366x768+), `screenshots/macos/` (PNG, 1280x800 / 1440x900 / 2560x1600 / 2880x1800).
+
+### winit Patch (App Store Compliance)
+
+The `winit` crate is patched locally (`winit-patched/`) to remove `_CGSSetWindowBackgroundBlurRadius` — a private macOS API that causes App Store rejection. Applied via `[patch.crates-io]` in `Cargo.toml`. Same patch used in eudamed2firstbase/eudamed2swissdamed.
 
 ### macOS Signing Details
 
