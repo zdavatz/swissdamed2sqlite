@@ -17,7 +17,7 @@ jobs:
           echo "$APPLE_API_KEY_P8" | base64 --decode > ~/.private_keys/AuthKey_${APPLE_API_KEY_ID}.p8
 
           # Generate JWT token
-          pip3 install pyjwt cryptography
+          pip3 install --break-system-packages pyjwt cryptography
           TOKEN=$(python3 << 'PYEOF'
           import jwt, time, os
           key_id = os.environ["APPLE_API_KEY_ID"]
