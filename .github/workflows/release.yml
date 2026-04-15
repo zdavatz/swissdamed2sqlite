@@ -454,9 +454,9 @@ jobs:
           $submission.hardwarePreferences = @("Keyboard", "Mouse")
           $submission.notesForCertification = "Desktop utility for downloading Swiss medical device data from swissdamed.ch and exporting as CSV/SQLite. Requires internet access. No login required. Contact: zdavatz@ywesee.com"
 
-          $releaseNotes = "$env:GITHUB_REF_NAME`: $(git log -1 --format=%s)"
-          $descriptionDe = "Swissdamed UDI-Daten herunterladen und als CSV oder SQLite exportieren. Open Source (GPL v3)."
-          $descriptionEn = "Download Swissdamed UDI data and export as CSV or SQLite. Open Source (GPL v3)."
+          $releaseNotes = "Swissdamed2Sqlite - make sense of the Swiss Medical Device market."
+          $descriptionDe = "Swissdamed UDI-Daten herunterladen und als CSV oder SQLite exportieren. Einfacher Export von Swissdamed nach SQLite oder CSV. Open Source (GPL v3)."
+          $descriptionEn = "Export Data from Swissdamed to SQLite or CSV with ease. Swissdamed2Sqlite - make sense of the Swiss Medical Device market. Open Source (GPL v3)."
 
           $submission.listings = @{
             "de-de" = @{
@@ -464,11 +464,11 @@ jobs:
                 title = "Swissdamed2Sqlite"
                 description = $descriptionDe
                 releaseNotes = $releaseNotes
-                keywords = @("Swissdamed", "Medizinprodukte", "UDI", "CSV", "SQLite")
+                keywords = @("Swissdamed", "Medizinprodukte", "UDI", "CSV", "SQLite", "Schweiz")
                 copyrightAndTrademarkInfo = "Copyright 2026 ywesee GmbH"
                 licenseTerms = "GNU General Public License v3.0"
-                privacyPolicy = "https://github.com/zdavatz/swissdamed2sqlite"
-                websiteUrl = "https://github.com/zdavatz/swissdamed2sqlite"
+                privacyPolicy = "https://ywesee.com/Swissdamed2Sqlite/Pivacy"
+                websiteUrl = "https://ywesee.com/Swissdamed2Sqlite/Swissdamed2Sqlite"
                 supportContact = "zdavatz@ywesee.com"
                 images = @()
               }
@@ -478,11 +478,11 @@ jobs:
                 title = "Swissdamed2Sqlite"
                 description = $descriptionEn
                 releaseNotes = $releaseNotes
-                keywords = @("Swissdamed", "medical device", "UDI", "CSV", "SQLite")
+                keywords = @("Swissdamed", "SQLite", "medical device", "UDI", "CSV", "Switzerland")
                 copyrightAndTrademarkInfo = "Copyright 2026 ywesee GmbH"
                 licenseTerms = "GNU General Public License v3.0"
-                privacyPolicy = "https://github.com/zdavatz/swissdamed2sqlite"
-                websiteUrl = "https://github.com/zdavatz/swissdamed2sqlite"
+                privacyPolicy = "https://ywesee.com/Swissdamed2Sqlite/Pivacy"
+                websiteUrl = "https://ywesee.com/Swissdamed2Sqlite/Swissdamed2Sqlite"
                 supportContact = "zdavatz@ywesee.com"
                 images = @()
               }
