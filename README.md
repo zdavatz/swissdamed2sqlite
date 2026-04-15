@@ -8,8 +8,8 @@ Available as a **cross-platform GUI app** (Windows, macOS, Linux) and as a CLI t
 
 Pre-built binaries for all platforms are available on the [GitHub Releases](https://github.com/zdavatz/swissdamed2sqlite/releases) page:
 
-- **macOS** — Universal DMG (Apple Silicon + Intel), also on the Mac App Store
-- **Windows** — Portable ZIP and MSIX installer, also on the Microsoft Store
+- **macOS** — Universal DMG (Apple Silicon + Intel), notarized, also on the [Mac App Store](https://apps.apple.com/app/swissdamed2sqlite/id6762261366)
+- **Windows** — Portable ZIP and MSIX installer, also on the [Microsoft Store](https://apps.microsoft.com/detail/9MVMQ21R4MKC)
 - **Linux** — tar.gz and AppImage
 
 ## GUI

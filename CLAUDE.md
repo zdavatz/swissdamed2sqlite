@@ -91,8 +91,8 @@ All output files go to `~/swissdamed2sqlite/` (`app_data_dir()`):
 ## Release & CI/CD (`.github/workflows/release.yml`)
 
 Triggered by `git tag v* && git push --tags`. Builds for all platforms in parallel:
-- **macOS**: universal binary (arm64 + x86_64), .app bundle, signed DMG, notarized, App Store .pkg upload via iTMSTransporter
-- **Windows**: portable ZIP, signed MSIX, Microsoft Store submission via Partner Center API
+- **macOS**: universal binary (arm64 + x86_64), .app bundle with ICNS icon (generated from `assets/icon.iconset/` via `iconutil`), signed DMG (Developer ID), notarized, App Store .pkg (signed with Mac App Distribution + Mac Installer Distribution certs) uploaded via `xcrun altool` (iTMSTransporter fallback)
+- **Windows**: portable ZIP, signed MSIX, Microsoft Store submission via Partner Center API (listings, pricing=Free, visibility=Public, publishMode=Immediate)
 - **Linux**: tar.gz + AppImage
 - **GitHub Release**: collects all artifacts via `softprops/action-gh-release`
 - Version synced from git tag to Cargo.toml automatically
@@ -100,6 +100,13 @@ Triggered by `git tag v* && git push --tags`. Builds for all platforms in parall
 Platform configs: `build.rs` (Windows icon), `entitlements.plist` / `entitlements-appstore.plist` (macOS), `windows/AppxManifest.xml` + `windows/assets/` (MSIX/Store).
 
 Store screenshots: `screenshots/windows/` (PNG, 1366x768+).
+
+### macOS Signing Details
+
+- DMG: signed with `Developer ID Application: ywesee GmbH` + `entitlements.plist`, notarized via `notarytool`
+- App Store .pkg: re-signed with `Apple Distribution` / `Mac App Distribution` / `3rd Party Mac Developer Application` + `entitlements-appstore.plist`, packaged with `3rd Party Mac Developer Installer`
+- Provisioning profile (`MACOS_PROVISIONING_PROFILE` secret) must use `MAC_APP_DISTRIBUTION` cert type (not `DISTRIBUTION`) to match the signing identity
+- ICNS icon generated at build time from `assets/icon.iconset/` (contains 16x16 through 512x512@2x PNGs)
 
 ## Key Details
 
