@@ -158,12 +158,11 @@ impl eframe::App for App {
 
             // Header with icon
             ui.horizontal(|ui| {
-                ui.heading(format!("swissdamed2sqlite v{}", env!("CARGO_PKG_VERSION")));
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     let icon_button = ui.add(
                         egui::ImageButton::new(egui::load::SizedTexture::new(
                             icon_texture.id(),
-                            egui::vec2(48.0, 48.0),
+                            egui::vec2(36.0, 36.0),
                         ))
                         .frame(false),
                     ).on_hover_text("zdavatz@ywesee.com");
@@ -172,7 +171,6 @@ impl eframe::App for App {
                     }
                 });
             });
-            ui.add_space(8.0);
 
             // --- Products DB section ---
             ui.separator();

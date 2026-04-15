@@ -50,6 +50,8 @@ When launched without arguments, opens a native GUI window (egui/eframe, wgpu re
 - Persistent settings saved to `~/swissdamed2sqlite/settings.json`
 - Light theme (white background)
 - App icon embedded in binary from `assets/icon_256x256.png`
+- Version shown only in window title bar (not duplicated inside the window)
+- On Windows release builds: `windows_subsystem = "windows"` hides console window; CLI mode re-attaches parent console via `AttachConsole(ATTACH_PARENT_PROCESS)`
 
 ### Output Directory
 
@@ -96,6 +98,8 @@ Triggered by `git tag v* && git push --tags`. Builds for all platforms in parall
 - Version synced from git tag to Cargo.toml automatically
 
 Platform configs: `build.rs` (Windows icon), `entitlements.plist` / `entitlements-appstore.plist` (macOS), `windows/AppxManifest.xml` + `windows/assets/` (MSIX/Store).
+
+Store screenshots: `screenshots/windows/` (PNG, 1366x768+).
 
 ## Key Details
 

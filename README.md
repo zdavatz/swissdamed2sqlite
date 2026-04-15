@@ -20,11 +20,15 @@ Launch the app without any arguments to open the GUI:
 swissdamed2sqlite
 ```
 
+![Windows Screenshot](screenshots/windows/screenshot_1366x768.png)
+
 The GUI provides:
 - **Download Products (CSV + SQLite)** — downloads all UDI products and saves to `~/swissdamed2sqlite/csv/` and `~/swissdamed2sqlite/db/`
 - **Lookup SRNs for CHRN** — enter a CHRN (e.g. `CHRN-AR-20000807`) to find all associated SRNs
 - **MiGeL Matching (SQLite)** — matches UDI devices against MiGeL codes
 - **Open Output/CSV/DB Folder** — quick access to output directories
+
+On Windows, the release build runs without a console window (`windows_subsystem = "windows"`). CLI mode re-attaches the parent console automatically.
 
 All output files are saved to `~/swissdamed2sqlite/` (HOMEDIR) with `csv/` and `db/` subdirectories.
 

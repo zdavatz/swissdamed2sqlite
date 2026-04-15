@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 mod error_report;
 mod gui;
 mod migel;
@@ -2108,6 +2110,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if cli_args.is_empty() {
         gui::run_gui().map_err(|e| format!("GUI error: {}", e))?;
         return Ok(());
+    }
+
+    // Re-attach console for CLI mode (windows_subsystem = "windows" hides it)
+    #[cfg(windows)]
+    {
+        extern "system" {
+            fn AttachConsole(dwProcessId: u32) -> i32;
+        }
+        const ATTACH_PARENT_PROCESS: u32 = 0xFFFFFFFF;
+        unsafe { AttachConsole(ATTACH_PARENT_PROCESS); }
     }
 
     let args = Args::parse();
