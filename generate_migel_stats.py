@@ -58,23 +58,34 @@ company_rows = conn.execute(
     "GROUP BY companyName ORDER BY cnt DESC"
 ).fetchall()
 
-# Top MiGeL codes
+# Top MiGeL codes with company names
 migel_rows = conn.execute(
     "SELECT migel_bezeichnung, COUNT(*) as cnt FROM swissdamed "
     "GROUP BY migel_code ORDER BY cnt DESC LIMIT 8"
 ).fetchall()
 
+# Get company names per MiGeL category
+migel_companies = {}
+for row in conn.execute(
+    "SELECT migel_bezeichnung, companyName, COUNT(*) as cnt FROM swissdamed "
+    "GROUP BY migel_code, companyName ORDER BY migel_bezeichnung, cnt DESC"
+).fetchall():
+    bez = row[0]
+    if bez not in migel_companies:
+        migel_companies[bez] = []
+    migel_companies[bez].append(f"{row[1]} ({row[2]})")
+
 conn.close()
 
-# --- Color scheme: dark background ---
-bg_color = '#1a1a2e'
-card_color = '#16213e'
-title_color = '#e0e0e0'
-text_color = '#b0b0b0'
-accent = '#4caf50'
-accent_light = '#81c784'
+# --- Color scheme: white background ---
+bg_color = '#ffffff'
+card_color = '#f8f8f8'
+title_color = '#333333'
+text_color = '#555555'
+accent = '#2e7d32'
+accent_light = '#43a047'
 bar_color = '#43a047'
-edge_color = '#1a1a2e'
+edge_color = '#ffffff'
 company_colors = [
     '#2e7d32', '#43a047', '#66bb6a', '#81c784', '#a5d6a7',
     '#c8e6c9', '#e8f5e9', '#fff59d', '#ffcc80', '#ef9a9a',
@@ -82,7 +93,7 @@ company_colors = [
 ]
 
 # --- Build chart ---
-fig = plt.figure(figsize=(16, 12), facecolor=bg_color)
+fig = plt.figure(figsize=(16, 14), facecolor=bg_color)
 gs = GridSpec(2, 2, figure=fig, hspace=0.55, wspace=0.3,
              left=0.08, right=0.95, top=0.91, bottom=0.06)
 
@@ -153,7 +164,7 @@ wedges, texts, autotexts = ax2.pie(
 for t in autotexts:
     t.set_fontsize(12)
     t.set_fontweight('bold')
-    t.set_color('#e0e0e0')
+    t.set_color('#333333')
 # Hide small percentages
 for t, v in zip(autotexts, company_values):
     if v / total_matched < 0.03:
@@ -186,21 +197,30 @@ def short_migel(name):
         return name[:37] + '...'
     return name
 
-bar_positions = [i * 1.3 for i in range(len(migel_labels))]
+bar_positions = [i * 1.6 for i in range(len(migel_labels))]
 bars = ax3.barh(bar_positions, migel_values[::-1],
                 color=bar_color, edgecolor=bg_color, height=0.7, alpha=0.9)
 
 max_val = max(migel_values) if migel_values else 1
 for i, (bar, val) in enumerate(zip(bars, migel_values[::-1])):
-    label = short_migel(migel_labels[::-1][i])
+    bez = migel_labels[::-1][i]
+    label = short_migel(bez)
     y_center = bar.get_y() + bar.get_height() / 2
     y_top = bar.get_y() + bar.get_height() + 0.05
+    y_bottom = bar.get_y() - 0.15
     ax3.text(0, y_top, label, va='bottom', ha='left',
              fontsize=12, fontweight='bold', color=text_color)
+    # Company names below the bar
+    companies = migel_companies.get(bez, [])
+    company_text = ', '.join(companies[:3])
+    if len(companies) > 3:
+        company_text += f' +{len(companies)-3}'
+    ax3.text(0, y_bottom, company_text, va='top', ha='left',
+             fontsize=9, color='#888888', style='italic')
     if bar.get_width() > max_val * 0.08:
         ax3.text(bar.get_width() * 0.5, y_center, f'{val:,}',
                  va='center', ha='center',
-                 fontsize=14, fontweight='bold', color='#1a1a2e')
+                 fontsize=14, fontweight='bold', color='white')
     else:
         ax3.text(bar.get_width() + max_val * 0.02, y_center, f'{val:,}',
                  va='center', fontsize=14, fontweight='bold', color=text_color)
