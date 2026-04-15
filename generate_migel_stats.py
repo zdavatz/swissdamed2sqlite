@@ -52,6 +52,11 @@ num_companies = conn.execute("SELECT COUNT(DISTINCT companyName) FROM swissdamed
 
 pct_mapped = f'{total_matched / total_products * 100:.1f}%' if total_products > 0 else 'N/A'
 
+def ch_fmt(n):
+    """Format number with Swiss thousands separator (apostrophe)."""
+    return f"{n:,}".replace(",", "'")
+
+
 # Company breakdown
 company_rows = conn.execute(
     "SELECT companyName, COUNT(*) as cnt FROM swissdamed "
@@ -111,8 +116,8 @@ ax1.set_facecolor(bg_color)
 ax1.axis('off')
 
 metrics = [
-    (f'{total_products:,}', 'Total swissdamed products'),
-    (f'{total_matched:,}', f'MiGeL matched ({pct_mapped})'),
+    (ch_fmt(total_products), 'Total swissdamed products'),
+    (ch_fmt(total_matched), f'MiGeL matched ({pct_mapped})'),
     (f'{num_migel_codes}', 'Distinct MiGeL codes'),
     (f'{num_companies}', 'Companies with matches'),
     (f'786', 'Total MiGeL items in XLSX'),
@@ -176,7 +181,7 @@ ax2.set_title('Matches by Company', fontsize=17, fontweight='bold',
 
 legend = ax2.legend(
     [mpatches.Patch(facecolor=c, edgecolor=bg_color) for c in colors],
-    [f'{short_name(n)}  ({v:,})' for n, v in zip(company_names, company_values)],
+    [f'{short_name(n)}  ({ch_fmt(v)})' for n, v in zip(company_names, company_values)],
     loc='lower center', bbox_to_anchor=(0.5, -0.30),
     ncol=2, fontsize=12, frameon=False,
 )
@@ -208,11 +213,11 @@ for i, (bar, val) in enumerate(zip(bars, migel_values[::-1])):
     ax3.text(0, y_bottom, company_text, va='top', ha='left',
              fontsize=11, color='#777777', style='italic')
     if bar.get_width() > max_val * 0.08:
-        ax3.text(bar.get_width() * 0.5, y_center, f'{val:,}',
+        ax3.text(bar.get_width() * 0.5, y_center, ch_fmt(val),
                  va='center', ha='center',
                  fontsize=14, fontweight='bold', color='white')
     else:
-        ax3.text(bar.get_width() + max_val * 0.02, y_center, f'{val:,}',
+        ax3.text(bar.get_width() + max_val * 0.02, y_center, ch_fmt(val),
                  va='center', fontsize=14, fontweight='bold', color=text_color)
 
 ax3.set_xlim(0, max_val * 1.15)
