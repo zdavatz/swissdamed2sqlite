@@ -93,9 +93,9 @@ company_colors = [
 ]
 
 # --- Build chart ---
-fig = plt.figure(figsize=(16, 14), facecolor=bg_color)
-gs = GridSpec(2, 2, figure=fig, hspace=0.55, wspace=0.3,
-             left=0.08, right=0.95, top=0.91, bottom=0.06)
+fig = plt.figure(figsize=(18, 20), facecolor=bg_color)
+gs = GridSpec(2, 2, figure=fig, hspace=0.35, wspace=0.3,
+             left=0.08, right=0.95, top=0.94, bottom=0.04)
 
 now = datetime.now()
 timestamp_display = now.strftime('%Hh%M-%d.%m.%Y')
@@ -152,8 +152,6 @@ company_values = main_values
 colors = company_colors[:len(company_names)]
 
 def short_name(name):
-    if len(name) > 25:
-        return name[:22] + '...'
     return name
 
 wedges, texts, autotexts = ax2.pie(
@@ -192,31 +190,23 @@ ax3.set_facecolor(bg_color)
 migel_labels = [r[0] for r in migel_rows]
 migel_values = [r[1] for r in migel_rows]
 
-def short_migel(name):
-    if len(name) > 40:
-        return name[:37] + '...'
-    return name
-
-bar_positions = [i * 1.6 for i in range(len(migel_labels))]
+bar_positions = [i * 2.2 for i in range(len(migel_labels))]
 bars = ax3.barh(bar_positions, migel_values[::-1],
-                color=bar_color, edgecolor=bg_color, height=0.7, alpha=0.9)
+                color=bar_color, edgecolor=bg_color, height=0.8, alpha=0.9)
 
 max_val = max(migel_values) if migel_values else 1
 for i, (bar, val) in enumerate(zip(bars, migel_values[::-1])):
     bez = migel_labels[::-1][i]
-    label = short_migel(bez)
     y_center = bar.get_y() + bar.get_height() / 2
-    y_top = bar.get_y() + bar.get_height() + 0.05
-    y_bottom = bar.get_y() - 0.15
-    ax3.text(0, y_top, label, va='bottom', ha='left',
-             fontsize=12, fontweight='bold', color=text_color)
-    # Company names below the bar
+    y_top = bar.get_y() + bar.get_height() + 0.12
+    y_bottom = bar.get_y() - 0.25
+    ax3.text(0, y_top, bez, va='bottom', ha='left',
+             fontsize=13, fontweight='bold', color=text_color)
+    # Company names below the bar — full names, no abbreviations
     companies = migel_companies.get(bez, [])
-    company_text = ', '.join(companies[:3])
-    if len(companies) > 3:
-        company_text += f' +{len(companies)-3}'
+    company_text = ', '.join(companies)
     ax3.text(0, y_bottom, company_text, va='top', ha='left',
-             fontsize=9, color='#888888', style='italic')
+             fontsize=11, color='#777777', style='italic')
     if bar.get_width() > max_val * 0.08:
         ax3.text(bar.get_width() * 0.5, y_center, f'{val:,}',
                  va='center', ha='center',
