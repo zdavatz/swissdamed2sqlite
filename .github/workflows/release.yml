@@ -39,6 +39,9 @@ jobs:
           rm -rf "$APP"
           mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
           cp target/release/swissdamed2sqlite-universal "$APP/Contents/MacOS/swissdamed2sqlite"
+          if [ -d assets/icon.iconset ]; then
+            iconutil --convert icns assets/icon.iconset --output assets/icon.icns
+          fi
           cp assets/icon.icns "$APP/Contents/Resources/AppIcon.icns" 2>/dev/null || true
           VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
           cat > "$APP/Contents/Info.plist" << EOF
@@ -168,13 +171,19 @@ jobs:
             echo "$MACOS_PROVISIONING_PROFILE" | base64 --decode > "$APP/Contents/embedded.provisionprofile"
           fi
 
-          APP_IDENTITY=$(security find-identity -v build.keychain | grep "Mac App Distribution\|3rd Party Mac Developer Application" | head -1 | sed 's/.*"\(.*\)"/\1/' || true)
+          echo "Available signing identities:"
+          security find-identity -v build.keychain
+
+          APP_IDENTITY=$(security find-identity -v build.keychain | grep "Apple Distribution\|Mac App Distribution\|3rd Party Mac Developer Application" | head -1 | sed 's/.*"\(.*\)"/\1/' || true)
           if [ -n "$APP_IDENTITY" ]; then
+            echo "Signing app with: $APP_IDENTITY"
             codesign --force --options runtime \
               --sign "$APP_IDENTITY" \
               --entitlements entitlements-appstore.plist \
               --deep \
               "$APP"
+          else
+            echo "WARNING: No App Store signing identity found, app will be unsigned"
           fi
 
           INSTALLER_IDENTITY=$(security find-identity -v build.keychain | grep "Mac Installer Distribution\|3rd Party Mac Developer Installer" | head -1 | sed 's/.*"\(.*\)"/\1/' || true)
