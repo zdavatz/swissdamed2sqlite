@@ -13,6 +13,7 @@ jobs:
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
+          set +e  # Don't exit on error
           # Write API key
           mkdir -p ~/.private_keys
           echo "$APPLE_API_KEY_P8" | base64 --decode > ~/.private_keys/AuthKey_${APPLE_API_KEY_ID}.p8
@@ -43,8 +44,9 @@ jobs:
 
           # Step 1: Find Bundle ID
           echo "==> Finding Bundle ID..."
-          SEARCH_RESP=$(curl -s "$API/bundleIds?filter[identifier]=com.ywesee.swissdamed2sqlite" -H "$AUTH")
-          BUNDLE_ID=$(echo "$SEARCH_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['data'][0]['id'])" 2>/dev/null)
+          SEARCH_RESP=$(curl -v -s "$API/bundleIds?filter%5Bidentifier%5D=com.ywesee.swissdamed2sqlite" -H "$AUTH" 2>&1) || true
+          echo "Search response: $SEARCH_RESP"
+          BUNDLE_ID=$(echo "$SEARCH_RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['data'][0]['id'])" 2>/dev/null) || true
           echo "Bundle ID: $BUNDLE_ID"
 
           # Step 2: Create Provisioning Profile
