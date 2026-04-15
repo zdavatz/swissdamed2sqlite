@@ -12,16 +12,23 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.gridspec import GridSpec
 
-# --- Find latest migel database ---
-db_files = sorted(glob.glob('db/swissdamed_migel_*.db'), key=lambda f: os.path.getmtime(f))
+# --- Find latest migel database (check both local db/ and ~/swissdamed2sqlite/db/) ---
+home_db = os.path.expanduser('~/swissdamed2sqlite/db')
+db_files = sorted(
+    glob.glob('db/swissdamed_migel_*.db') + glob.glob(os.path.join(home_db, 'swissdamed_migel_*.db')),
+    key=lambda f: os.path.getmtime(f)
+)
 if not db_files:
-    print("No swissdamed_migel_*.db found in db/", file=sys.stderr)
+    print("No swissdamed_migel_*.db found", file=sys.stderr)
     sys.exit(1)
 DB_PATH = db_files[-1]
 print(f"Reading from {DB_PATH}")
 
 # --- Find latest full swissdamed database for total product count ---
-full_db_files = sorted(glob.glob('db/swissdamed_[0-9]*.db'), key=lambda f: os.path.getmtime(f))
+full_db_files = sorted(
+    glob.glob('db/swissdamed_[0-9]*.db') + glob.glob(os.path.join(home_db, 'swissdamed_[0-9]*.db')),
+    key=lambda f: os.path.getmtime(f)
+)
 total_products = 0
 if full_db_files:
     try:
