@@ -37,7 +37,29 @@ No tests exist. No linter/formatter configuration — use `cargo fmt` and `cargo
 
 ## Architecture
 
-Three-file application: `src/main.rs` (CLI, download, output) + `src/migel.rs` (MiGeL matching engine, shared with fb2sqlite) + `src/error_report.rs` (SRN validation and HTML error reports). Key flow:
+Four-file application: `src/main.rs` (CLI, download, output, `app_data_dir()`) + `src/gui.rs` (egui/eframe cross-platform GUI) + `src/migel.rs` (MiGeL matching engine, shared with fb2sqlite) + `src/error_report.rs` (SRN validation and HTML error reports).
+
+### GUI (`src/gui.rs`)
+
+When launched without arguments, opens a native GUI window (egui/eframe, wgpu rendering). Features:
+- **Download Products (CSV + SQLite)** — runs `download_all_pages()` + `write_csv()` + `write_sqlite()` in a background thread
+- **Lookup SRNs for CHRN** — text input + button, mirrors `run_lookup_chrn()` logic
+- **MiGeL Matching (SQLite)** — downloads UDI + MiGeL XLSX, runs Aho-Corasick matching, saves SQLite
+- **Open Output/CSV/DB Folder** — opens `~/swissdamed2sqlite/` subdirectories
+- Worker thread with `mpsc` channel for non-blocking UI updates
+- Persistent settings saved to `~/swissdamed2sqlite/settings.json`
+- Light theme (white background)
+- App icon embedded in binary from `assets/icon_256x256.png`
+
+### Output Directory
+
+All output files go to `~/swissdamed2sqlite/` (`app_data_dir()`):
+- macOS sandbox: container directory
+- Windows: `%USERPROFILE%\swissdamed2sqlite\`
+- Linux/macOS: `~/swissdamed2sqlite/`
+- Subdirectories: `csv/`, `db/`, `diff/`, `html/`, `logs/`
+
+### CLI Key flow:
 
 1. **CLI parsing** — `clap` derive API (`Args` struct). Flags: `--csv`, `--sqlite`, `--file`, `--page-size`, `--deploy`, `--scp`, `--diff`, `--actors`, `--mandates`, `--ar-mandates`, `--ch-rep`, `--ch-rep-mandates`, `--ar-only`, `--lookup-chrn`, `--gdrive`, `--gdrive-folder`, `--gdrive-key`, `--gdrive-email`, `--gdrive-sub`, `--mailto`, `--mail-subject`, `--company-ranking`, `--unique-srns`. If neither `--csv` nor `--sqlite` is given, both are produced. `--deploy` implies `--sqlite`. `--diff` takes two CSV paths and skips download/export.
 2. **Data acquisition** — `download_all_pages_from(base_url, label, page_size)` paginates POST requests to the swissdamed.ch public API, or `load_json_file()` reads a local JSON file. Three endpoints: UDI (`/public/udi/basic-udis`), actors (`/public/act/actors`), mandates (`/public/act/mandates`).
@@ -61,6 +83,19 @@ Three-file application: `src/main.rs` (CLI, download, output) + `src/migel.rs` (
 - `is_valid_srn()` validates SRN format: 2-3 letter country code + `-MF-` or `-PR-` + 6+ digits. Tolerates minor variants (underscores, unicode dashes, missing dash before digits). Rejects `-AR-`/`-IM-` role types.
 - `InvalidSrn` struct holds invalid SRN with manufacturer and mandate holder context.
 - `write_srn_error_report()` generates `html/srn_error_report_HHhMM.dd.mm.yyyy.html` with styled table of invalid entries, deduplicated by SRN.
+
+## Key Details
+
+## Release & CI/CD (`.github/workflows/release.yml`)
+
+Triggered by `git tag v* && git push --tags`. Builds for all platforms in parallel:
+- **macOS**: universal binary (arm64 + x86_64), .app bundle, signed DMG, notarized, App Store .pkg upload via iTMSTransporter
+- **Windows**: portable ZIP, signed MSIX, Microsoft Store submission via Partner Center API
+- **Linux**: tar.gz + AppImage
+- **GitHub Release**: collects all artifacts via `softprops/action-gh-release`
+- Version synced from git tag to Cargo.toml automatically
+
+Platform configs: `build.rs` (Windows icon), `entitlements.plist` / `entitlements-appstore.plist` (macOS), `windows/AppxManifest.xml` + `windows/assets/` (MSIX/Store).
 
 ## Key Details
 

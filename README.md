@@ -2,7 +2,33 @@
 
 Download swissdamed UDI (Unique Device Identification) data, actors, and mandates from [swissdamed.ch](https://swissdamed.ch) and export as CSV and/or SQLite.
 
-## Installation
+Available as a **cross-platform GUI app** (Windows, macOS, Linux) and as a CLI tool.
+
+## Download
+
+Pre-built binaries for all platforms are available on the [GitHub Releases](https://github.com/zdavatz/swissdamed2sqlite/releases) page:
+
+- **macOS** — Universal DMG (Apple Silicon + Intel), also on the Mac App Store
+- **Windows** — Portable ZIP and MSIX installer, also on the Microsoft Store
+- **Linux** — tar.gz and AppImage
+
+## GUI
+
+Launch the app without any arguments to open the GUI:
+
+```bash
+swissdamed2sqlite
+```
+
+The GUI provides:
+- **Download Products (CSV + SQLite)** — downloads all UDI products and saves to `~/swissdamed2sqlite/csv/` and `~/swissdamed2sqlite/db/`
+- **Lookup SRNs for CHRN** — enter a CHRN (e.g. `CHRN-AR-20000807`) to find all associated SRNs
+- **MiGeL Matching (SQLite)** — matches UDI devices against MiGeL codes
+- **Open Output/CSV/DB Folder** — quick access to output directories
+
+All output files are saved to `~/swissdamed2sqlite/` (HOMEDIR) with `csv/` and `db/` subdirectories.
+
+## Installation (from source)
 
 Requires Rust toolchain. Then:
 
@@ -12,11 +38,11 @@ cargo build --release
 
 The binary will be at `target/release/swissdamed2sqlite`.
 
-## Usage
+## CLI Usage
 
 ```bash
 # Download and export both CSV and SQLite (default)
-swissdamed2sqlite
+swissdamed2sqlite --csv --sqlite
 
 # Export only CSV or only SQLite
 swissdamed2sqlite --csv
@@ -136,6 +162,9 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - [unicode-normalization](https://crates.io/crates/unicode-normalization) — Unicode NFC normalization
 - [jsonwebtoken](https://crates.io/crates/jsonwebtoken) — JWT signing for Google service account auth
 - [base64](https://crates.io/crates/base64) — Base64 encoding for Gmail API
+- [eframe](https://crates.io/crates/eframe) — Cross-platform GUI framework (egui + winit + wgpu)
+- [image](https://crates.io/crates/image) — PNG icon loading for GUI
+- [open](https://crates.io/crates/open) — Open files/URLs in system apps
 
 ## License
 

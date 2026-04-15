@@ -1,4 +1,5 @@
 mod error_report;
+mod gui;
 mod migel;
 
 use chrono::Local;
@@ -13,6 +14,38 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
+
+const APP_DIR_NAME: &str = "swissdamed2sqlite";
+
+/// Return the application data directory (`~/swissdamed2sqlite/`).
+/// Under macOS App Sandbox, uses the container directory.
+/// On Windows uses `%USERPROFILE%\swissdamed2sqlite\`.
+/// Falls back to the current working directory.
+pub fn app_data_dir() -> PathBuf {
+    // macOS sandbox
+    if let Ok(container) = std::env::var("APP_SANDBOX_CONTAINER_ID") {
+        if !container.is_empty() {
+            if let Some(home) = std::env::var_os("HOME") {
+                let dir = PathBuf::from(home).join(APP_DIR_NAME);
+                let _ = fs::create_dir_all(&dir);
+                return dir;
+            }
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    let home = std::env::var_os("USERPROFILE");
+    #[cfg(not(target_os = "windows"))]
+    let home = std::env::var_os("HOME");
+
+    if let Some(home) = home {
+        let dir = PathBuf::from(home).join(APP_DIR_NAME);
+        let _ = fs::create_dir_all(&dir);
+        return dir;
+    }
+
+    std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
+}
 
 /// Download Swiss DAMED UDI data and convert to CSV or SQLite
 #[derive(Parser, Debug)]
@@ -119,14 +152,20 @@ fn date_stamp() -> String {
     Local::now().format("%d.%m.%Y").to_string()
 }
 
-fn output_csv(name: &str) -> String {
-    fs::create_dir_all("csv").ok();
-    format!("csv/{}_{}.csv", name, date_stamp())
+pub(crate) fn output_csv(name: &str) -> String {
+    let dir = app_data_dir().join("csv");
+    fs::create_dir_all(&dir).ok();
+    dir.join(format!("{}_{}.csv", name, date_stamp()))
+        .to_string_lossy()
+        .to_string()
 }
 
-fn output_db(name: &str) -> String {
-    fs::create_dir_all("db").ok();
-    format!("db/{}_{}.db", name, date_stamp())
+pub(crate) fn output_db(name: &str) -> String {
+    let dir = app_data_dir().join("db");
+    fs::create_dir_all(&dir).ok();
+    dir.join(format!("{}_{}.db", name, date_stamp()))
+        .to_string_lossy()
+        .to_string()
 }
 
 // --- Google Drive upload ---
@@ -412,11 +451,11 @@ fn send_email_with_attachment(
 
 // --- Download ---
 
-fn download_all_pages(page_size: u32) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
+pub(crate) fn download_all_pages(page_size: u32) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
     download_all_pages_from("https://swissdamed.ch/public/udi/basic-udis", "UDI", page_size)
 }
 
-fn download_all_pages_from(base_url: &str, label: &str, page_size: u32) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
+pub(crate) fn download_all_pages_from(base_url: &str, label: &str, page_size: u32) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
     let client = reqwest::blocking::Client::builder()
         .cookie_store(true)
         .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
@@ -583,7 +622,7 @@ fn value_to_string(val: &Value) -> String {
     }
 }
 
-fn get_field(obj: &Value, key: &str) -> String {
+pub(crate) fn get_field(obj: &Value, key: &str) -> String {
     match obj.get(key) {
         Some(val) => value_to_string(val),
         None => String::new(),
@@ -594,7 +633,7 @@ fn get_field(obj: &Value, key: &str) -> String {
 
 /// Scan all udiDis -> tradeNames arrays to discover which languages exist,
 /// returned in a stable sorted order.
-fn collect_trade_name_languages(values: &[Value]) -> Vec<String> {
+pub(crate) fn collect_trade_name_languages(values: &[Value]) -> Vec<String> {
     let mut langs = BTreeSet::new();
 
     for item in values {
@@ -618,7 +657,7 @@ fn collect_trade_name_languages(values: &[Value]) -> Vec<String> {
     langs.into_iter().collect()
 }
 
-fn collect_headers(values: &[Value]) -> (Vec<String>, Vec<String>) {
+pub(crate) fn collect_headers(values: &[Value]) -> (Vec<String>, Vec<String>) {
     let mut seen = BTreeSet::new();
     let mut headers: Vec<String> = Vec::new();
 
@@ -683,7 +722,7 @@ fn extract_trade_names_by_lang(udi: &Value) -> HashMap<String, String> {
     map
 }
 
-fn build_rows(values: &[Value], headers: &[String], trade_name_langs: &[String]) -> Vec<Vec<String>> {
+pub(crate) fn build_rows(values: &[Value], headers: &[String], trade_name_langs: &[String]) -> Vec<Vec<String>> {
     // Main fields = everything before udiDiCode
     let main_header_count = headers.len() - 1 - trade_name_langs.len();
     let mut rows = Vec::new();
@@ -728,7 +767,7 @@ fn build_rows(values: &[Value], headers: &[String], trade_name_langs: &[String])
 
 // --- Flat data processing (actors, mandates) ---
 
-fn collect_flat_headers(values: &[Value]) -> Vec<String> {
+pub(crate) fn collect_flat_headers(values: &[Value]) -> Vec<String> {
     let mut seen = BTreeSet::new();
     let mut headers: Vec<String> = Vec::new();
 
@@ -755,7 +794,7 @@ fn build_flat_rows(values: &[Value], headers: &[String]) -> Vec<Vec<String>> {
 
 // --- Output writers ---
 
-fn write_csv(
+pub(crate) fn write_csv(
     headers: &[String],
     rows: &[Vec<String>],
     filename: &str,
@@ -776,7 +815,7 @@ fn write_csv(
     Ok(())
 }
 
-fn write_sqlite(
+pub(crate) fn write_sqlite(
     headers: &[String],
     rows: &[Vec<String>],
     filename: &str,
@@ -950,9 +989,12 @@ fn diff_csv_files(old_path: &PathBuf, new_path: &PathBuf) -> Result<(), Box<dyn 
         .unwrap_or_else(|| "unknown".to_string());
     let new_date = extract_date_from_filename(new_path)
         .unwrap_or_else(|| "unknown".to_string());
-    let out_filename = format!("diff/diff_swissdamed_{}_{}.csv", old_date, new_date);
-
-    fs::create_dir_all("diff")?;
+    let diff_dir = app_data_dir().join("diff");
+    fs::create_dir_all(&diff_dir)?;
+    let out_filename = diff_dir
+        .join(format!("diff_swissdamed_{}_{}.csv", old_date, new_date))
+        .to_string_lossy()
+        .to_string();
 
     let mut out_headers = vec!["diff_status".to_string()];
     out_headers.extend(old_headers);
@@ -985,7 +1027,7 @@ fn diff_csv_files(old_path: &PathBuf, new_path: &PathBuf) -> Result<(), Box<dyn 
 
 // --- MiGel matching ---
 
-fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
+pub(crate) fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     // 1. Get swissdamed data
     let values = if let Some(ref path) = args.file {
         eprintln!("Loading from file: {}", path.display());
@@ -1778,10 +1820,14 @@ fn run_lookup_chrn(chrn: &str, args: &Args) -> Result<(), Box<dyn std::error::Er
         joined_headers.len()
     );
 
-    // 8. Output CSV with timestamped filename: csv/CHRN-AR-20000807_14h30.28.03.2026.csv
-    fs::create_dir_all("csv").ok();
+    // 8. Output CSV with timestamped filename
+    let csv_dir = app_data_dir().join("csv");
+    fs::create_dir_all(&csv_dir).ok();
     let timestamp = Local::now().format("%Hh%M.%d.%m.%Y").to_string();
-    let filename = format!("csv/{}_{}.csv", chrn, timestamp);
+    let filename = csv_dir
+        .join(format!("{}_{}.csv", chrn, timestamp))
+        .to_string_lossy()
+        .to_string();
     write_csv(&joined_headers, &rows, &filename)?;
     eprintln!("CSV written: {}", filename);
     if args.gdrive {
@@ -1798,7 +1844,7 @@ fn run_lookup_chrn(chrn: &str, args: &Args) -> Result<(), Box<dyn std::error::Er
 
 /// Flatten a mandate detail JSON into a stable set of key-value pairs.
 /// Nested objects like `address` and `actorInfo` are flattened with prefix.
-fn flatten_mandate_detail(detail: &Value) -> Vec<(String, String)> {
+pub(crate) fn flatten_mandate_detail(detail: &Value) -> Vec<(String, String)> {
     let mut fields = Vec::new();
 
     if let Value::Object(map) = detail {
@@ -1822,7 +1868,7 @@ fn flatten_mandate_detail(detail: &Value) -> Vec<(String, String)> {
     fields
 }
 
-fn fetch_mandate_details(
+pub(crate) fn fetch_mandate_details(
     client: &reqwest::blocking::Client,
     mandate_ids: &[String],
 ) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
@@ -2057,6 +2103,13 @@ fn download_and_export(
 // --- Main ---
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // No arguments → launch GUI
+    let cli_args: Vec<String> = std::env::args().skip(1).collect();
+    if cli_args.is_empty() {
+        gui::run_gui().map_err(|e| format!("GUI error: {}", e))?;
+        return Ok(());
+    }
+
     let args = Args::parse();
 
     // Handle --diff mode

@@ -64,9 +64,13 @@ pub fn write_srn_error_report(invalid_srns: &[InvalidSrn]) -> Option<String> {
         return None;
     }
 
-    fs::create_dir_all("html").ok();
+    let html_dir = crate::app_data_dir().join("html");
+    fs::create_dir_all(&html_dir).ok();
     let timestamp = Local::now().format("%Hh%M.%d.%m.%Y").to_string();
-    let html_path = format!("html/srn_error_report_{}.html", timestamp);
+    let html_path = html_dir
+        .join(format!("srn_error_report_{}.html", timestamp))
+        .to_string_lossy()
+        .to_string();
 
     // Deduplicate by SRN
     let mut seen = HashSet::new();

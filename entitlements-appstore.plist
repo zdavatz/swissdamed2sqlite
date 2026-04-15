@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Application identifier (must match provisioning profile) -->
+    <key>com.apple.application-identifier</key>
+    <string>4B37356EGR.com.ywesee.swissdamed2sqlite</string>
+    <key>com.apple.developer.team-identifier</key>
+    <string>4B37356EGR</string>
+    <!-- App Sandbox (required for Mac App Store) -->
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+    <!-- Hardened Runtime: allow JIT for wgpu/Metal shader compilation -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <!-- Network: outbound connections to swissdamed.ch API -->
+    <key>com.apple.security.network.client</key>
+    <true/>
+    <!-- File access: user-selected files (for export) -->
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+</dict>
+</plist>
