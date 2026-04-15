@@ -420,8 +420,7 @@ jobs:
             "Content-Type" = "application/json"
           }
 
-          # NOTE: Replace with actual MS Store App ID once registered
-          $appId = "REPLACE_WITH_APP_ID"
+          $appId = "9MVMQ21R4MKC"
           $appResp = Invoke-RestMethod -Method Get `
             -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$appId" `
             -Headers $headers
