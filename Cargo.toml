@@ -21,6 +21,7 @@ base64 = "0.22"
 eframe = "0.31"
 image = { version = "0.25", features = ["png"] }
 open = "5"
+toml = "1.1.2"
 
 [build-dependencies]
 winresource = { version = "0.1", optional = true }
