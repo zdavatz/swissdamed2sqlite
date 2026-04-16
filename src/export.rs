@@ -8,20 +8,22 @@ fn date_stamp() -> String {
     chrono::Local::now().format("%d.%m.%Y").to_string()
 }
 
-pub fn output_csv(name: &str) -> String {
+pub fn output_csv(name: &str) -> Result<String, Box<dyn std::error::Error>> {
     let dir = app_data_dir().join("csv");
-    fs::create_dir_all(&dir).ok();
-    dir.join(format!("{}_{}.csv", name, date_stamp()))
+    fs::create_dir_all(&dir)?;
+    Ok(dir
+        .join(format!("{}_{}.csv", name, date_stamp()))
         .to_string_lossy()
-        .to_string()
+        .to_string())
 }
 
-pub fn output_db(name: &str) -> String {
+pub fn output_db(name: &str) -> Result<String, Box<dyn std::error::Error>> {
     let dir = app_data_dir().join("db");
-    fs::create_dir_all(&dir).ok();
-    dir.join(format!("{}_{}.db", name, date_stamp()))
+    fs::create_dir_all(&dir)?;
+    Ok(dir
+        .join(format!("{}_{}.db", name, date_stamp()))
         .to_string_lossy()
-        .to_string()
+        .to_string())
 }
 
 pub fn write_csv(
@@ -63,7 +65,7 @@ pub fn write_sqlite_table(
         fs::remove_file(filename)?;
     }
 
-    let conn = Connection::open(filename)?;
+    let mut conn = Connection::open(filename)?;
 
     let col_defs: Vec<String> = headers
         .iter()
@@ -84,7 +86,7 @@ pub fn write_sqlite_table(
         placeholders.join(", ")
     );
 
-    let tx = conn.unchecked_transaction()?;
+    let tx = conn.transaction()?;
     {
         let mut stmt = tx.prepare(&insert_sql)?;
         for row in rows {

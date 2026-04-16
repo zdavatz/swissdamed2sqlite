@@ -61,7 +61,7 @@ fn output_results(
     };
 
     if do_csv {
-        let filename = output_csv(name);
+        let filename = output_csv(name)?;
         write_csv(headers, rows, &filename)?;
         eprintln!("CSV written: {}", filename);
         if args.gdrive {
@@ -73,7 +73,7 @@ fn output_results(
     }
 
     if do_sqlite {
-        let filename = output_db(name);
+        let filename = output_db(name)?;
         write_sqlite_table(headers, rows, &filename, name)?;
         eprintln!("SQLite written: {}", filename);
     }
@@ -242,7 +242,7 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // 6. Write matched rows to SQLite
-    let db_filename = output_db("swissdamed_migel");
+    let db_filename = output_db("swissdamed_migel")?;
     write_sqlite(&migel_headers, &matched_rows, &db_filename)?;
     eprintln!("SQLite written: {}", db_filename);
 
@@ -504,7 +504,7 @@ pub fn run_company_ranking(args: &Args) -> Result<(), Box<dyn std::error::Error>
         eprintln!("{:<6} {:<55} {:>8}", i + 1, name, count);
     }
 
-    let filename = output_csv("company_ranking");
+    let filename = output_csv("company_ranking")?;
     write_csv(&out_headers, &out_rows, &filename)?;
     eprintln!("CSV written: {}", filename);
 
@@ -668,7 +668,7 @@ pub fn run_unique_srns(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         invalid_srns.len()
     );
 
-    write_srn_error_report(&invalid_srns);
+    write_srn_error_report(&invalid_srns)?;
 
     let out_headers = vec![
         "srn".to_string(),
@@ -694,7 +694,7 @@ pub fn run_unique_srns(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
 
-    let filename = output_csv("unique_srns");
+    let filename = output_csv("unique_srns")?;
     write_csv(&out_headers, &out_rows, &filename)?;
     eprintln!("CSV written: {}", filename);
 
@@ -847,7 +847,7 @@ pub fn run_lookup_chrn(chrn: &str, args: &Args) -> Result<(), Box<dyn std::error
     // Write CSV with timestamp
     let timestamp = chrono::Local::now().format("%Hh%M.%d.%m.%Y").to_string();
     let csv_dir = crate::app_data_dir().join("csv");
-    let _ = std::fs::create_dir_all(&csv_dir);
+    std::fs::create_dir_all(&csv_dir)?;
     let csv_path = csv_dir
         .join(format!("{}_{}.csv", chrn, timestamp))
         .to_string_lossy()
@@ -1017,7 +1017,7 @@ pub fn download_and_export(
     );
 
     if do_csv {
-        let filename = output_csv(name);
+        let filename = output_csv(name)?;
         write_csv(&headers, &rows, &filename)?;
         eprintln!("[{}] CSV written: {}", name, filename);
         if args.gdrive {
@@ -1029,7 +1029,7 @@ pub fn download_and_export(
     }
 
     if do_sqlite {
-        let filename = output_db(name);
+        let filename = output_db(name)?;
         write_sqlite_table(&headers, &rows, &filename, name)?;
         eprintln!("[{}] SQLite written: {}", name, filename);
     }

@@ -363,7 +363,13 @@ fn run_products_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
     ));
 
     // Write CSV
-    let csv_path = crate::export::output_csv("swissdamed");
+    let csv_path = match crate::export::output_csv("swissdamed") {
+        Ok(p) => p,
+        Err(e) => {
+            done(false, &format!("Failed to create CSV output dir: {}", e));
+            return;
+        }
+    };
     match crate::export::write_csv(&headers, &rows, &csv_path) {
         Ok(()) => log(&format!("CSV written: {}", csv_path)),
         Err(e) => {
@@ -373,7 +379,13 @@ fn run_products_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
     }
 
     // Write SQLite
-    let db_path = crate::export::output_db("swissdamed");
+    let db_path = match crate::export::output_db("swissdamed") {
+        Ok(p) => p,
+        Err(e) => {
+            done(false, &format!("Failed to create DB output dir: {}", e));
+            return;
+        }
+    };
     match crate::export::write_sqlite(&headers, &rows, &db_path) {
         Ok(()) => log(&format!("SQLite written: {}", db_path)),
         Err(e) => {
@@ -561,7 +573,10 @@ fn run_chrn_lookup(chrn: String, tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context
     // Write CSV
     let timestamp = chrono::Local::now().format("%Hh%M.%d.%m.%Y").to_string();
     let csv_dir = crate::app_data_dir().join("csv");
-    let _ = std::fs::create_dir_all(&csv_dir);
+    if let Err(e) = std::fs::create_dir_all(&csv_dir) {
+        done(false, &format!("Failed to create CSV dir: {}", e));
+        return;
+    }
     let csv_path = csv_dir
         .join(format!("{}_{}.csv", chrn, timestamp))
         .to_string_lossy()
@@ -777,7 +792,13 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
     migel_headers.push("migel_bezeichnung".to_string());
     migel_headers.push("migel_limitation".to_string());
 
-    let db_path = crate::export::output_db("swissdamed_migel");
+    let db_path = match crate::export::output_db("swissdamed_migel") {
+        Ok(p) => p,
+        Err(e) => {
+            done(false, &format!("Failed to create DB output dir: {}", e));
+            return;
+        }
+    };
     match crate::export::write_sqlite(&migel_headers, &matched_rows, &db_path) {
         Ok(()) => log(&format!("SQLite written: {}", db_path)),
         Err(e) => {

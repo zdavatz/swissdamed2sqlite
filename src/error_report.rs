@@ -68,13 +68,13 @@ pub fn is_valid_srn(srn: &str) -> bool {
 
 /// Write an HTML error report for invalid SRNs to `html/srn_error_report_HHhMM.dd.mm.yyyy.html`.
 /// Returns the path to the written file, or None if there are no invalid SRNs.
-pub fn write_srn_error_report(invalid_srns: &[InvalidSrn]) -> Option<String> {
+pub fn write_srn_error_report(invalid_srns: &[InvalidSrn]) -> Result<Option<String>, Box<dyn std::error::Error>> {
     if invalid_srns.is_empty() {
-        return None;
+        return Ok(None);
     }
 
     let html_dir = crate::app_data_dir().join("html");
-    fs::create_dir_all(&html_dir).ok();
+    fs::create_dir_all(&html_dir)?;
     let timestamp = Local::now().format("%Hh%M.%d.%m.%Y").to_string();
     let html_path = html_dir
         .join(format!("srn_error_report_{}.html", timestamp))
@@ -137,11 +137,8 @@ pub fn write_srn_error_report(invalid_srns: &[InvalidSrn]) -> Option<String> {
     }
     html.push_str("</table>\n</body></html>\n");
 
-    if let Err(e) = fs::write(&html_path, &html) {
-        eprintln!("Error writing HTML report: {}", e);
-        return None;
-    }
+    fs::write(&html_path, &html)?;
 
     eprintln!("Error report written: {}", html_path);
-    Some(html_path)
+    Ok(Some(html_path))
 }

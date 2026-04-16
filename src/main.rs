@@ -336,7 +336,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     if do_csv {
-        let filename = export::output_csv("swissdamed");
+        let filename = export::output_csv("swissdamed")?;
         export::write_csv(&headers, &rows, &filename)?;
         eprintln!("CSV written: {}", filename);
         if args.gdrive {
@@ -348,7 +348,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if do_sqlite {
-        let filename = export::output_db("swissdamed");
+        let filename = export::output_db("swissdamed")?;
         export::write_sqlite(&headers, &rows, &filename)?;
         eprintln!("SQLite written: {}", filename);
 
