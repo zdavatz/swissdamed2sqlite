@@ -67,20 +67,23 @@ pub fn write_sqlite_table(
 
     let mut conn = Connection::open(filename)?;
 
+    // Escape SQL identifiers: double any embedded quotes per SQL standard
+    let quote_ident = |s: &str| format!("\"{}\"", s.replace('"', "\"\""));
+
     let col_defs: Vec<String> = headers
         .iter()
-        .map(|h| format!("\"{}\" TEXT", h))
+        .map(|h| format!("{} TEXT", quote_ident(h)))
         .collect();
-    let create_sql = format!("CREATE TABLE \"{}\" ({})", table_name, col_defs.join(", "));
+    let create_sql = format!("CREATE TABLE {} ({})", quote_ident(table_name), col_defs.join(", "));
     conn.execute(&create_sql, [])?;
 
     let placeholders: Vec<&str> = vec!["?"; headers.len()];
     let insert_sql = format!(
-        "INSERT INTO \"{}\" ({}) VALUES ({})",
-        table_name,
+        "INSERT INTO {} ({}) VALUES ({})",
+        quote_ident(table_name),
         headers
             .iter()
-            .map(|h| format!("\"{}\"", h))
+            .map(|h| quote_ident(h))
             .collect::<Vec<_>>()
             .join(", "),
         placeholders.join(", ")
@@ -101,8 +104,9 @@ pub fn write_sqlite_table(
     if headers.contains(&"udiDiCode".to_string()) {
         conn.execute(
             &format!(
-                "CREATE INDEX IF NOT EXISTS idx_udiDiCode ON \"{}\"(\"udiDiCode\")",
-                table_name
+                "CREATE INDEX IF NOT EXISTS idx_udiDiCode ON {}({})",
+                quote_ident(table_name),
+                quote_ident("udiDiCode")
             ),
             [],
         )?;
@@ -110,9 +114,12 @@ pub fn write_sqlite_table(
 
     // Create indexes on trade name columns
     for col in headers.iter().filter(|h| h.starts_with("tradeName_")) {
+        let idx_name = format!("idx_{}", col.replace('"', ""));
         let idx_sql = format!(
-            "CREATE INDEX IF NOT EXISTS idx_{} ON \"{}\"(\"{}\")",
-            col, table_name, col
+            "CREATE INDEX IF NOT EXISTS {} ON {}({})",
+            quote_ident(&idx_name),
+            quote_ident(table_name),
+            quote_ident(col)
         );
         conn.execute(&idx_sql, [])?;
     }

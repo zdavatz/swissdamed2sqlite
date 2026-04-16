@@ -247,13 +247,23 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     eprintln!("SQLite written: {}", db_filename);
 
     // 7. Generate stats PNG
-    let python = "/opt/homebrew/Cellar/python-matplotlib/3.10.8/libexec/bin/python3";
     let script = "generate_migel_stats.py";
-    if std::path::Path::new(script).exists() && std::path::Path::new(python).exists() {
-        match std::process::Command::new(python).arg(script).status() {
-            Ok(s) if s.success() => {}
-            Ok(s) => eprintln!("Stats script exited with: {:?}", s.code()),
-            Err(e) => eprintln!("Could not run stats script: {}", e),
+    if std::path::Path::new(script).exists() {
+        let python = std::process::Command::new("which")
+            .arg("python3")
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.trim().to_string());
+        if let Some(python) = python {
+            match std::process::Command::new(&python).arg(script).status() {
+                Ok(s) if s.success() => {}
+                Ok(s) => eprintln!("Stats script exited with: {:?}", s.code()),
+                Err(e) => eprintln!("Could not run stats script: {}", e),
+            }
+        } else {
+            eprintln!("python3 not found in PATH, skipping stats generation.");
         }
     }
 

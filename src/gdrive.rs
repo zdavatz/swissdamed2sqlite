@@ -208,6 +208,12 @@ pub fn send_email_with_attachment(
         .and_then(|n| n.to_str())
         .unwrap_or(csv_path);
 
+    // Sanitize values interpolated into MIME headers to prevent header injection
+    let sanitize_header = |s: &str| s.replace(['\r', '\n'], "");
+    let safe_file_name = sanitize_header(file_name);
+    let safe_to = sanitize_header(to_email);
+    let safe_from = sanitize_header(sub_email);
+
     let file_content = fs::read(csv_path)?;
     let encoded_attachment = engine.encode(&file_content);
 
@@ -215,12 +221,12 @@ pub fn send_email_with_attachment(
     let subject_raw = args
         .mail_subject
         .clone()
-        .unwrap_or_else(|| format!("swissdamed2sqlite: {}", file_name));
-    let subject = if subject_raw.is_ascii() {
+        .unwrap_or_else(|| format!("swissdamed2sqlite: {}", safe_file_name));
+    let subject = sanitize_header(&if subject_raw.is_ascii() {
         subject_raw
     } else {
         format!("=?UTF-8?B?{}?=", engine.encode(subject_raw.as_bytes()))
-    };
+    });
 
     let raw_email = format!(
         "From: {from}\r\n\
@@ -241,11 +247,11 @@ pub fn send_email_with_attachment(
          \r\n\
          {attachment}\r\n\
          --{boundary}--\r\n",
-        from = sub_email,
-        to = to_email,
+        from = safe_from,
+        to = safe_to,
         subject = subject,
         boundary = boundary,
-        file_name = file_name,
+        file_name = safe_file_name,
         attachment = encoded_attachment,
     );
 
