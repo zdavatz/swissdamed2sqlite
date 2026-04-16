@@ -1119,7 +1119,7 @@ pub(crate) fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let migel_items = parse_migel_items(migel_file)?;
     eprintln!("Found {} MiGel items with position numbers", migel_items.len());
 
-    let search_index = build_search_index(&migel_items);
+    let search_index = build_search_index(&migel_items)?;
     eprintln!("Built Aho-Corasick search index");
 
     // 4. Find column indices for matching — collect ALL tradeName columns
@@ -1828,7 +1828,7 @@ fn run_lookup_chrn(chrn: &str, args: &Args) -> Result<(), Box<dyn std::error::Er
         joined_headers.push(format!("mandate_{}", key));
     }
 
-    // 7. Build joined rows
+    // 7. Build joined rows (skip entries where detail fetch returned null)
     let actor_map: HashMap<String, &Value> = matching_actors
         .iter()
         .filter_map(|v| {
@@ -1844,7 +1844,10 @@ fn run_lookup_chrn(chrn: &str, args: &Args) -> Result<(), Box<dyn std::error::Er
             Some(a) => a,
             None => continue,
         };
-        let detail = &details[i];
+        let detail = match details.get(i) {
+            Some(d) if !d.is_null() => d,
+            _ => continue,
+        };
         let detail_fields: HashMap<String, String> =
             flatten_mandate_detail(detail).into_iter().collect();
 
@@ -2040,14 +2043,17 @@ fn run_ar_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         joined_headers.push(format!("mandate_{}", key));
     }
 
-    // 7. Build joined rows
+    // 7. Build joined rows (skip entries where detail fetch returned null)
     let mut rows: Vec<Vec<String>> = Vec::new();
     for (i, (actor_id, _)) in ar_mandate_ids.iter().enumerate() {
         let actor = match actor_map.get(actor_id) {
             Some(a) => a,
             None => continue,
         };
-        let detail = &details[i];
+        let detail = match details.get(i) {
+            Some(d) if !d.is_null() => d,
+            _ => continue,
+        };
         let detail_fields: HashMap<String, String> =
             flatten_mandate_detail(detail).into_iter().collect();
 
@@ -2150,7 +2156,24 @@ fn download_and_export(
 
 // --- Main ---
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// Show an error dialog using a minimal eframe window (GUI mode)
+/// or just print to stderr (CLI mode).
+fn show_error_dialog(message: &str, is_gui_mode: bool) {
+    eprintln!("Error: {}", message);
+    if is_gui_mode {
+        gui::run_error_dialog(message);
+    }
+}
+
+fn main() {
+    let is_gui_mode = std::env::args().skip(1).next().is_none();
+    if let Err(e) = run() {
+        show_error_dialog(&e.to_string(), is_gui_mode);
+        std::process::exit(1);
+    }
+}
+
+fn run() -> Result<(), Box<dyn std::error::Error>> {
     // No arguments → launch GUI
     let cli_args: Vec<String> = std::env::args().skip(1).collect();
     if cli_args.is_empty() {

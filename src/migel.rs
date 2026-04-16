@@ -711,7 +711,7 @@ pub struct MigelSearchIndex {
 }
 
 /// Build an Aho-Corasick search index for fast candidate finding.
-pub fn build_search_index(items: &[MigelItem]) -> MigelSearchIndex {
+pub fn build_search_index(items: &[MigelItem]) -> Result<MigelSearchIndex, Box<dyn std::error::Error>> {
     // Build inverted index: keyword → item indices
     let mut keyword_to_items: HashMap<String, Vec<usize>> = HashMap::new();
     for (i, item) in items.iter().enumerate() {
@@ -763,14 +763,13 @@ pub fn build_search_index(items: &[MigelItem]) -> MigelSearchIndex {
 
     let automaton = AhoCorasick::builder()
         .start_kind(StartKind::Unanchored)
-        .build(&patterns)
-        .expect("Failed to build Aho-Corasick automaton");
+        .build(&patterns)?;
 
-    MigelSearchIndex {
+    Ok(MigelSearchIndex {
         automaton,
         pattern_items,
         idf_weights,
-    }
+    })
 }
 
 /// Split text into words (split on non-alphanumeric characters).

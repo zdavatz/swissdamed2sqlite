@@ -149,10 +149,15 @@ impl eframe::App for App {
             // Load icon texture once
             let icon_texture = self.icon_texture.get_or_insert_with(|| {
                 let png_bytes = include_bytes!("../assets/icon_256x256.png");
-                let img = image::load_from_memory(png_bytes).unwrap().into_rgba8();
-                let size = [img.width() as usize, img.height() as usize];
-                let pixels = img.into_raw();
-                let color_image = egui::ColorImage::from_rgba_unmultiplied(size, &pixels);
+                let color_image = match image::load_from_memory(png_bytes) {
+                    Ok(img) => {
+                        let rgba = img.into_rgba8();
+                        let size = [rgba.width() as usize, rgba.height() as usize];
+                        let pixels = rgba.into_raw();
+                        egui::ColorImage::from_rgba_unmultiplied(size, &pixels)
+                    }
+                    Err(_) => egui::ColorImage::new([1, 1], egui::Color32::TRANSPARENT),
+                };
                 ctx.load_texture("app-icon", color_image, egui::TextureOptions::LINEAR)
             });
 
@@ -482,12 +487,18 @@ fn run_chrn_lookup(chrn: String, tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context
     ));
 
     // Create HTTP client for mandate detail fetches
-    let client = reqwest::blocking::Client::builder()
+    let client = match reqwest::blocking::Client::builder()
         .cookie_store(true)
         .redirect(reqwest::redirect::Policy::limited(10))
         .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
         .build()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(e) => {
+            done(false, &format!("Failed to create HTTP client: {}", e));
+            return;
+        }
+    };
 
     let ids_only: Vec<String> = matching_mandate_ids.iter().map(|(_, mid)| mid.clone()).collect();
     let details = match crate::fetch_mandate_details(&client, &ids_only) {
@@ -611,10 +622,16 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
     log("Downloading MiGeL XLSX...");
     let migel_url = "https://www.bag.admin.ch/dam/de/sd-web/77j5rwUTzbkq/Mittel-%20und%20Gegenst%C3%A4ndeliste%20per%2001.01.2026%20in%20Excel-Format.xlsx";
     let migel_file = crate::app_data_dir().join("migel.xlsx");
-    let client = reqwest::blocking::Client::builder()
+    let client = match reqwest::blocking::Client::builder()
         .user_agent("swissdamed2sqlite/0.1")
         .build()
-        .unwrap();
+    {
+        Ok(c) => c,
+        Err(e) => {
+            done(false, &format!("Failed to create HTTP client: {}", e));
+            return;
+        }
+    };
     let response = match client.get(migel_url).send() {
         Ok(r) => r,
         Err(e) => {
@@ -626,13 +643,26 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
         done(false, &format!("MiGeL download HTTP {}", response.status()));
         return;
     }
-    let bytes = response.bytes().unwrap();
+    let bytes = match response.bytes() {
+        Ok(b) => b,
+        Err(e) => {
+            done(false, &format!("Failed to read MiGeL response: {}", e));
+            return;
+        }
+    };
     let _ = std::fs::write(&migel_file, &bytes);
     log(&format!("MiGeL XLSX saved ({} bytes)", bytes.len()));
 
     // 3. Parse MiGeL items
     log("Parsing MiGeL items...");
-    let migel_items = match crate::migel::parse_migel_items(migel_file.to_str().unwrap()) {
+    let migel_path = match migel_file.to_str() {
+        Some(p) => p,
+        None => {
+            done(false, "MiGeL file path contains invalid UTF-8");
+            return;
+        }
+    };
+    let migel_items = match crate::migel::parse_migel_items(migel_path) {
         Ok(items) => items,
         Err(e) => {
             done(false, &format!("MiGeL parse failed: {}", e));
@@ -641,7 +671,13 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
     };
     log(&format!("Found {} MiGeL items", migel_items.len()));
 
-    let search_index = crate::migel::build_search_index(&migel_items);
+    let search_index = match crate::migel::build_search_index(&migel_items) {
+        Ok(idx) => idx,
+        Err(e) => {
+            done(false, &format!("Failed to build search index: {}", e));
+            return;
+        }
+    };
     log("Built Aho-Corasick search index");
 
     // 4. Match rows
@@ -769,6 +805,45 @@ fn load_icon() -> Option<egui::IconData> {
         width: w,
         height: h,
     })
+}
+
+/// Show a minimal eframe window with an error message and a Close button.
+pub fn run_error_dialog(message: &str) {
+    let message = message.to_string();
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_title("swissdamed2sqlite — Error")
+            .with_inner_size([450.0, 200.0])
+            .with_resizable(false),
+        ..Default::default()
+    };
+    let _ = eframe::run_native(
+        "swissdamed2sqlite-error",
+        options,
+        Box::new(move |cc| {
+            cc.egui_ctx.set_visuals(egui::Visuals::light());
+            Ok(Box::new(ErrorDialog { message: message.clone() }))
+        }),
+    );
+}
+
+struct ErrorDialog {
+    message: String,
+}
+
+impl eframe::App for ErrorDialog {
+    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.add_space(16.0);
+            ui.heading("Error");
+            ui.add_space(8.0);
+            ui.label(&self.message);
+            ui.add_space(16.0);
+            if ui.button("Close").clicked() {
+                ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+            }
+        });
+    }
 }
 
 /// Launch the GUI application.
