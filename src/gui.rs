@@ -337,7 +337,7 @@ fn run_products_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
 
     log("Downloading UDI products from swissdamed.ch ...");
 
-    let values = match crate::download_all_pages(50) {
+    let values = match crate::download::download_all_pages(50) {
         Ok(v) => v,
         Err(e) => {
             done(false, &format!("Download failed: {}", e));
@@ -352,8 +352,8 @@ fn run_products_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
 
     log(&format!("Downloaded {} items.", values.len()));
 
-    let (headers, trade_name_langs) = crate::collect_headers(&values);
-    let rows = crate::build_rows(&values, &headers, &trade_name_langs);
+    let (headers, trade_name_langs) = crate::data::collect_headers(&values);
+    let rows = crate::data::build_rows(&values, &headers, &trade_name_langs);
 
     log(&format!(
         "Processed {} items → {} rows, {} columns.",
@@ -363,8 +363,8 @@ fn run_products_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
     ));
 
     // Write CSV
-    let csv_path = crate::output_csv("swissdamed");
-    match crate::write_csv(&headers, &rows, &csv_path) {
+    let csv_path = crate::export::output_csv("swissdamed");
+    match crate::export::write_csv(&headers, &rows, &csv_path) {
         Ok(()) => log(&format!("CSV written: {}", csv_path)),
         Err(e) => {
             done(false, &format!("CSV write failed: {}", e));
@@ -373,8 +373,8 @@ fn run_products_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
     }
 
     // Write SQLite
-    let db_path = crate::output_db("swissdamed");
-    match crate::write_sqlite(&headers, &rows, &db_path) {
+    let db_path = crate::export::output_db("swissdamed");
+    match crate::export::write_sqlite(&headers, &rows, &db_path) {
         Ok(()) => log(&format!("SQLite written: {}", db_path)),
         Err(e) => {
             done(false, &format!("SQLite write failed: {}", e));
@@ -409,7 +409,7 @@ fn run_chrn_lookup(chrn: String, tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context
 
     // Download actors
     log("Downloading actors...");
-    let actors = match crate::download_all_pages_from(
+    let actors = match crate::download::download_all_pages_from(
         "https://swissdamed.ch/public/act/actors",
         "actors",
         50,
@@ -451,7 +451,7 @@ fn run_chrn_lookup(chrn: String, tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context
 
     // Download mandates
     log("Downloading mandates...");
-    let mandates = match crate::download_all_pages_from(
+    let mandates = match crate::download::download_all_pages_from(
         "https://swissdamed.ch/public/act/mandates",
         "mandates",
         50,
@@ -501,7 +501,7 @@ fn run_chrn_lookup(chrn: String, tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context
     };
 
     let ids_only: Vec<String> = matching_mandate_ids.iter().map(|(_, mid)| mid.clone()).collect();
-    let details = match crate::fetch_mandate_details(&client, &ids_only) {
+    let details = match crate::data::fetch_mandate_details(&client, &ids_only) {
         Ok(d) => d,
         Err(e) => {
             done(false, &format!("Mandate details fetch failed: {}", e));
@@ -511,12 +511,12 @@ fn run_chrn_lookup(chrn: String, tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context
     log(&format!("Fetched {} mandate details.", details.len()));
 
     // Build output rows (mirroring CLI run_lookup_chrn logic)
-    let actor_headers = crate::collect_flat_headers(&actors);
+    let actor_headers = crate::data::collect_flat_headers(&actors);
 
     let mut detail_key_order: Vec<String> = Vec::new();
     let mut detail_key_set = std::collections::BTreeSet::new();
     for detail in &details {
-        for (k, _) in crate::flatten_mandate_detail(detail) {
+        for (k, _) in crate::data::flatten_mandate_detail(detail) {
             if detail_key_set.insert(k.clone()) {
                 detail_key_order.push(k);
             }
@@ -533,13 +533,13 @@ fn run_chrn_lookup(chrn: String, tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context
             a.get("id").and_then(|v| v.as_str()) == Some(_actor_id_str.as_str())
         });
         let actor_vals: Vec<String> = if let Some(actor) = actor {
-            actor_headers.iter().map(|h| crate::get_field(actor, h)).collect()
+            actor_headers.iter().map(|h| crate::data::get_field(actor, h)).collect()
         } else {
             actor_headers.iter().map(|_| String::new()).collect()
         };
 
         let detail_vals: Vec<String> = if let Some(detail) = details.get(i) {
-            let flat = crate::flatten_mandate_detail(detail);
+            let flat = crate::data::flatten_mandate_detail(detail);
             detail_key_order.iter().map(|k| {
                 flat.iter().find(|(fk, _)| fk == k).map(|(_, v)| v.clone()).unwrap_or_default()
             }).collect()
@@ -567,7 +567,7 @@ fn run_chrn_lookup(chrn: String, tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context
         .to_string_lossy()
         .to_string();
 
-    match crate::write_csv(&joined_headers, &rows, &csv_path) {
+    match crate::export::write_csv(&joined_headers, &rows, &csv_path) {
         Ok(()) => log(&format!("CSV written: {}", csv_path)),
         Err(e) => {
             done(false, &format!("CSV write failed: {}", e));
@@ -597,7 +597,7 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
 
     // 1. Download UDI data
     log("Downloading UDI products from swissdamed.ch ...");
-    let values = match crate::download_all_pages(50) {
+    let values = match crate::download::download_all_pages(50) {
         Ok(v) => v,
         Err(e) => {
             done(false, &format!("Download failed: {}", e));
@@ -610,8 +610,8 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
         return;
     }
 
-    let (headers, trade_name_langs) = crate::collect_headers(&values);
-    let rows = crate::build_rows(&values, &headers, &trade_name_langs);
+    let (headers, trade_name_langs) = crate::data::collect_headers(&values);
+    let rows = crate::data::build_rows(&values, &headers, &trade_name_langs);
     log(&format!(
         "Downloaded {} items → {} rows.",
         values.len(),
@@ -777,8 +777,8 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
     migel_headers.push("migel_bezeichnung".to_string());
     migel_headers.push("migel_limitation".to_string());
 
-    let db_path = crate::output_db("swissdamed_migel");
-    match crate::write_sqlite(&migel_headers, &matched_rows, &db_path) {
+    let db_path = crate::export::output_db("swissdamed_migel");
+    match crate::export::write_sqlite(&migel_headers, &matched_rows, &db_path) {
         Ok(()) => log(&format!("SQLite written: {}", db_path)),
         Err(e) => {
             done(false, &format!("SQLite write failed: {}", e));
