@@ -49,6 +49,45 @@ pub fn app_data_dir() -> PathBuf {
     std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
 }
 
+/// Configuration loaded from config.toml in the app data directory.
+/// CLI arguments take precedence; config file provides fallback defaults.
+#[derive(serde::Deserialize, Default)]
+struct Config {
+    scp: Option<String>,
+    gdrive_folder: Option<String>,
+    gdrive_key: Option<String>,
+    gdrive_email: Option<String>,
+}
+
+impl Config {
+    /// Load config from `<app_data_dir>/config.toml`, returning default if file doesn't exist.
+    fn load() -> Config {
+        let path = app_data_dir().join("config.toml");
+        match fs::read_to_string(&path) {
+            Ok(contents) => toml::from_str(&contents).unwrap_or_else(|e| {
+                eprintln!("Warning: failed to parse {}: {}", path.display(), e);
+                Config::default()
+            }),
+            Err(_) => Config::default(),
+        }
+    }
+}
+
+/// Resolve a setting: CLI arg takes precedence, then config file.
+/// Returns an error message if neither provides a value.
+fn resolve_setting(cli: &Option<String>, config: &Option<String>, name: &str) -> Result<String, Box<dyn std::error::Error>> {
+    cli.clone()
+        .filter(|s| !s.is_empty())
+        .or_else(|| config.clone().filter(|s| !s.is_empty()))
+        .ok_or_else(|| {
+            format!(
+                "Missing required setting: --{name}. \
+                 Provide it via CLI argument or set it in {}.",
+                app_data_dir().join("config.toml").display()
+            ).into()
+        })
+}
+
 /// Download Swiss DAMED UDI data and convert to CSV or SQLite
 #[derive(Parser, Debug)]
 #[command(name = "swissdamed2sqlite", version, about)]
@@ -73,9 +112,9 @@ struct Args {
     #[arg(long)]
     deploy: bool,
 
-    /// Remote scp target (default: zdavatz@65.109.137.20:/var/www/pillbox.oddb.org/swissdamed.db)
-    #[arg(long, default_value = "zdavatz@65.109.137.20:/var/www/pillbox.oddb.org/swissdamed.db")]
-    scp: String,
+    /// Remote scp target
+    #[arg(long)]
+    scp: Option<String>,
 
     /// Diff two CSV files and output changes to diff/ folder
     #[arg(long, num_args = 2, value_names = ["OLD_CSV", "NEW_CSV"])]
@@ -117,17 +156,17 @@ struct Args {
     #[arg(long)]
     gdrive: bool,
 
-    /// Google Drive folder ID (default: swissdamed folder)
-    #[arg(long, default_value = "1XqRsWNKKETHwIn5f3IbwJdcJTwfwICMI")]
-    gdrive_folder: String,
+    /// Google Drive folder ID
+    #[arg(long)]
+    gdrive_folder: Option<String>,
 
     /// Path to .p12 service account key
-    #[arg(long, default_value = "swissdamed2sqlite-9dd3bf6717d4.p12")]
-    gdrive_key: String,
+    #[arg(long)]
+    gdrive_key: Option<String>,
 
     /// Service account email
-    #[arg(long, default_value = "swissdamed2sqlite@swissdamed2sqlite.iam.gserviceaccount.com")]
-    gdrive_email: String,
+    #[arg(long)]
+    gdrive_email: Option<String>,
 
     /// Google Workspace user to impersonate for Drive upload (required with --gdrive)
     #[arg(long)]
@@ -306,10 +345,14 @@ fn gdrive_upload_csv(args: &Args, csv_path: &str) -> Result<(), Box<dyn std::err
     if args.gdrive_sub.is_none() {
         return Err("--gdrive requires --gdrive-sub <email> to impersonate a Google Workspace user".into());
     }
+    let config = Config::load();
+    let gdrive_key = resolve_setting(&args.gdrive_key, &config.gdrive_key, "gdrive-key")?;
+    let gdrive_email = resolve_setting(&args.gdrive_email, &config.gdrive_email, "gdrive-email")?;
+    let gdrive_folder = resolve_setting(&args.gdrive_folder, &config.gdrive_folder, "gdrive-folder")?;
     eprintln!("Uploading {} to Google Drive...", csv_path);
-    let pem = extract_pem_from_p12(&args.gdrive_key)?;
-    let token = get_gdrive_access_token(&pem, &args.gdrive_email, args.gdrive_sub.as_deref())?;
-    upload_to_gdrive(&token, csv_path, &args.gdrive_folder)?;
+    let pem = extract_pem_from_p12(&gdrive_key)?;
+    let token = get_gdrive_access_token(&pem, &gdrive_email, args.gdrive_sub.as_deref())?;
+    upload_to_gdrive(&token, csv_path, &gdrive_folder)?;
     Ok(())
 }
 
@@ -380,8 +423,11 @@ fn send_email_with_attachment(
 
     eprintln!("Sending {} via email to {} ...", csv_path, to_email);
 
-    let pem = extract_pem_from_p12(&args.gdrive_key)?;
-    let token = get_gmail_access_token(&pem, &args.gdrive_email, sub_email)?;
+    let config = Config::load();
+    let gdrive_key = resolve_setting(&args.gdrive_key, &config.gdrive_key, "gdrive-key")?;
+    let gdrive_email = resolve_setting(&args.gdrive_email, &config.gdrive_email, "gdrive-email")?;
+    let pem = extract_pem_from_p12(&gdrive_key)?;
+    let token = get_gmail_access_token(&pem, &gdrive_email, sub_email)?;
 
     let file_name = std::path::Path::new(csv_path)
         .file_name()
@@ -2246,10 +2292,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         eprintln!("SQLite written: {}", filename);
 
         if args.deploy {
-            eprintln!("Deploying {} to {} ...", filename, args.scp);
+            let config = Config::load();
+            let scp_target = resolve_setting(&args.scp, &config.scp, "scp")?;
+            eprintln!("Deploying {} to {} ...", filename, scp_target);
             let status = Command::new("scp")
                 .arg(&filename)
-                .arg(&args.scp)
+                .arg(&scp_target)
                 .status()?;
 
             if status.success() {
