@@ -2,6 +2,15 @@ use chrono::Local;
 use std::collections::HashSet;
 use std::fs;
 
+/// Escape HTML special characters to prevent XSS.
+fn escape_html(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
+}
+
 /// An invalid SRN entry with context about the manufacturer and mandate holder.
 pub struct InvalidSrn {
     pub srn: String,
@@ -118,12 +127,12 @@ pub fn write_srn_error_report(invalid_srns: &[InvalidSrn]) -> Option<String> {
         html.push_str(&format!(
             "<tr><td>{}</td><td class=\"srn\">{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>\n",
             i + 1,
-            entry.srn,
-            entry.manufacturer,
-            entry.mandate_type,
-            entry.mandate_holder_chrn,
-            entry.mandate_holder_name,
-            entry.mandate_holder_uid,
+            escape_html(&entry.srn),
+            escape_html(&entry.manufacturer),
+            escape_html(&entry.mandate_type),
+            escape_html(&entry.mandate_holder_chrn),
+            escape_html(&entry.mandate_holder_name),
+            escape_html(&entry.mandate_holder_uid),
         ));
     }
     html.push_str("</table>\n</body></html>\n");
