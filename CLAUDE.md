@@ -6,9 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Single-binary Rust CLI that downloads swissdamed UDI (Unique Device Identification) data, actors, and mandates from `swissdamed.ch` and exports as CSV and/or SQLite. Output files are date-stamped and organized into `csv/` and `db/` subdirectories (e.g., `csv/swissdamed_25.02.2026.csv`, `db/actors_25.02.2026.db`).
 
+## Configuration
+
+Sensitive defaults (scp target, Google Drive credentials) are stored in `config.toml`, which is gitignored. Before building for the first time, copy the sample:
+
+```bash
+cp config.sample.toml config.toml
+# then edit config.toml and fill in real values
+```
+
+CLI arguments always override `config.toml`. If a required value is missing from both, the app shows an error dialog and exits. `config.sample.toml` is committed and contains empty-string placeholders; `config.toml` is gitignored and holds real credentials. The release and CI workflows copy `config.sample.toml → config.toml` automatically before building.
+
 ## Build & Run
 
 ```bash
+cp config.sample.toml config.toml  # first time only
 cargo build              # debug build
 cargo build --release    # release build
 cargo run -- --csv --sqlite          # download and output both formats
@@ -88,7 +100,13 @@ All output files go to `~/swissdamed2sqlite/` (`app_data_dir()`):
 
 ## Key Details
 
-## Release & CI/CD (`.github/workflows/release.yml`)
+## CI/CD
+
+### CI (`.github/workflows/ci.yml`)
+
+Triggered on every push (non-`v*` tags) and pull request. Builds all three platforms in parallel (macOS universal, Linux, Windows) without signing, packaging, or releasing. Copies `config.sample.toml → config.toml` before building.
+
+### Release (`.github/workflows/release.yml`)
 
 Triggered by `git tag v* && git push --tags`. Builds for all platforms in parallel:
 - **macOS**: universal binary (arm64 + x86_64), .app bundle with ICNS icon (generated from `assets/icon.iconset/` via `iconutil`), signed DMG (Developer ID), notarized, App Store .pkg (signed with Mac App Distribution + Mac Installer Distribution certs) uploaded via `xcrun altool` (iTMSTransporter fallback)
