@@ -26,6 +26,7 @@ cargo run -- --ch-rep-mandates       # CH-REP companies ranked by mandate count
 cargo run -- --ch-rep-mandates --ar-only  # AR-only CH-REPs ranked by mandate count
 cargo run -- --migel                 # match UDI devices to MiGeL codes
 cargo run -- --migel --deploy        # match and deploy to remote server
+cargo run -- --migel-stats           # re-render stats PNG from latest DBs (no download)
 cargo run -- --lookup-chrn CHRN-AR-20000807  # find all SRNs for a given CHRN
 cargo run -- --company-ranking               # rank companies by product count
 cargo run -- --unique-srns                   # export all unique SRNs with manufacturer + mandate holder
@@ -37,7 +38,7 @@ No tests exist. No linter/formatter configuration — use `cargo fmt` and `cargo
 
 ## Architecture
 
-Four-file application: `src/main.rs` (CLI, download, output, `app_data_dir()`) + `src/gui.rs` (egui/eframe cross-platform GUI) + `src/migel.rs` (MiGeL matching engine, shared with fb2sqlite) + `src/error_report.rs` (SRN validation and HTML error reports).
+Five-file application: `src/main.rs` (CLI, download, output, `app_data_dir()`) + `src/gui.rs` (egui/eframe cross-platform GUI) + `src/migel.rs` (MiGeL matching engine, shared with fb2sqlite) + `src/migel_stats.rs` (renders the MiGeL stats PNG via `plotters`) + `src/error_report.rs` (SRN validation and HTML error reports).
 
 ### GUI (`src/gui.rs`)
 
@@ -131,4 +132,4 @@ Shared matching engine (identical to fb2sqlite). 837 matches from ~8,162 rows (1
 - **Thresholds**: 2+ keywords: score >= 0.3, max len >= 6; single keyword: score >= 0.5, len >= 8 (>= 0.7 for verbose)
 - swissdamed-specific: company exclusions for radiation therapy (Varian) and dental (Sunstar) in main.rs
 - Key matches: Künzli shoes (464), Aspen orthoses (272), Guido Buschmeier infusion sets (40), PRIM (15), Angelini ThermaCare (14), O2 concentrators (4), nebulizers (2), CGM sensors (1), condoms (2), prosthetics (1)
-- Auto-generates `swissdamed_migel_stats.png` dashboard after each run (via `generate_migel_stats.py`, matplotlib). Timestamped copies saved as `swissdamed_migel_stats_hhHmm.dd.mm.yyyy.png`
+- Auto-generates timestamped stats PNG (`swissdamed_migel_stats_hhHmm.dd.mm.yyyy.png`) after each run via `src/migel_stats.rs` (pure Rust, `plotters` crate). Renders title, key-metrics card, company donut, and top-categories horizontal bar chart; updates the README image link and removes prior timestamped PNGs. Use `--migel-stats` to re-render from the latest DBs without re-downloading.
