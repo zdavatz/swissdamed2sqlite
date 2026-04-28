@@ -3,6 +3,7 @@
 mod error_report;
 mod gui;
 mod migel;
+mod migel_stats;
 
 use chrono::Local;
 use error_report::{is_valid_srn, write_srn_error_report, InvalidSrn};
@@ -84,6 +85,10 @@ struct Args {
     /// Match UDI entries against MiGel codes and output matched results
     #[arg(long)]
     migel: bool,
+
+    /// Render the MiGeL stats PNG from the latest existing migel SQLite DB
+    #[arg(long)]
+    migel_stats: bool,
 
     /// Download actors data
     #[arg(long)]
@@ -1183,15 +1188,14 @@ pub(crate) fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     write_sqlite(&migel_headers, &matched_rows, &db_filename)?;
     eprintln!("SQLite written: {}", db_filename);
 
-    // 7. Generate stats PNG
-    let python = "/opt/homebrew/Cellar/python-matplotlib/3.10.8/libexec/bin/python3";
-    let script = "generate_migel_stats.py";
-    if std::path::Path::new(script).exists() && std::path::Path::new(python).exists() {
-        match std::process::Command::new(python).arg(script).status() {
-            Ok(s) if s.success() => {}
-            Ok(s) => eprintln!("Stats script exited with: {:?}", s.code()),
-            Err(e) => eprintln!("Could not run stats script: {}", e),
-        }
+    // 7. Generate stats PNG (Rust, via plotters)
+    let db_dir = app_data_dir().join("db");
+    let (_, full_db) = migel_stats::find_latest_dbs(&db_dir);
+    if let Err(e) = migel_stats::generate(
+        std::path::Path::new(&db_filename),
+        full_db.as_deref(),
+    ) {
+        eprintln!("Could not generate stats PNG: {}", e);
     }
 
     Ok(())
@@ -2132,6 +2136,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --migel mode
     if args.migel {
         return run_migel(&args);
+    }
+
+    // Handle --migel-stats mode (render PNG from existing DBs, no download)
+    if args.migel_stats {
+        let db_dir = app_data_dir().join("db");
+        let (migel_db, full_db) = migel_stats::find_latest_dbs(&db_dir);
+        let migel_db = migel_db.ok_or_else(|| {
+            format!(
+                "No swissdamed_migel_*.db found in {}",
+                db_dir.display()
+            )
+        })?;
+        eprintln!("Reading from {}", migel_db.display());
+        if let Some(ref p) = full_db {
+            eprintln!("Total products from {}", p.display());
+        }
+        migel_stats::generate(&migel_db, full_db.as_deref())?;
+        return Ok(());
     }
 
     // Handle --company-ranking mode
