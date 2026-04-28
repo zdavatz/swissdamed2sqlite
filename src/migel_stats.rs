@@ -121,7 +121,15 @@ pub fn read_stats(
                 .query_row("SELECT COUNT(*) FROM swissdamed", [], |r| r.get(0))
                 .unwrap_or(0)
         }
-        None => 0,
+        None => conn
+            .query_row(
+                "SELECT value FROM meta WHERE key = 'total_products'",
+                [],
+                |r| r.get::<_, String>(0),
+            )
+            .ok()
+            .and_then(|s| s.parse::<i64>().ok())
+            .unwrap_or(0),
     };
 
     Ok(Stats {
@@ -161,7 +169,7 @@ fn donut_wedge(
 
 pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     const W: u32 = 1800;
-    const H: u32 = 2000;
+    const H: u32 = 2500;
 
     let root = BitMapBackend::new(out_path, (W, H)).into_drawing_area();
     root.fill(&BG)?;
@@ -177,13 +185,13 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
 
     let now = Local::now();
     let timestamp = now.format("%Hh%M-%d.%m.%Y").to_string();
-    let ts_style = TextStyle::from(("sans-serif", 18).into_font())
+    let ts_style = TextStyle::from(("sans-serif", 22).into_font())
         .color(&TEXT_COLOR)
         .pos(Pos::new(HPos::Right, VPos::Center));
     root.draw_text(&timestamp, &ts_style, (W as i32 - 40, H as i32 - 30))?;
 
     // ----- Top-left: Key metrics -----
-    let panel_title = TextStyle::from(("sans-serif", 26).into_font().style(FontStyle::Bold))
+    let panel_title = TextStyle::from(("sans-serif", 32).into_font().style(FontStyle::Bold))
         .color(&TITLE_COLOR);
     root.draw_text("Key Metrics", &panel_title, (110, 150))?;
 
@@ -212,7 +220,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     )
     .color(&ACCENT)
     .pos(Pos::new(HPos::Left, VPos::Center));
-    let label_style = TextStyle::from(("sans-serif", 22).into_font())
+    let label_style = TextStyle::from(("sans-serif", 28).into_font())
         .color(&TEXT_COLOR)
         .pos(Pos::new(HPos::Left, VPos::Center));
 
@@ -226,7 +234,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
 
     // ----- Top-right: Company donut -----
     let donut_title_style = TextStyle::from(
-        ("sans-serif", 26).into_font().style(FontStyle::Bold),
+        ("sans-serif", 32).into_font().style(FontStyle::Bold),
     )
     .color(&TITLE_COLOR)
     .pos(Pos::new(HPos::Center, VPos::Center));
@@ -256,7 +264,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
 
     let total_for_pie: i64 = wedge_data.iter().map(|(_, c)| *c).sum();
     let mut a_cursor = std::f64::consts::FRAC_PI_2;
-    let pct_style = TextStyle::from(("sans-serif", 20).into_font().style(FontStyle::Bold))
+    let pct_style = TextStyle::from(("sans-serif", 26).into_font().style(FontStyle::Bold))
         .color(&TITLE_COLOR)
         .pos(Pos::new(HPos::Center, VPos::Center));
 
@@ -307,7 +315,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     let legend_right = 1730_i32;
     let col_width = (legend_right - legend_left) / 2;
     let row_height = 32_i32;
-    let legend_text = TextStyle::from(("sans-serif", 17).into_font())
+    let legend_text = TextStyle::from(("sans-serif", 21).into_font())
         .color(&TEXT_COLOR)
         .pos(Pos::new(HPos::Left, VPos::Center));
 
@@ -328,7 +336,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
 
     // ----- Bottom: Top MiGeL categories bar chart -----
     let bar_title_style = TextStyle::from(
-        ("sans-serif", 26).into_font().style(FontStyle::Bold),
+        ("sans-serif", 32).into_font().style(FontStyle::Bold),
     )
     .color(&TITLE_COLOR);
     root.draw_text("Top MiGeL Categories", &bar_title_style, (110, 1140))?;
@@ -336,10 +344,10 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     let bar_area_left = 110_i32;
     let bar_area_right = 1720_i32;
     let bar_area_top = 1200_i32;
-    let bar_area_bottom = 1960_i32;
+    let bar_area_bottom = 2460_i32;
     let n = stats.top_categories.len().max(1);
     let slot_height = (bar_area_bottom - bar_area_top) / n as i32;
-    let bar_height = (slot_height as f64 * 0.45) as i32;
+    let bar_height = (slot_height as f64 * 0.4) as i32;
     let max_val = stats
         .top_categories
         .iter()
@@ -350,12 +358,12 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     let bar_x_max = (bar_area_right - bar_area_left - 80) as f64;
 
     let cat_label_style = TextStyle::from(
-        ("sans-serif", 20).into_font().style(FontStyle::Bold),
+        ("sans-serif", 26).into_font().style(FontStyle::Bold),
     )
     .color(&TEXT_COLOR)
     .pos(Pos::new(HPos::Left, VPos::Center));
     let cat_companies_style =
-        TextStyle::from(("sans-serif", 16).into_font().style(FontStyle::Italic))
+        TextStyle::from(("sans-serif", 20).into_font().style(FontStyle::Italic))
             .color(&SUBTLE_COLOR)
             .pos(Pos::new(HPos::Left, VPos::Center));
     let bar_inside_style = TextStyle::from(
@@ -364,7 +372,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     .color(&BG)
     .pos(Pos::new(HPos::Center, VPos::Center));
     let bar_outside_style = TextStyle::from(
-        ("sans-serif", 22).into_font().style(FontStyle::Bold),
+        ("sans-serif", 28).into_font().style(FontStyle::Bold),
     )
     .color(&TEXT_COLOR)
     .pos(Pos::new(HPos::Left, VPos::Center));
@@ -380,7 +388,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         root.draw_text(
             &truncate(bez, 100),
             &cat_label_style,
-            (bar_area_left, bar_y_top - 22),
+            (bar_area_left, bar_y_top - 30),
         )?;
 
         // The bar itself
@@ -416,7 +424,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         root.draw_text(
             &truncate(&companies_text, 180),
             &cat_companies_style,
-            (bar_area_left, bar_y_bot + 18),
+            (bar_area_left, bar_y_bot + 28),
         )?;
     }
 

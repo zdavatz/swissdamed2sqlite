@@ -1188,6 +1188,20 @@ pub(crate) fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     write_sqlite(&migel_headers, &matched_rows, &db_filename)?;
     eprintln!("SQLite written: {}", db_filename);
 
+    // Stash the total UDI row count in the migel DB so the stats renderer can
+    // compute the matched-percentage even when no full UDI DB is on disk.
+    {
+        let conn = rusqlite::Connection::open(&db_filename)?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)",
+            [],
+        )?;
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('total_products', ?1)",
+            [rows.len().to_string()],
+        )?;
+    }
+
     // 7. Generate stats PNG (Rust, via plotters)
     let db_dir = app_data_dir().join("db");
     let (_, full_db) = migel_stats::find_latest_dbs(&db_dir);
