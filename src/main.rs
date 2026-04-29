@@ -8,6 +8,7 @@ pub mod export;
 pub mod gdrive;
 mod gui;
 pub mod migel;
+mod migel_stats;
 pub mod reports;
 
 use clap::Parser;
@@ -127,6 +128,10 @@ pub struct Args {
     #[arg(long)]
     pub migel: bool,
 
+    /// Render the MiGeL stats PNG from the latest existing migel SQLite DB
+    #[arg(long)]
+    pub migel_stats: bool,
+
     /// Download actors data
     #[arg(long)]
     pub actors: bool,
@@ -239,6 +244,24 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --migel mode
     if args.migel {
         return reports::run_migel(&args);
+    }
+
+    // Handle --migel-stats mode (render PNG from existing DBs, no download)
+    if args.migel_stats {
+        let db_dir = app_data_dir().join("db");
+        let (migel_db, full_db) = migel_stats::find_latest_dbs(&db_dir);
+        let migel_db = migel_db.ok_or_else(|| {
+            format!(
+                "No swissdamed_migel_*.db found in {}",
+                db_dir.display()
+            )
+        })?;
+        eprintln!("Reading from {}", migel_db.display());
+        if let Some(ref p) = full_db {
+            eprintln!("Total products from {}", p.display());
+        }
+        migel_stats::generate(&migel_db, full_db.as_deref())?;
+        return Ok(());
     }
 
     // Handle --company-ranking mode

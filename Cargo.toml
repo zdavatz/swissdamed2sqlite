@@ -22,6 +22,7 @@ eframe = "0.31"
 image = { version = "0.25", features = ["png"] }
 open = "5"
 toml = "1.1.2"
+plotters = "0.3"
 
 [build-dependencies]
 winresource = { version = "0.1", optional = true }

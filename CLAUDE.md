@@ -38,6 +38,7 @@ cargo run -- --ch-rep-mandates       # CH-REP companies ranked by mandate count
 cargo run -- --ch-rep-mandates --ar-only  # AR-only CH-REPs ranked by mandate count
 cargo run -- --migel                 # match UDI devices to MiGeL codes
 cargo run -- --migel --deploy        # match and deploy to remote server
+cargo run -- --migel-stats           # re-render stats PNG from latest DBs (no download)
 cargo run -- --lookup-chrn CHRN-AR-20000807  # find all SRNs for a given CHRN
 cargo run -- --company-ranking               # rank companies by product count
 cargo run -- --unique-srns                   # export all unique SRNs with manufacturer + mandate holder
@@ -49,7 +50,18 @@ No tests exist. No linter/formatter configuration — use `cargo fmt` and `cargo
 
 ## Architecture
 
-Four-file application: `src/main.rs` (CLI, download, output, `app_data_dir()`) + `src/gui.rs` (egui/eframe cross-platform GUI) + `src/migel.rs` (MiGeL matching engine, shared with fb2sqlite) + `src/error_report.rs` (SRN validation and HTML error reports).
+Modular Rust binary. `src/main.rs` holds CLI parsing (`Args`), `app_data_dir()`, config loading, error-dialog plumbing, and dispatch into the modules below:
+
+- `src/data.rs` — JSON → header/row flattening (`collect_headers`, `build_rows`, `collect_flat_headers`, `build_flat_rows`).
+- `src/download.rs` — paginated POSTs to the swissdamed.ch API (`download_all_pages*`, `load_json_file`).
+- `src/export.rs` — `write_csv` (UTF-8 BOM), `write_sqlite[_table]` (identifier-quoted SQL), `output_csv`/`output_db` path helpers.
+- `src/diff.rs` — `diff_csv_files` (compares two CSVs by `udiDiCode`).
+- `src/gdrive.rs` — JWT-signed Google Drive upload + Gmail send (RFC 2047 subject encoding).
+- `src/migel.rs` — Aho-Corasick MiGeL matching engine (shared with fb2sqlite).
+- `src/migel_stats.rs` — pure-Rust stats PNG renderer via `plotters` (`generate`, `find_latest_dbs`, `read_stats`).
+- `src/error_report.rs` — SRN validation and XSS-escaped HTML error report.
+- `src/reports.rs` — high-level workflows: `run_migel`, `run_ch_rep[_mandates]`, `run_ar_mandates`, `run_lookup_chrn`, `run_company_ranking`, `run_unique_srns`.
+- `src/gui.rs` — egui/eframe GUI (background worker, error dialog).
 
 ### GUI (`src/gui.rs`)
 
@@ -75,7 +87,7 @@ All output files go to `~/swissdamed2sqlite/` (`app_data_dir()`):
 
 ### CLI Key flow:
 
-1. **CLI parsing** — `clap` derive API (`Args` struct). Flags: `--csv`, `--sqlite`, `--file`, `--page-size`, `--deploy`, `--scp`, `--diff`, `--actors`, `--mandates`, `--ar-mandates`, `--ch-rep`, `--ch-rep-mandates`, `--ar-only`, `--lookup-chrn`, `--gdrive`, `--gdrive-folder`, `--gdrive-key`, `--gdrive-email`, `--gdrive-sub`, `--mailto`, `--mail-subject`, `--company-ranking`, `--unique-srns`. If neither `--csv` nor `--sqlite` is given, both are produced. `--deploy` implies `--sqlite`. `--diff` takes two CSV paths and skips download/export.
+1. **CLI parsing** — `clap` derive API (`Args` struct). Flags: `--csv`, `--sqlite`, `--file`, `--page-size`, `--deploy`, `--scp`, `--diff`, `--actors`, `--mandates`, `--ar-mandates`, `--ch-rep`, `--ch-rep-mandates`, `--ar-only`, `--lookup-chrn`, `--gdrive`, `--gdrive-folder`, `--gdrive-key`, `--gdrive-email`, `--gdrive-sub`, `--mailto`, `--mail-subject`, `--company-ranking`, `--unique-srns`, `--migel`, `--migel-stats`. If neither `--csv` nor `--sqlite` is given, both are produced. `--deploy` implies `--sqlite`. `--diff` takes two CSV paths and skips download/export.
 2. **Data acquisition** — `download_all_pages_from(base_url, label, page_size)` paginates POST requests to the swissdamed.ch public API, or `load_json_file()` reads a local JSON file. Three endpoints: UDI (`/public/udi/basic-udis`), actors (`/public/act/actors`), mandates (`/public/act/mandates`).
 3. **Schema discovery** — `collect_headers()` for UDI (flattens `udiDis` nested array), `collect_flat_headers()` for actors/mandates (flat JSON).
 4. **Row building** — `build_rows()` for UDI (one row per udiDis entry), `build_flat_rows()` for actors/mandates.
@@ -149,4 +161,4 @@ Shared matching engine (identical to fb2sqlite). 837 matches from ~8,162 rows (1
 - **Thresholds**: 2+ keywords: score >= 0.3, max len >= 6; single keyword: score >= 0.5, len >= 8 (>= 0.7 for verbose)
 - swissdamed-specific: company exclusions for radiation therapy (Varian) and dental (Sunstar) in main.rs
 - Key matches: Künzli shoes (464), Aspen orthoses (272), Guido Buschmeier infusion sets (40), PRIM (15), Angelini ThermaCare (14), O2 concentrators (4), nebulizers (2), CGM sensors (1), condoms (2), prosthetics (1)
-- Auto-generates `swissdamed_migel_stats.png` dashboard after each run (via `generate_migel_stats.py`, matplotlib). Timestamped copies saved as `swissdamed_migel_stats_hhHmm.dd.mm.yyyy.png`
+- Auto-generates timestamped stats PNG (`swissdamed_migel_stats_hhHmm.dd.mm.yyyy.png`) after each run via `src/migel_stats.rs` (pure Rust, `plotters` crate). Renders title, key-metrics card, company donut, and top-categories horizontal bar chart; updates the README image link and removes prior timestamped PNGs. Use `--migel-stats` to re-render from the latest DBs without re-downloading.

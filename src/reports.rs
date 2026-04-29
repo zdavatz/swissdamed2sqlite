@@ -246,25 +246,28 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     write_sqlite(&migel_headers, &matched_rows, &db_filename)?;
     eprintln!("SQLite written: {}", db_filename);
 
-    // 7. Generate stats PNG
-    let script = "generate_migel_stats.py";
-    if std::path::Path::new(script).exists() {
-        let python = std::process::Command::new("which")
-            .arg("python3")
-            .output()
-            .ok()
-            .filter(|o| o.status.success())
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .map(|s| s.trim().to_string());
-        if let Some(python) = python {
-            match std::process::Command::new(&python).arg(script).status() {
-                Ok(s) if s.success() => {}
-                Ok(s) => eprintln!("Stats script exited with: {:?}", s.code()),
-                Err(e) => eprintln!("Could not run stats script: {}", e),
-            }
-        } else {
-            eprintln!("python3 not found in PATH, skipping stats generation.");
-        }
+    // Stash the total UDI row count in the migel DB so the stats renderer can
+    // compute the matched-percentage even when no full UDI DB is on disk.
+    {
+        let conn = rusqlite::Connection::open(&db_filename)?;
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)",
+            [],
+        )?;
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES ('total_products', ?1)",
+            [rows.len().to_string()],
+        )?;
+    }
+
+    // 7. Generate stats PNG (Rust, via plotters)
+    let db_dir = crate::app_data_dir().join("db");
+    let (_, full_db) = crate::migel_stats::find_latest_dbs(&db_dir);
+    if let Err(e) = crate::migel_stats::generate(
+        std::path::Path::new(&db_filename),
+        full_db.as_deref(),
+    ) {
+        eprintln!("Could not generate stats PNG: {}", e);
     }
 
     Ok(())

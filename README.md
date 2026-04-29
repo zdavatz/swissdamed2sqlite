@@ -128,6 +128,9 @@ swissdamed2sqlite --unique-srns --mailto recipient@example.com --gdrive-sub user
 swissdamed2sqlite --migel
 swissdamed2sqlite --migel --deploy
 
+# Re-render the MiGeL stats PNG from existing DBs (no download)
+swissdamed2sqlite --migel-stats
+
 # Diff two CSV files (output to diff/ folder)
 swissdamed2sqlite --diff csv/swissdamed_24.02.2026.csv csv/swissdamed_25.02.2026.csv
 
@@ -172,11 +175,11 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - **Lookup CHRN** — finds all SRNs for a given CHRN (e.g. `CHRN-AR-20000807`). Downloads actors, matches by `chrn` field, fetches mandate details (which contain SRN), outputs timestamped CSV
 - **Google Drive** — uploads CSV to Google Drive using a service account .p12 key with domain-wide delegation (`--gdrive --gdrive-sub user@domain.com`)
 - **Email** — sends CSV as attachment via Gmail API using the same service account delegation (`--mailto recipient@example.com --gdrive-sub user@domain.com`). Non-ASCII subject lines (umlauts etc.) are RFC 2047 encoded.
-- **MiGeL** — matches UDI devices against MiGeL (Mittel- und Gegenständeliste) codes. Uses Aho-Corasick candidate finding, IDF-weighted multi-language scoring, English-to-German medical term translation (~80 terms with context-aware combinations like "ortho"+"rehab"→"spezialschuhe"), and precision filters. Output: `db/swissdamed_migel_DD.MM.YYYY.db`. Auto-generates a stats PNG after each run.
+- **MiGeL** — matches UDI devices against MiGeL (Mittel- und Gegenständeliste) codes. Uses Aho-Corasick candidate finding, IDF-weighted multi-language scoring, English-to-German medical term translation (~80 terms with context-aware combinations like "ortho"+"rehab"→"spezialschuhe"), and precision filters. Output: `db/swissdamed_migel_DD.MM.YYYY.db`. Auto-generates a stats PNG (rendered natively in Rust via [plotters](https://crates.io/crates/plotters)) after each run; use `--migel-stats` to re-render from existing DBs without downloading.
 
 ### MiGeL Matching Results
 
-![MiGeL Matching Stats](swissdamed_migel_stats_09h33.15.04.2026.png)
+![MiGeL Matching Stats](swissdamed_migel_stats_16h23.28.04.2026.png)
 
 ## Dependencies
 
@@ -195,6 +198,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - [eframe](https://crates.io/crates/eframe) — Cross-platform GUI framework (egui + winit + wgpu)
 - [image](https://crates.io/crates/image) — PNG icon loading for GUI
 - [open](https://crates.io/crates/open) — Open files/URLs in system apps
+- [plotters](https://crates.io/crates/plotters) — MiGeL stats PNG rendering
 
 ## App Store Compliance
 
