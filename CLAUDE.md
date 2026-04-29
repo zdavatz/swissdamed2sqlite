@@ -6,9 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Single-binary Rust CLI that downloads swissdamed UDI (Unique Device Identification) data, actors, and mandates from `swissdamed.ch` and exports as CSV and/or SQLite. Output files are date-stamped and organized into `csv/` and `db/` subdirectories (e.g., `csv/swissdamed_25.02.2026.csv`, `db/actors_25.02.2026.db`).
 
+## Configuration
+
+Sensitive defaults (scp target, Google Drive credentials) are stored in `config.toml`, which is gitignored. Before building for the first time, copy the sample:
+
+```bash
+cp config.sample.toml config.toml
+# then edit config.toml and fill in real values
+```
+
+CLI arguments always override `config.toml`. If a required value is missing from both, the app shows an error dialog and exits. `config.sample.toml` is committed and contains empty-string placeholders; `config.toml` is gitignored and holds real credentials. The release and CI workflows copy `config.sample.toml → config.toml` automatically before building.
+
 ## Build & Run
 
 ```bash
+cp config.sample.toml config.toml  # first time only
 cargo build              # debug build
 cargo build --release    # release build
 cargo run -- --csv --sqlite          # download and output both formats
@@ -38,7 +50,18 @@ No tests exist. No linter/formatter configuration — use `cargo fmt` and `cargo
 
 ## Architecture
 
-Five-file application: `src/main.rs` (CLI, download, output, `app_data_dir()`) + `src/gui.rs` (egui/eframe cross-platform GUI) + `src/migel.rs` (MiGeL matching engine, shared with fb2sqlite) + `src/migel_stats.rs` (renders the MiGeL stats PNG via `plotters`) + `src/error_report.rs` (SRN validation and HTML error reports).
+Modular Rust binary. `src/main.rs` holds CLI parsing (`Args`), `app_data_dir()`, config loading, error-dialog plumbing, and dispatch into the modules below:
+
+- `src/data.rs` — JSON → header/row flattening (`collect_headers`, `build_rows`, `collect_flat_headers`, `build_flat_rows`).
+- `src/download.rs` — paginated POSTs to the swissdamed.ch API (`download_all_pages*`, `load_json_file`).
+- `src/export.rs` — `write_csv` (UTF-8 BOM), `write_sqlite[_table]` (identifier-quoted SQL), `output_csv`/`output_db` path helpers.
+- `src/diff.rs` — `diff_csv_files` (compares two CSVs by `udiDiCode`).
+- `src/gdrive.rs` — JWT-signed Google Drive upload + Gmail send (RFC 2047 subject encoding).
+- `src/migel.rs` — Aho-Corasick MiGeL matching engine (shared with fb2sqlite).
+- `src/migel_stats.rs` — pure-Rust stats PNG renderer via `plotters` (`generate`, `find_latest_dbs`, `read_stats`).
+- `src/error_report.rs` — SRN validation and XSS-escaped HTML error report.
+- `src/reports.rs` — high-level workflows: `run_migel`, `run_ch_rep[_mandates]`, `run_ar_mandates`, `run_lookup_chrn`, `run_company_ranking`, `run_unique_srns`.
+- `src/gui.rs` — egui/eframe GUI (background worker, error dialog).
 
 ### GUI (`src/gui.rs`)
 
@@ -64,7 +87,7 @@ All output files go to `~/swissdamed2sqlite/` (`app_data_dir()`):
 
 ### CLI Key flow:
 
-1. **CLI parsing** — `clap` derive API (`Args` struct). Flags: `--csv`, `--sqlite`, `--file`, `--page-size`, `--deploy`, `--scp`, `--diff`, `--actors`, `--mandates`, `--ar-mandates`, `--ch-rep`, `--ch-rep-mandates`, `--ar-only`, `--lookup-chrn`, `--gdrive`, `--gdrive-folder`, `--gdrive-key`, `--gdrive-email`, `--gdrive-sub`, `--mailto`, `--mail-subject`, `--company-ranking`, `--unique-srns`. If neither `--csv` nor `--sqlite` is given, both are produced. `--deploy` implies `--sqlite`. `--diff` takes two CSV paths and skips download/export.
+1. **CLI parsing** — `clap` derive API (`Args` struct). Flags: `--csv`, `--sqlite`, `--file`, `--page-size`, `--deploy`, `--scp`, `--diff`, `--actors`, `--mandates`, `--ar-mandates`, `--ch-rep`, `--ch-rep-mandates`, `--ar-only`, `--lookup-chrn`, `--gdrive`, `--gdrive-folder`, `--gdrive-key`, `--gdrive-email`, `--gdrive-sub`, `--mailto`, `--mail-subject`, `--company-ranking`, `--unique-srns`, `--migel`, `--migel-stats`. If neither `--csv` nor `--sqlite` is given, both are produced. `--deploy` implies `--sqlite`. `--diff` takes two CSV paths and skips download/export.
 2. **Data acquisition** — `download_all_pages_from(base_url, label, page_size)` paginates POST requests to the swissdamed.ch public API, or `load_json_file()` reads a local JSON file. Three endpoints: UDI (`/public/udi/basic-udis`), actors (`/public/act/actors`), mandates (`/public/act/mandates`).
 3. **Schema discovery** — `collect_headers()` for UDI (flattens `udiDis` nested array), `collect_flat_headers()` for actors/mandates (flat JSON).
 4. **Row building** — `build_rows()` for UDI (one row per udiDis entry), `build_flat_rows()` for actors/mandates.
@@ -89,7 +112,13 @@ All output files go to `~/swissdamed2sqlite/` (`app_data_dir()`):
 
 ## Key Details
 
-## Release & CI/CD (`.github/workflows/release.yml`)
+## CI/CD
+
+### CI (`.github/workflows/ci.yml`)
+
+Triggered on every push (non-`v*` tags) and pull request. Builds all three platforms in parallel (macOS universal, Linux, Windows) without signing, packaging, or releasing. Copies `config.sample.toml → config.toml` before building.
+
+### Release (`.github/workflows/release.yml`)
 
 Triggered by `git tag v* && git push --tags`. Builds for all platforms in parallel:
 - **macOS**: universal binary (arm64 + x86_64), .app bundle with ICNS icon (generated from `assets/icon.iconset/` via `iconutil`), signed DMG (Developer ID), notarized, App Store .pkg (signed with Mac App Distribution + Mac Installer Distribution certs) uploaded via `xcrun altool` (iTMSTransporter fallback)

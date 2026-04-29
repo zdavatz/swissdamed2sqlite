@@ -4464,6 +4464,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "toml",
  "unicode-normalization",
  "winresource",
 ]

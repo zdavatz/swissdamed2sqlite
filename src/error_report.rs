@@ -2,6 +2,15 @@ use chrono::Local;
 use std::collections::HashSet;
 use std::fs;
 
+/// Escape HTML special characters to prevent XSS.
+fn escape_html(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
+}
+
 /// An invalid SRN entry with context about the manufacturer and mandate holder.
 pub struct InvalidSrn {
     pub srn: String,
@@ -59,13 +68,13 @@ pub fn is_valid_srn(srn: &str) -> bool {
 
 /// Write an HTML error report for invalid SRNs to `html/srn_error_report_HHhMM.dd.mm.yyyy.html`.
 /// Returns the path to the written file, or None if there are no invalid SRNs.
-pub fn write_srn_error_report(invalid_srns: &[InvalidSrn]) -> Option<String> {
+pub fn write_srn_error_report(invalid_srns: &[InvalidSrn]) -> Result<Option<String>, Box<dyn std::error::Error>> {
     if invalid_srns.is_empty() {
-        return None;
+        return Ok(None);
     }
 
     let html_dir = crate::app_data_dir().join("html");
-    fs::create_dir_all(&html_dir).ok();
+    fs::create_dir_all(&html_dir)?;
     let timestamp = Local::now().format("%Hh%M.%d.%m.%Y").to_string();
     let html_path = html_dir
         .join(format!("srn_error_report_{}.html", timestamp))
@@ -118,21 +127,18 @@ pub fn write_srn_error_report(invalid_srns: &[InvalidSrn]) -> Option<String> {
         html.push_str(&format!(
             "<tr><td>{}</td><td class=\"srn\">{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>\n",
             i + 1,
-            entry.srn,
-            entry.manufacturer,
-            entry.mandate_type,
-            entry.mandate_holder_chrn,
-            entry.mandate_holder_name,
-            entry.mandate_holder_uid,
+            escape_html(&entry.srn),
+            escape_html(&entry.manufacturer),
+            escape_html(&entry.mandate_type),
+            escape_html(&entry.mandate_holder_chrn),
+            escape_html(&entry.mandate_holder_name),
+            escape_html(&entry.mandate_holder_uid),
         ));
     }
     html.push_str("</table>\n</body></html>\n");
 
-    if let Err(e) = fs::write(&html_path, &html) {
-        eprintln!("Error writing HTML report: {}", e);
-        return None;
-    }
+    fs::write(&html_path, &html)?;
 
     eprintln!("Error report written: {}", html_path);
-    Some(html_path)
+    Ok(Some(html_path))
 }

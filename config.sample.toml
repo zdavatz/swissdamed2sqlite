@@ -1,0 +1,14 @@
+# Copy this file to config.toml and fill in your values.
+# CLI arguments take precedence over these defaults.
+
+# Remote scp target for --deploy
+scp = ""
+
+# Google Drive folder ID for --gdrive
+gdrive_folder = ""
+
+# Path to .p12 service account key file
+gdrive_key = ""
+
+# Google service account email
+gdrive_email = ""

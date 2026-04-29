@@ -38,10 +38,35 @@ All output files are saved to `~/swissdamed2sqlite/` (HOMEDIR) with `csv/` and `
 Requires Rust toolchain. Then:
 
 ```bash
+cp config.sample.toml config.toml   # create local config (gitignored)
 cargo build --release
 ```
 
 The binary will be at `target/release/swissdamed2sqlite`.
+
+## Configuration
+
+Sensitive settings (Google Drive credentials, scp target) live in `config.toml`, which is gitignored. Copy the sample and fill in your values:
+
+```bash
+cp config.sample.toml config.toml
+```
+
+```toml
+# Remote scp target for --deploy
+scp = "user@host:/path/to/remote/"
+
+# Google Drive folder ID for --gdrive
+gdrive_folder = "1AbC...xyz"
+
+# Path to .p12 service account key file
+gdrive_key = "/path/to/service-account.p12"
+
+# Google service account email
+gdrive_email = "my-sa@my-project.iam.gserviceaccount.com"
+```
+
+CLI arguments always take precedence over `config.toml` values. If a required setting is absent from both, the app will show an error dialog and exit.
 
 ## CLI Usage
 
