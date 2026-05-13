@@ -151,7 +151,7 @@ The `winit` crate is patched locally (`winit-patched/`) to remove `_CGSSetWindow
 
 ## MiGeL Matching (src/migel.rs)
 
-Shared matching engine (identical to fb2sqlite). 1,422 matches from ~15,553 rows (9.1%). Key features:
+Shared matching engine (identical to fb2sqlite). 1,441 matches from ~17,270 rows (8.3%). Key features:
 - **Aho-Corasick** automaton for single-pass candidate finding
 - **IDF-weighted ranking** (capped at 5.0) for choosing the best MiGeL code
 - **English-to-German enrichment**: ~80 medical terms translated (e.g., "knee" → "knie knieorthese", "nebulizer" → "vernebler aerosol", "scoli" → "skoliose rumpf orthesen"); context-aware: "ortho" + "rehab" → "spezialschuhe"
