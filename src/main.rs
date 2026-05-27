@@ -10,6 +10,7 @@ mod gui;
 pub mod migel;
 mod migel_stats;
 pub mod reports;
+pub mod sigvaris_shop;
 
 use clap::Parser;
 use std::fs;
@@ -195,6 +196,10 @@ pub struct Args {
     /// Export unique SRNs with manufacturer and mandate holder info
     #[arg(long)]
     pub unique_srns: bool,
+
+    /// Scrape the SIGVARIS shop and build a GTIN→MiGeL override SQLite DB
+    #[arg(long)]
+    pub sigvaris_shop: bool,
 }
 
 // --- Main ---
@@ -244,6 +249,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --migel mode
     if args.migel {
         return reports::run_migel(&args);
+    }
+
+    // Handle --sigvaris-shop mode (scrape shop.sigvaris.com, build override DB)
+    if args.sigvaris_shop {
+        return sigvaris_shop::run();
     }
 
     // Handle --migel-stats mode (render PNG from existing DBs, no download)

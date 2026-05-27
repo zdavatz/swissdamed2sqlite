@@ -39,6 +39,7 @@ cargo run -- --ch-rep-mandates --ar-only  # AR-only CH-REPs ranked by mandate co
 cargo run -- --migel                 # match UDI devices to MiGeL codes
 cargo run -- --migel --deploy        # match and deploy to remote server
 cargo run -- --migel-stats           # re-render stats PNG from latest DBs (no download)
+cargo run -- --sigvaris-shop         # scrape shop.sigvaris.com → GTIN→MiGeL override DB
 cargo run -- --lookup-chrn CHRN-AR-20000807  # find all SRNs for a given CHRN
 cargo run -- --company-ranking               # rank companies by product count
 cargo run -- --unique-srns                   # export all unique SRNs with manufacturer + mandate holder
@@ -59,6 +60,7 @@ Modular Rust binary. `src/main.rs` holds CLI parsing (`Args`), `app_data_dir()`,
 - `src/gdrive.rs` — JWT-signed Google Drive upload + Gmail send (RFC 2047 subject encoding).
 - `src/migel.rs` — Aho-Corasick MiGeL matching engine (shared with fb2sqlite).
 - `src/migel_stats.rs` — pure-Rust stats PNG renderer via `plotters` (`generate`, `find_latest_dbs`, `read_stats`).
+- `src/sigvaris_shop.rs` — scrapes `shop.sigvaris.com` Shopify endpoints, derives MiGeL codes per GTIN, persists to `db/sigvaris_shop_DD.MM.YYYY.db`. Exposes `find_latest_db` + `load_overrides` consumed by `run_migel` as a GTIN→MiGeL precedence layer.
 - `src/error_report.rs` — SRN validation and XSS-escaped HTML error report.
 - `src/reports.rs` — high-level workflows: `run_migel`, `run_ch_rep[_mandates]`, `run_ar_mandates`, `run_lookup_chrn`, `run_company_ranking`, `run_unique_srns`.
 - `src/gui.rs` — egui/eframe GUI (background worker, error dialog).
@@ -149,9 +151,13 @@ The `winit` crate is patched locally (`winit-patched/`) to remove `_CGSSetWindow
 - The API client uses a browser-like User-Agent and cookie jar.
 - `rusqlite` uses the `bundled` feature (ships its own SQLite, no system dependency needed).
 
-## MiGeL Matching (src/migel.rs)
+## MiGeL Matching (src/migel.rs + src/sigvaris_shop.rs)
 
-Shared matching engine (identical to fb2sqlite). 1,650 matches from ~45,204 rows (3.7%). Key features:
+Two-layer pipeline reaching ~9,510 matches from ~45,204 rows (~21%):
+
+**Layer 1 — GTIN overrides** (`src/sigvaris_shop.rs`): scrapes `shop.sigvaris.com` Shopify endpoints (~432 products, ~18k variants), derives MiGeL codes per GTIN from `option2` (Kompressionsklasse) + `product_type` (Wadenstrumpf/Schenkelstrumpf/Strumpfhose/Maternity/Armkompressionsstrumpf/Flachstrick/Wraps/Anziehhilfe), then persists to `db/sigvaris_shop_DD.MM.YYYY.db` with table `sigvaris_shop_variants(gtin13, gtin14, sku, title, product_type, klasse, migel_code, migel_reason)`. Trigger via `--sigvaris-shop`; takes ~7 min with 1s throttle, retries on 403, fail-safes against empty overwrites. In `run_migel`, `find_latest_db` + `load_overrides` build a `HashMap<gtin, Option<MigelCode>>` consulted before the heuristic matcher: `Some(code)` → assign that code, `None` → explicit skip (BAG Kap.17: Stützstrumpf / Anti-Thrombose / Reisestrumpf / Klasse 1 are NOT Pflichtleistung).
+
+**Layer 2 — Heuristic matcher** (shared with fb2sqlite). Adds ~1,650 matches for non-SIGVARIS manufacturers via Aho-Corasick. Key features:
 - **Aho-Corasick** automaton for single-pass candidate finding
 - **IDF-weighted ranking** (capped at 5.0) for choosing the best MiGeL code
 - **English-to-German enrichment**: ~80 medical terms translated (e.g., "knee" → "knie knieorthese", "nebulizer" → "vernebler aerosol", "scoli" → "skoliose rumpf orthesen"); context-aware: "ortho" + "rehab" → "spezialschuhe"

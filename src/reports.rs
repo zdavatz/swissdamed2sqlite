@@ -7,7 +7,7 @@ use crate::download::*;
 use crate::error_report::{is_valid_srn, write_srn_error_report, InvalidSrn};
 use crate::export::*;
 use crate::gdrive::{gdrive_upload_csv, send_email_with_attachment};
-use crate::migel::{build_search_index, find_best_migel_match, parse_migel_items};
+use crate::migel::{build_search_index, find_best_migel_match, parse_migel_items, MigelItem};
 use crate::Args;
 
 // --- Shared helpers ---
@@ -155,6 +155,37 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         "Sunstar Europe SA",
     ];
     let idx_company = headers.iter().position(|h| h == "companyName");
+    let idx_gtin = headers.iter().position(|h| h == "udiDiCode");
+
+    // Optional GTIN→MiGeL override map from the latest sigvaris_shop_*.db.
+    // Lookup keys are both gtin14 (matches swissdamed) and gtin13. A value of
+    // `None` means SIGVARIS classifies the GTIN as non-MiGeL (Stützstrumpf,
+    // Anti-Thrombose, Reisestrumpf, Klasse 1) and we must skip the row.
+    let db_dir = crate::app_data_dir().join("db");
+    let overrides: crate::sigvaris_shop::Overrides =
+        match crate::sigvaris_shop::find_latest_db(&db_dir) {
+            Some(p) => match crate::sigvaris_shop::load_overrides(&p) {
+                Ok(m) => {
+                    eprintln!(
+                        "Loaded {} GTIN overrides from {}",
+                        m.len(),
+                        p.display()
+                    );
+                    m
+                }
+                Err(e) => {
+                    eprintln!("Warning: failed to load sigvaris_shop overrides: {}", e);
+                    HashMap::new()
+                }
+            },
+            None => HashMap::new(),
+        };
+    // Index MiGel items by position_nr for O(1) override lookup
+    let migel_by_pos: HashMap<&str, &MigelItem> =
+        migel_items.iter().map(|m| (m.position_nr.as_str(), m)).collect();
+
+    let override_hits = std::sync::atomic::AtomicUsize::new(0);
+    let override_skips = std::sync::atomic::AtomicUsize::new(0);
 
     let matched_rows: Vec<Vec<String>> = rows
         .par_iter()
@@ -163,6 +194,34 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                 if let Some(company) = row.get(ci) {
                     if excluded_companies.contains(&company.as_str()) {
                         return None;
+                    }
+                }
+            }
+
+            // 1. Override lookup by GTIN — takes precedence over heuristic matcher
+            if let Some(gi) = idx_gtin {
+                if let Some(gtin) = row.get(gi) {
+                    if let Some(decision) = overrides.get(gtin) {
+                        match decision {
+                            None => {
+                                // Explicit skip (e.g. SIGVARIS Stützstrumpf / Anti-Thrombose)
+                                override_skips
+                                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                                return None;
+                            }
+                            Some(code) => {
+                                if let Some(item) = migel_by_pos.get(code.as_str()) {
+                                    override_hits
+                                        .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                                    let mut matched_row = row.clone();
+                                    matched_row.push(item.position_nr.clone());
+                                    matched_row.push(item.bezeichnung.clone());
+                                    matched_row.push(item.limitation.clone());
+                                    return Some(matched_row);
+                                }
+                                // Override code not in MiGeL XLSX (stale?) — fall through to heuristic
+                            }
+                        }
                     }
                 }
             }
@@ -230,6 +289,14 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         })
         .collect();
 
+    let oh = override_hits.load(std::sync::atomic::Ordering::Relaxed);
+    let os = override_skips.load(std::sync::atomic::Ordering::Relaxed);
+    if !overrides.is_empty() {
+        eprintln!(
+            "GTIN overrides applied: {} matched ({} explicit-skip)",
+            oh, os
+        );
+    }
     eprintln!(
         "MiGel matches: {} out of {} rows",
         matched_rows.len(),
