@@ -38,6 +38,10 @@ pub struct Stats {
     pub company_breakdown: Vec<(String, i64)>,
     /// Top 8 MiGeL categories: (bezeichnung, count, companies sorted desc)
     pub top_categories: Vec<(String, i64, Vec<(String, i64)>)>,
+    /// Matches contributed by GTIN-override layer (e.g. SIGVARIS shop)
+    pub override_matched: i64,
+    /// Rows explicitly skipped by GTIN-override (BAG-classified non-MiGeL)
+    pub override_skipped: i64,
 }
 
 fn ch_fmt(n: i64) -> String {
@@ -132,6 +136,25 @@ pub fn read_stats(
             .unwrap_or(0),
     };
 
+    let override_matched: i64 = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = 'override_matched'",
+            [],
+            |r| r.get::<_, String>(0),
+        )
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+    let override_skipped: i64 = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = 'override_skipped'",
+            [],
+            |r| r.get::<_, String>(0),
+        )
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+
     Ok(Stats {
         total_products,
         total_matched,
@@ -139,6 +162,8 @@ pub fn read_stats(
         num_companies,
         company_breakdown,
         top_categories,
+        override_matched,
+        override_skipped,
     })
 }
 
@@ -204,16 +229,30 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         "N/A".to_string()
     };
 
-    let metrics: Vec<(String, String)> = vec![
-        (ch_fmt(stats.total_products), "Total swissdamed products".into()),
+    let heuristic = stats.total_matched - stats.override_matched;
+    let mut metrics: Vec<(String, String)> = vec![
+        (ch_fmt(stats.total_products), "Total UDI rows".into()),
         (
             ch_fmt(stats.total_matched),
             format!("MiGeL matched ({})", pct_mapped),
         ),
+    ];
+    if stats.override_matched > 0 || stats.override_skipped > 0 {
+        metrics.push((
+            ch_fmt(stats.override_matched),
+            "  via GTIN overrides (shop.sigvaris.com)".into(),
+        ));
+        metrics.push((ch_fmt(heuristic), "  via heuristic matcher".into()));
+        metrics.push((
+            ch_fmt(stats.override_skipped),
+            "Skipped by override (BAG-classified non-MiGeL)".into(),
+        ));
+    }
+    metrics.extend([
         (stats.num_migel_codes.to_string(), "Distinct MiGeL codes".into()),
         (stats.num_companies.to_string(), "Companies with matches".into()),
         (MIGEL_TOTAL_ITEMS.to_string(), "Total MiGeL items in XLSX".into()),
-    ];
+    ]);
 
     let value_style = TextStyle::from(
         ("sans-serif", 44).into_font().style(FontStyle::Bold),

@@ -424,6 +424,15 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("03.07.09.20", "mepilex"),
     ("03.07.09.20", "rollbrett"),
     ("03.07.09.20", "bezug"),
+    // Transfer-Set should NOT match dental impression copings (Nobel Biocare etc.)
+    ("03.07.09.20", "impression"),
+    ("03.07.09.20", "coping"),
+    ("03.07.09.20", "abutment"),
+    ("03.07.09.20", "branemark"),
+    ("03.07.09.20", "brånemark"),
+    ("03.07.09.20", "implant"),
+    ("03.07.09.20", "abformpfosten"),
+    ("03.07.09.20", "model tools"),
     // --- Infusions-Set should NOT match infusion catheters ---
     ("99.30.06", "cragg"),
     ("99.30.06", "mcnamara"),
