@@ -95,6 +95,8 @@ const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     ("ankle", &["sprunggelenk", "sprunggelenksorthese"]),
     ("wrist", &["handgelenk", "handgelenkorthese"]),
     ("shoulder", &["schulter", "schulterorthese"]),
+    ("clavicle", &["schluesselbein", "schluesselbeinbandage", "rucksackverband"]),
+    ("sling", &["schulterorthese"]),
     ("elbow", &["ellenbogen", "ellenbogenorthese"]),
     ("finger", &["finger", "fingerorthese"]),
     ("hip", &["huefte", "hueftorthese"]),
@@ -179,8 +181,14 @@ const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     ("walker", &["gehwagen", "rollator"]),
     ("crutch", &["kruecke", "gehstuetze"]),
     ("crutches", &["kruecken", "gehstuetzen"]),
-    ("stabilisation", &["stabilisation"]),
-    ("stabilization", &["stabilisation"]),
+    ("stabilisation", &["stabilisierung", "stabilisation"]),
+    ("stabilization", &["stabilisierung", "stabilisation"]),
+    ("immobilisation", &["immobilisierung", "immobilisation"]),
+    ("immobilization", &["immobilisierung", "immobilisation"]),
+    ("immobiliser", &["immobilisierung", "orthese"]),
+    ("immobilizer", &["immobilisierung", "orthese"]),
+    ("mobilisation", &["mobilisierung", "mobilisation"]),
+    ("mobilization", &["mobilisierung", "mobilisation"]),
 ];
 
 /// Enrich text with German translations of English medical terms.
@@ -205,6 +213,7 @@ pub fn enrich_with_german(text: &str) -> String {
 
     // Context-aware mappings: certain word combinations map to specific terms
     let has = |term: &str| clean_words.iter().any(|w| w == term);
+    let any_contains = |substr: &str| clean_words.iter().any(|w| w.contains(substr));
     // "ortho" + "rehab" together → orthopedic rehabilitation shoes
     if has("ortho") && has("rehab") {
         additions.push("spezialschuhe");
@@ -212,6 +221,47 @@ pub fn enrich_with_german(text: &str) -> String {
     // Fecal incontinence insert/plug → MiGeL 15.40 Analtampon
     if has("fecal") && (has("incontinence") || has("insert") || has("plug")) {
         additions.push("analtampon");
+    }
+    // Shoulder abduction cushions/slings → MiGeL 22.09.03.00.1
+    // (Schulterabduktionsorthese / Schulterabduktionskissen)
+    let shoulder_abduction =
+        any_contains("abduktionskissen")
+            || any_contains("schulterkissen")
+            || any_contains("armabduktion")
+            || any_contains("ruthnersling")
+            || ((has("shoulder") || has("schulter"))
+                && (has("abduction") || has("abduktion") || has("pillow")));
+    if shoulder_abduction {
+        additions.push("schulterabduktionskissen");
+        additions.push("schulterabduktionsorthese");
+        additions.push("schultergeurtel");
+        additions.push("orthese");
+        additions.push("entlastung");
+    }
+    // Shoulder immobiliser → MiGeL 22.09.01.00.1 (Schultergürtel-Orthese zur Immobilisierung, Gilchrist)
+    if (has("shoulder") || has("schulter")) && (has("immobiliser") || has("immobilizer")) {
+        additions.push("schultergeurtel");
+        additions.push("immobilisierung");
+        additions.push("gilchrist");
+    }
+    // Knee orthosis context → MiGeL 22.04.xx (Kniegelenk-Orthese).
+    // Only when there are orthotic context words present — avoids matching
+    // pharma/OTC products like ThermaCare heat patches.
+    let orthotic_context = has("orthese")
+        || has("orthosis")
+        || has("orthoses")
+        || has("orthotic")
+        || has("orthotics")
+        || has("immobiliser")
+        || has("immobilizer")
+        || has("brace")
+        || has("braceid")
+        || any_contains("braceid");
+    if has("knee") && orthotic_context {
+        additions.push("kniegelenk");
+    }
+    if has("hip") && orthotic_context {
+        additions.push("hueftgelenk");
     }
 
     if additions.is_empty() {
