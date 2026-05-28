@@ -157,6 +157,11 @@ const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     ("nebuliser", &["vernebler", "inhalationsgeraet", "aerosol"]),
     ("aerosol", &["aerosol", "vernebler"]),
     ("mesh", &["netz"]),
+    // Pulse oximeter / spirometer / peak flow → MiGeL 21.01
+    ("oximeter", &["pulsoxymeter", "sauerstoffsaettigung", "pulsmonitor"]),
+    ("oximetry", &["pulsoxymeter", "sauerstoffsaettigung"]),
+    ("spirometer", &["spirometriegeraet", "spirometrie"]),
+    ("spirometry", &["spirometriegeraet", "spirometrie"]),
     // Condoms
     ("condom", &["kondom", "praservativ"]),
     // Stimulation / TENS
@@ -240,6 +245,14 @@ pub fn enrich_with_german(text: &str) -> String {
         additions.push("ulcus");
         additions.push("cruris");
         additions.push("system");
+    }
+    // Silicone foam wound dressing → MiGeL 35.05.03 (Hydropolymere)
+    if (has("foam") || any_contains("schaumstoff"))
+        && (has("dressing") || has("wound") || has("verband"))
+    {
+        additions.push("hydropolymere");
+        additions.push("polyurethan");
+        additions.push("schaumverband");
     }
     // Spine orthoses: thoracic/spinal/spine + orthotic context → MiGeL 22.13/22.15
     // (Brustwirbelsäulen-/Wirbelsäulen-Orthese). Only when an orthotic context word
