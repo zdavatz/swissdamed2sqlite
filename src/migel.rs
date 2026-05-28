@@ -89,6 +89,9 @@ const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     // Body parts / anatomical regions
     ("cervical", &["cervikalstuetze", "halskrause", "halswirbelsaeule"]),
     ("lumbar", &["lumbal", "lendenwirbelsaeule", "lumbalstuetze", "orthese", "stabilisierung"]),
+    ("lumbo", &["lumbal", "lendenwirbelsaeule", "lumbalstuetze"]),
+    ("sacral", &["lendenwirbelsaeule", "lumbalstuetze"]),
+    ("abdominal", &["leib", "leibbandage", "rumpf", "bandage"]),
     ("thoracic", &["thorakal", "brustwirbelsaeule"]),
     ("spinal", &["wirbelsaeule", "spinal"]),
     ("knee", &["knie", "knieorthese", "kniebandage"]),
