@@ -222,6 +222,25 @@ pub fn enrich_with_german(text: &str) -> String {
     if has("fecal") && (has("incontinence") || has("insert") || has("plug")) {
         additions.push("analtampon");
     }
+    // Arm compression sleeves → MiGeL 17.02.01.11.1 (Armkompressionsstrumpf KKL2, Serie)
+    // Push the supporting descriptor keywords so the score crosses the threshold;
+    // IDF ranking will pick the Armkompressionsstrumpf position over Waden/Schenkel
+    // because "armkompressionsstrumpf" appears in only 3 MiGeL entries.
+    if (has("arm") || any_contains("armsleeve")) && (has("sleeve") || has("sleeves")) {
+        additions.push("armkompressionsstrumpf");
+        additions.push("kompressionsklasse");
+        additions.push("rundgestrickt");
+        additions.push("serienfertigung");
+    }
+    // Ulcer (venous leg ulcer) compression system → MiGeL 17.05.01.00.1
+    // (Unterschenkel-Kompressionsstrumpf-System für Ulcus cruris)
+    if has("ulcer") || any_contains("ulcus") {
+        additions.push("unterschenkel");
+        additions.push("kompressionsstrumpf");
+        additions.push("ulcus");
+        additions.push("cruris");
+        additions.push("system");
+    }
     // Shoulder abduction cushions/slings → MiGeL 22.09.03.00.1
     // (Schulterabduktionsorthese / Schulterabduktionskissen)
     let shoulder_abduction =
@@ -421,6 +440,19 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("23.02", "schulter"),
     ("23.02", "epaule"),
     ("23.02", "spalla"),
+    // Unterschenkel-Orthesen (23.03 Massorthesen) should NOT match compression
+    // stockings (chapter 17), arm products, or wrist products.
+    ("23.03", "kompressionsstrumpf"),
+    ("23.03", "armkompressionsstrumpf"),
+    ("23.03", "ulcus"),
+    ("23.03", "ulcer"),
+    ("23.03", "handgelenk"),
+    ("23.03", "poignet"),
+    ("23.03", "polso"),
+    ("23.03", "schulter"),
+    ("23.03", "epaule"),
+    ("23.03", "spalla"),
+    ("23.03", "thermacare"),
     // Schulter-Orthesen (23.25) should NOT match other body parts
     ("23.25", "knie"),
     ("23.25", "genou"),
