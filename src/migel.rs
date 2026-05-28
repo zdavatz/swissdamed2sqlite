@@ -88,7 +88,7 @@ const STOP_WORDS: &[&str] = &[
 const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     // Body parts / anatomical regions
     ("cervical", &["cervikalstuetze", "halskrause", "halswirbelsaeule"]),
-    ("lumbar", &["lumbal", "lendenwirbelsaeule", "lumbalstuetze"]),
+    ("lumbar", &["lumbal", "lendenwirbelsaeule", "lumbalstuetze", "orthese", "stabilisierung"]),
     ("thoracic", &["thorakal", "brustwirbelsaeule"]),
     ("spinal", &["wirbelsaeule", "spinal"]),
     ("knee", &["knie", "knieorthese", "kniebandage"]),
@@ -240,6 +240,30 @@ pub fn enrich_with_german(text: &str) -> String {
         additions.push("ulcus");
         additions.push("cruris");
         additions.push("system");
+    }
+    // Spine orthoses: thoracic/spinal/spine + orthotic context → MiGeL 22.13/22.15
+    // (Brustwirbelsäulen-/Wirbelsäulen-Orthese). Only when an orthotic context word
+    // is present to avoid matching X-ray AI / imaging products that say "thoracic".
+    let spine_orthotic_ctx = has("orthese")
+        || has("orthosis")
+        || has("orthoses")
+        || has("orthotic")
+        || has("orthotics")
+        || has("brace")
+        || has("braceid")
+        || has("immobiliser")
+        || has("immobilizer")
+        || has("tlso")
+        || has("scoli")
+        || has("scoliosis");
+    if (has("thoracic") || has("thoraco")) && spine_orthotic_ctx {
+        additions.push("brustwirbelsaeule");
+        additions.push("thorax");
+        additions.push("orthese");
+    }
+    if (has("spinal") || has("spine")) && spine_orthotic_ctx {
+        additions.push("wirbelsaeule");
+        additions.push("orthese");
     }
     // Shoulder abduction cushions/slings → MiGeL 22.09.03.00.1
     // (Schulterabduktionsorthese / Schulterabduktionskissen)
@@ -453,6 +477,23 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("23.03", "epaule"),
     ("23.03", "spalla"),
     ("23.03", "thermacare"),
+    // Lumbar/Wirbelsäulen-Orthesen (22.13/22.14/22.15) should NOT match
+    // CSF drainage catheters, lumbar punction needles, or AI imaging products.
+    ("22.13", "catheter"),
+    ("22.13", "katheter"),
+    ("22.13", "drainage"),
+    ("22.13", "punction"),
+    ("22.13", "x-ray"),
+    ("22.13", "ai "),
+    ("22.13", "lunit"),
+    ("22.14", "catheter"),
+    ("22.14", "katheter"),
+    ("22.14", "drainage"),
+    ("22.14", "punction"),
+    ("22.15", "catheter"),
+    ("22.15", "katheter"),
+    ("22.15", "drainage"),
+    ("22.15", "punction"),
     // Schulter-Orthesen (23.25) should NOT match other body parts
     ("23.25", "knie"),
     ("23.25", "genou"),
