@@ -209,6 +209,10 @@ pub fn enrich_with_german(text: &str) -> String {
     if has("ortho") && has("rehab") {
         additions.push("spezialschuhe");
     }
+    // Fecal incontinence insert/plug → MiGeL 15.40 Analtampon
+    if has("fecal") && (has("incontinence") || has("insert") || has("plug")) {
+        additions.push("analtampon");
+    }
 
     if additions.is_empty() {
         text.to_string()
