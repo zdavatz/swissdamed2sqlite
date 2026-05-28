@@ -161,6 +161,10 @@ const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     ("stimulator", &["stimulator", "stimulationsgeraet"]),
     ("stimulation", &["stimulation"]),
     ("electrode", &["elektrode"]),
+    ("electrodes", &["elektrode", "elektroden"]),
+    ("neurostimulation", &["elektrode", "stimulation", "neuromuskular", "modulation"]),
+    ("transcutaneous", &["transkutan", "perkutan"]),
+    ("tens", &["elektrode", "stimulation", "neuromuskular", "modulation"]),
     ("transcranial", &["transkraniell"]),
     // Cotton / wound care basics
     ("cotton", &["watte", "baumwolle"]),
