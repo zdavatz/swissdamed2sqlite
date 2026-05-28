@@ -78,6 +78,19 @@ struct Variant {
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let client = http_client()?;
 
+    // Snapshot the existing DB so we can compare against it as a sanity floor.
+    let db_dir = crate::app_data_dir().join("db");
+    let baseline_variants = find_latest_db(&db_dir)
+        .and_then(|p| count_variants(&p).ok())
+        .unwrap_or(0);
+    if baseline_variants > 0 {
+        eprintln!(
+            "[sigvaris-shop] Baseline: existing DB has {} variants \
+             (new scrape must reach at least 80% to be accepted)",
+            baseline_variants
+        );
+    }
+
     // Warmup: visit the homepage so Cloudflare seats us with a cookie
     eprintln!("[sigvaris-shop] Warming up Cloudflare session ...");
     let _ = client
@@ -129,6 +142,25 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         handles.len(),
         errors
     );
+
+    // Fail-safe: refuse to overwrite a known-good baseline DB with a partial
+    // scrape. Cloudflare rate-limits sometimes block most discovery requests
+    // but leave a handful of handles reachable, producing a tiny DB that
+    // would silently destroy the bulk of our GTIN→MiGeL overrides.
+    if baseline_variants > 0 {
+        let min_acceptable = (baseline_variants as f64 * 0.8) as usize;
+        if variants.len() < min_acceptable {
+            return Err(format!(
+                "Scrape produced {} variants but baseline has {} (threshold {} \
+                 = 80%). Refusing to overwrite the existing DB. Retry in 1-2 \
+                 hours when Cloudflare backs off.",
+                variants.len(),
+                baseline_variants,
+                min_acceptable,
+            )
+            .into());
+        }
+    }
 
     let db_path = output_db("sigvaris_shop")?;
     write_db(&variants, &db_path)?;
@@ -492,6 +524,18 @@ pub fn find_latest_db(db_dir: &Path) -> Option<PathBuf> {
         }
     }
     newest.map(|(_, p)| p)
+}
+
+/// Count rows in the sigvaris_shop_variants table for the given DB. Used as
+/// the baseline floor when deciding whether to accept a fresh scrape.
+fn count_variants(db_path: &Path) -> Result<usize, Box<dyn std::error::Error>> {
+    let conn = Connection::open(db_path)?;
+    let n: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM sigvaris_shop_variants",
+        [],
+        |r| r.get(0),
+    )?;
+    Ok(n.max(0) as usize)
 }
 
 /// Load all GTIN → override entries from the given sigvaris_shop DB.
