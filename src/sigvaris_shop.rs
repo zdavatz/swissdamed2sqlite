@@ -64,8 +64,9 @@ const COLLECTIONS: &[&str] = &[
     "pflege-und-zusatzprodukte",
 ];
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Variant {
+    handle: String,
     gtin13: String,
     sku: Option<String>,
     title: String,
@@ -78,16 +79,40 @@ struct Variant {
 pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let client = http_client()?;
 
-    // Snapshot the existing DB so we can compare against it as a sanity floor.
     let db_dir = crate::app_data_dir().join("db");
-    let baseline_variants = find_latest_db(&db_dir)
-        .and_then(|p| count_variants(&p).ok())
+    let partial_path = db_dir.join("sigvaris_shop_partial.db");
+
+    // Snapshot the baseline DB (variant count + handle→variants cache used
+    // when a fresh fetch fails or discovery is Cloudflare-blocked).
+    let baseline_path = find_latest_db(&db_dir);
+    let baseline_variants = baseline_path
+        .as_ref()
+        .and_then(|p| count_variants(p).ok())
         .unwrap_or(0);
+    let baseline_cache: HashMap<String, Vec<Variant>> = baseline_path
+        .as_ref()
+        .map(|p| load_variants_by_handle(p).unwrap_or_default())
+        .unwrap_or_default();
     if baseline_variants > 0 {
         eprintln!(
-            "[sigvaris-shop] Baseline: existing DB has {} variants \
-             (new scrape must reach at least 80% to be accepted)",
-            baseline_variants
+            "[sigvaris-shop] Baseline: {} variants in latest DB, {} known handles available \
+             as resume fallback (new scrape must reach 80% to be accepted)",
+            baseline_variants,
+            baseline_cache.len(),
+        );
+    }
+
+    // Resume from a previous partial scrape, if any. Already-processed handles
+    // are skipped during the fetch loop; their variants stay in the partial DB.
+    ensure_partial_db(&partial_path)?;
+    let already_done: HashSet<String> = list_handles_in_db(&partial_path)?.into_iter().collect();
+    if !already_done.is_empty() {
+        let n = count_variants(&partial_path).unwrap_or(0);
+        eprintln!(
+            "[sigvaris-shop] Resuming from {}: {} handles, {} variants already cached",
+            partial_path.display(),
+            already_done.len(),
+            n
         );
     }
 
@@ -100,79 +125,143 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         .map(|r| r.text());
 
     eprintln!("[sigvaris-shop] Discovering product handles ...");
-    let handles = discover_handles(&client)?;
-    eprintln!("[sigvaris-shop] Found {} distinct product handles", handles.len());
+    let discovered = discover_handles(&client).unwrap_or_else(|e| {
+        eprintln!("[sigvaris-shop] Discovery error ({}); will rely on baseline handles", e);
+        Vec::new()
+    });
+    eprintln!("[sigvaris-shop] Found {} distinct product handles via discovery", discovered.len());
 
-    // Fail-safe: never overwrite the existing DB with an empty result
-    // (would happen if Cloudflare rate-limits the discovery endpoints).
+    // Union of fresh discovery + baseline handles (latest finalized DB) +
+    // already-done partial handles. This way, even when Cloudflare blocks
+    // most discovery requests, we still iterate the known product universe
+    // and either refresh successfully or fall back to cached data.
+    let mut all_handles: HashSet<String> = discovered.iter().cloned().collect();
+    for h in baseline_cache.keys() {
+        all_handles.insert(h.clone());
+    }
+    for h in already_done.iter() {
+        all_handles.insert(h.clone());
+    }
+    let mut handles: Vec<String> = all_handles.into_iter().collect();
+    handles.sort();
+    eprintln!(
+        "[sigvaris-shop] Total master handle list: {} (discovery {} + baseline {} + partial {})",
+        handles.len(),
+        discovered.len(),
+        baseline_cache.len(),
+        already_done.len()
+    );
+
     if handles.is_empty() {
         return Err(
-            "Discovery returned 0 handles — likely Cloudflare rate-limit. \
-             Aborting to preserve the existing SQLite DB. Retry in 10-30 minutes."
+            "No handles to process: discovery returned 0 and no baseline DB is \
+             available. Aborting. Retry in 10-30 minutes."
                 .into(),
         );
     }
 
     eprintln!("[sigvaris-shop] Fetching product details ...");
-    let mut variants: Vec<Variant> = Vec::with_capacity(handles.len() * 30);
+    let mut new_fetches = 0usize;
     let mut errors = 0usize;
-    for (i, handle) in handles.iter().enumerate() {
-        match fetch_product_with_retry(&client, handle) {
-            Ok(vs) => variants.extend(vs),
-            Err(e) => {
-                eprintln!("[sigvaris-shop]   error on {}: {}", handle, e);
-                errors += 1;
+    let mut fallbacks = 0usize;
+    let total = handles.len();
+    let to_process: Vec<&String> = handles.iter().filter(|h| !already_done.contains(*h)).collect();
+    for (i, handle) in to_process.iter().enumerate() {
+        let result = fetch_product_with_retry(&client, handle);
+        let variants_for_handle: Vec<Variant> = match result {
+            Ok(vs) => {
+                new_fetches += 1;
+                vs
             }
-        }
+            Err(e) => {
+                if let Some(cached) = baseline_cache.get(handle.as_str()) {
+                    eprintln!(
+                        "[sigvaris-shop]   error on {}: {} — using {} cached variants from baseline",
+                        handle,
+                        e,
+                        cached.len()
+                    );
+                    fallbacks += 1;
+                    cached.clone()
+                } else {
+                    eprintln!("[sigvaris-shop]   error on {}: {} (no baseline cache)", handle, e);
+                    errors += 1;
+                    Vec::new()
+                }
+            }
+        };
+        append_to_partial(&partial_path, handle, &variants_for_handle)?;
         if (i + 1) % 25 == 0 {
+            let cur = count_variants(&partial_path).unwrap_or(0);
             eprintln!(
-                "[sigvaris-shop]   {} / {} products done ({} variants so far, {} errors)",
+                "[sigvaris-shop]   {} / {} processed ({} fetched, {} fallback, {} errors, {} variants in partial)",
                 i + 1,
-                handles.len(),
-                variants.len(),
+                to_process.len(),
+                new_fetches,
+                fallbacks,
                 errors,
+                cur,
             );
         }
-        // Polite throttle: ~1 req/sec average → 432 products ≈ 7 minutes
         thread::sleep(Duration::from_millis(1000));
     }
+    let final_variants = count_variants(&partial_path).unwrap_or(0);
     eprintln!(
-        "[sigvaris-shop] Fetched {} variants from {} products ({} errors)",
-        variants.len(),
-        handles.len(),
-        errors
+        "[sigvaris-shop] Done: {} variants in partial DB ({} master handles, {} new fetches, \
+         {} cache fallbacks, {} errors)",
+        final_variants, total, new_fetches, fallbacks, errors
     );
 
-    // Fail-safe: refuse to overwrite a known-good baseline DB with a partial
-    // scrape. Cloudflare rate-limits sometimes block most discovery requests
-    // but leave a handful of handles reachable, producing a tiny DB that
-    // would silently destroy the bulk of our GTIN→MiGeL overrides.
+    // Fail-safe: refuse to finalize a partial DB significantly smaller than the
+    // baseline. Cloudflare may have blocked the bulk of fetches AND we had no
+    // baseline cache for those handles → finalizing would destroy overrides.
     if baseline_variants > 0 {
         let min_acceptable = (baseline_variants as f64 * 0.8) as usize;
-        if variants.len() < min_acceptable {
+        if final_variants < min_acceptable {
             return Err(format!(
                 "Scrape produced {} variants but baseline has {} (threshold {} \
-                 = 80%). Refusing to overwrite the existing DB. Retry in 1-2 \
-                 hours when Cloudflare backs off.",
-                variants.len(),
+                 = 80%). Refusing to finalize. Partial DB preserved at {} — \
+                 rerun --sigvaris-shop in 1-2 hours to resume.",
+                final_variants,
                 baseline_variants,
                 min_acceptable,
+                partial_path.display(),
             )
             .into());
         }
     }
 
+    // Finalize: stamp meta then rename partial → dated DB
+    {
+        let conn = Connection::open(&partial_path)?;
+        conn.execute(
+            "INSERT OR REPLACE INTO meta (key, value) VALUES \
+             ('source', ?1), ('scraped_at', ?2), ('variant_count', ?3)",
+            params![
+                "https://shop.sigvaris.com/de-de/",
+                chrono::Local::now().format("%Y-%m-%d").to_string(),
+                final_variants.to_string(),
+            ],
+        )?;
+    }
     let db_path = output_db("sigvaris_shop")?;
-    write_db(&variants, &db_path)?;
+    std::fs::rename(&partial_path, &db_path)?;
     eprintln!("[sigvaris-shop] SQLite written: {}", db_path);
 
     // Summary
-    let mapped = variants.iter().filter(|v| v.migel_code.is_some()).count();
+    let mapped: i64 = {
+        let conn = Connection::open(&db_path)?;
+        conn.query_row(
+            "SELECT COUNT(*) FROM sigvaris_shop_variants WHERE migel_code IS NOT NULL",
+            [],
+            |r| r.get(0),
+        )?
+    };
     eprintln!(
         "[sigvaris-shop] Summary: {} variants total, {} mapped to MiGeL, {} skipped (non-MiGeL)",
-        variants.len(),
+        final_variants,
         mapped,
-        variants.len() - mapped
+        final_variants as i64 - mapped
     );
 
     Ok(())
@@ -313,6 +402,7 @@ fn fetch_product(client: &Client, handle: &str) -> Result<Vec<Variant>, Box<dyn 
         let klasse = parse_klasse(o2).or_else(|| parse_klasse(o3));
         let (migel_code, migel_reason) = derive_migel(&title, &product_type, klasse);
         out.push(Variant {
+            handle: handle.to_string(),
             gtin13: barcode,
             sku,
             title: title.clone(),
@@ -560,12 +650,147 @@ pub fn load_overrides(db_path: &Path) -> Result<Overrides, Box<dyn std::error::E
     Ok(map)
 }
 
+fn ensure_partial_db(path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let conn = Connection::open(path)?;
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS sigvaris_shop_variants (
+            handle TEXT NOT NULL DEFAULT '',
+            gtin13 TEXT NOT NULL,
+            gtin14 TEXT NOT NULL,
+            sku TEXT,
+            title TEXT NOT NULL,
+            product_type TEXT,
+            klasse INTEGER,
+            migel_code TEXT,
+            migel_reason TEXT
+         );
+         CREATE INDEX IF NOT EXISTS idx_sigvaris_gtin13 ON sigvaris_shop_variants(gtin13);
+         CREATE INDEX IF NOT EXISTS idx_sigvaris_gtin14 ON sigvaris_shop_variants(gtin14);
+         CREATE INDEX IF NOT EXISTS idx_sigvaris_migel ON sigvaris_shop_variants(migel_code);
+         CREATE INDEX IF NOT EXISTS idx_sigvaris_klasse ON sigvaris_shop_variants(klasse);
+         CREATE INDEX IF NOT EXISTS idx_sigvaris_handle ON sigvaris_shop_variants(handle);
+         CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
+         CREATE TABLE IF NOT EXISTS done_handles (handle TEXT PRIMARY KEY);",
+    )?;
+    Ok(())
+}
+
+fn append_to_partial(
+    path: &Path,
+    handle: &str,
+    variants: &[Variant],
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut conn = Connection::open(path)?;
+    let tx = conn.transaction()?;
+    {
+        let mut stmt = tx.prepare(
+            "INSERT INTO sigvaris_shop_variants \
+             (handle, gtin13, gtin14, sku, title, product_type, klasse, migel_code, migel_reason) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        )?;
+        for v in variants {
+            let gtin14 = if v.gtin13.len() == 13 {
+                format!("0{}", v.gtin13)
+            } else {
+                v.gtin13.clone()
+            };
+            stmt.execute(params![
+                handle,
+                v.gtin13,
+                gtin14,
+                v.sku,
+                v.title,
+                v.product_type,
+                v.klasse,
+                v.migel_code,
+                v.migel_reason,
+            ])?;
+        }
+    }
+    tx.execute(
+        "INSERT OR IGNORE INTO done_handles (handle) VALUES (?1)",
+        params![handle],
+    )?;
+    tx.commit()?;
+    Ok(())
+}
+
+fn list_handles_in_db(path: &Path) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    if !path.exists() {
+        return Ok(Vec::new());
+    }
+    let conn = Connection::open(path)?;
+    let table_exists: bool = conn
+        .query_row(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='done_handles'",
+            [],
+            |_| Ok(true),
+        )
+        .unwrap_or(false);
+    if !table_exists {
+        return Ok(Vec::new());
+    }
+    let mut stmt = conn.prepare("SELECT handle FROM done_handles")?;
+    let rows = stmt.query_map([], |r| r.get::<_, String>(0))?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r?);
+    }
+    Ok(out)
+}
+
+/// Load variants from a finalized DB grouped by `handle`. Returns an empty
+/// map if the DB doesn't have a `handle` column (older schema) — callers can
+/// still use `count_variants` and other handle-agnostic helpers.
+fn load_variants_by_handle(
+    path: &Path,
+) -> Result<HashMap<String, Vec<Variant>>, Box<dyn std::error::Error>> {
+    let conn = Connection::open(path)?;
+    let has_handle: bool = conn
+        .query_row(
+            "SELECT 1 FROM pragma_table_info('sigvaris_shop_variants') WHERE name='handle'",
+            [],
+            |_| Ok(true),
+        )
+        .unwrap_or(false);
+    if !has_handle {
+        return Ok(HashMap::new());
+    }
+    let mut stmt = conn.prepare(
+        "SELECT handle, gtin13, sku, title, product_type, klasse, migel_code, migel_reason \
+         FROM sigvaris_shop_variants WHERE handle != ''",
+    )?;
+    let rows = stmt.query_map([], |r| {
+        Ok(Variant {
+            handle: r.get(0)?,
+            gtin13: r.get(1)?,
+            sku: r.get(2)?,
+            title: r.get(3)?,
+            product_type: r.get(4)?,
+            klasse: r.get(5)?,
+            migel_code: r.get(6)?,
+            migel_reason: r.get(7)?,
+        })
+    })?;
+    let mut map: HashMap<String, Vec<Variant>> = HashMap::new();
+    for r in rows {
+        let v = r?;
+        map.entry(v.handle.clone()).or_default().push(v);
+    }
+    Ok(map)
+}
+
+#[allow(dead_code)]
 fn write_db(variants: &[Variant], path: &str) -> Result<(), Box<dyn std::error::Error>> {
     // Fresh DB: drop file if it exists, recreate
     let _ = std::fs::remove_file(path);
     let mut conn = Connection::open(path)?;
     conn.execute_batch(
         "CREATE TABLE sigvaris_shop_variants (
+            handle TEXT NOT NULL DEFAULT '',
             gtin13 TEXT NOT NULL,
             gtin14 TEXT NOT NULL,
             sku TEXT,
@@ -579,6 +804,7 @@ fn write_db(variants: &[Variant], path: &str) -> Result<(), Box<dyn std::error::
          CREATE INDEX idx_sigvaris_gtin14 ON sigvaris_shop_variants(gtin14);
          CREATE INDEX idx_sigvaris_migel ON sigvaris_shop_variants(migel_code);
          CREATE INDEX idx_sigvaris_klasse ON sigvaris_shop_variants(klasse);
+         CREATE INDEX idx_sigvaris_handle ON sigvaris_shop_variants(handle);
          CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);",
     )?;
 
@@ -586,8 +812,8 @@ fn write_db(variants: &[Variant], path: &str) -> Result<(), Box<dyn std::error::
     {
         let mut stmt = tx.prepare(
             "INSERT INTO sigvaris_shop_variants \
-             (gtin13, gtin14, sku, title, product_type, klasse, migel_code, migel_reason) \
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+             (handle, gtin13, gtin14, sku, title, product_type, klasse, migel_code, migel_reason) \
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
         )?;
         for v in variants {
             let gtin14 = if v.gtin13.len() == 13 {
@@ -596,6 +822,7 @@ fn write_db(variants: &[Variant], path: &str) -> Result<(), Box<dyn std::error::
                 v.gtin13.clone()
             };
             stmt.execute(params![
+                v.handle,
                 v.gtin13,
                 gtin14,
                 v.sku,
