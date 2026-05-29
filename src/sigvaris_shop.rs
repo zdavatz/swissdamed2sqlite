@@ -590,9 +590,15 @@ fn derive_migel(title: &str, product_type: &str, klasse: Option<u8>) -> (Option<
 /// Anti-Thrombose / Reisestrumpf / Klasse 1, i.e. not a MiGeL Pflichtleistung).
 pub type Overrides = HashMap<String, Option<String>>;
 
-/// Locate the most recent `db/sigvaris_shop_*.db` under the app data dir.
+/// Locate the most recent finalized `db/sigvaris_shop_DD.MM.YYYY.db` under
+/// the app data dir. The in-progress partial DB (`sigvaris_shop_partial.db`)
+/// is explicitly excluded — picking it as baseline would let the 80 %
+/// threshold trivially compare today's partial against itself.
+///
+/// Date is parsed from the filename (so a manually restored older DB takes
+/// priority correctly even if mtime is fresh); ties fall back to mtime.
 pub fn find_latest_db(db_dir: &Path) -> Option<PathBuf> {
-    let mut newest: Option<(std::time::SystemTime, PathBuf)> = None;
+    let mut newest: Option<(String, std::time::SystemTime, PathBuf)> = None;
     if let Ok(entries) = std::fs::read_dir(db_dir) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -603,17 +609,34 @@ pub fn find_latest_db(db_dir: &Path) -> Option<PathBuf> {
             if !name.starts_with("sigvaris_shop_") || !name.ends_with(".db") {
                 continue;
             }
-            if let Ok(meta) = entry.metadata() {
-                if let Ok(mtime) = meta.modified() {
-                    let take = newest.as_ref().map_or(true, |(t, _)| mtime > *t);
-                    if take {
-                        newest = Some((mtime, path));
-                    }
+            // Exclude the partial / work-in-progress checkpoint
+            if name == "sigvaris_shop_partial.db" {
+                continue;
+            }
+            // Extract DD.MM.YYYY → sort key YYYYMMDD; non-conforming names sort last.
+            let date_part = name
+                .strip_prefix("sigvaris_shop_")
+                .and_then(|s| s.strip_suffix(".db"))
+                .unwrap_or("");
+            let sort_key = match date_part.split('.').collect::<Vec<_>>().as_slice() {
+                [d, m, y] if d.len() == 2 && m.len() == 2 && y.len() == 4 => {
+                    format!("{}{}{}", y, m, d)
                 }
+                _ => continue, // skip non-dated files
+            };
+            let mtime = entry
+                .metadata()
+                .and_then(|m| m.modified())
+                .unwrap_or(std::time::UNIX_EPOCH);
+            let take = newest.as_ref().map_or(true, |(k, t, _)| {
+                sort_key > *k || (sort_key == *k && mtime > *t)
+            });
+            if take {
+                newest = Some((sort_key, mtime, path));
             }
         }
     }
-    newest.map(|(_, p)| p)
+    newest.map(|(_, _, p)| p)
 }
 
 /// Count rows in the sigvaris_shop_variants table for the given DB. Used as
