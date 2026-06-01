@@ -553,6 +553,22 @@ pub fn generate(
     let rel_for_readme = format!("png/{}", out_filename);
     update_readme(&rel_for_readme)?;
     cleanup_old_pngs(png_dir, &out_filename)?;
+
+    // If we're being run from a checkout of this repo (cwd contains
+    // Cargo.toml and a png/ subdir), also mirror the PNG into the repo
+    // so the README link on GitHub stays in sync without a manual cp.
+    if Path::new("Cargo.toml").exists() && Path::new("png").is_dir() {
+        let repo_path = Path::new("png").join(&out_filename);
+        if let Err(e) = fs::copy(&out_path, &repo_path) {
+            eprintln!("Could not mirror PNG into repo png/: {}", e);
+        } else {
+            eprintln!("Mirrored to {}", repo_path.display());
+            if let Err(e) = cleanup_old_pngs(Path::new("png"), &out_filename) {
+                eprintln!("Could not prune old repo PNGs: {}", e);
+            }
+        }
+    }
+
     Ok(out_path)
 }
 
