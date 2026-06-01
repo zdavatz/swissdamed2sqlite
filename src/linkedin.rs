@@ -232,6 +232,23 @@ fn build_caption(migel_db: &Path) -> String {
     out
 }
 
+/// LinkedIn's "Little Text" format silently truncates the post at the first
+/// unescaped occurrence of any of these control characters. Always escape
+/// before sending the commentary.
+fn escape_little_text(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        if matches!(
+            c,
+            '(' | ')' | '<' | '>' | '@' | '|' | '{' | '}' | '[' | ']' | '*' | '_' | '~' | '\\'
+        ) {
+            out.push('\\');
+        }
+        out.push(c);
+    }
+    out
+}
+
 fn format_thousands(n: i64) -> String {
     let s = n.abs().to_string();
     let bytes = s.as_bytes();
@@ -323,9 +340,10 @@ pub fn publish_image(png_path: &Path, migel_db: &Path) -> Result<String, Box<dyn
 
     // Step 3 — create post
     let caption = build_caption(migel_db);
+    let escaped = escape_little_text(&caption);
     let post_body = serde_json::json!({
         "author": owner,
-        "commentary": caption,
+        "commentary": escaped,
         "visibility": "PUBLIC",
         "distribution": {
             "feedDistribution": "MAIN_FEED",
