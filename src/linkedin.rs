@@ -226,7 +226,10 @@ fn build_caption(migel_db: &Path) -> String {
     }
 
     out.push_str(
-        "\nSource: swissdamed.ch · Generated with github.com/zdavatz/swissdamed2sqlite\n\
+        "\nSource: swissdamed.ch\n\
+         Windows: https://apps.microsoft.com/detail/9mvmq21r4mkc?hl=de-DE&gl=CH\n\
+         macOS: https://apps.apple.com/my/app/swissdamed2sqlite/id6762261366?mt=12\n\
+         Code: github.com/zdavatz/swissdamed2sqlite\n\
          #MedTech #MiGeL #SwissDAMED #UDI",
     );
     out
