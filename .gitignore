@@ -19,6 +19,8 @@ Icon
 
 ### Config (contains credentials)
 config.toml
+linkedin_credentials.json
+linkedin_token.json
 
 ### Rust
 # Cargo build output

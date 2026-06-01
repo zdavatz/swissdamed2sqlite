@@ -38,7 +38,9 @@ cargo run -- --ch-rep-mandates       # CH-REP companies ranked by mandate count
 cargo run -- --ch-rep-mandates --ar-only  # AR-only CH-REPs ranked by mandate count
 cargo run -- --migel                 # match UDI devices to MiGeL codes
 cargo run -- --migel --deploy        # match and deploy to remote server
+cargo run -- --migel --linkedin      # match + generate PNG + publish PNG to LinkedIn
 cargo run -- --migel-stats           # re-render stats PNG from latest DBs (no download)
+cargo run -- --migel-stats --linkedin  # re-render PNG and publish to LinkedIn
 cargo run -- --sigvaris-shop         # scrape shop.sigvaris.com → GTIN→MiGeL override DB
 cargo run -- --lookup-chrn CHRN-AR-20000807  # find all SRNs for a given CHRN
 cargo run -- --company-ranking               # rank companies by product count
@@ -62,6 +64,7 @@ Modular Rust binary. `src/main.rs` holds CLI parsing (`Args`), `app_data_dir()`,
 - `src/migel_stats.rs` — pure-Rust stats PNG renderer via `plotters` (`generate`, `find_latest_dbs`, `read_stats`).
 - `src/sigvaris_shop.rs` — scrapes `shop.sigvaris.com` Shopify endpoints, derives MiGeL codes per GTIN, persists to `db/sigvaris_shop_DD.MM.YYYY.db`. Exposes `find_latest_db` + `load_overrides` consumed by `run_migel` as a GTIN→MiGeL precedence layer.
 - `src/error_report.rs` — SRN validation and XSS-escaped HTML error report.
+- `src/linkedin.rs` — LinkedIn Image upload + Posts API. Reads `linkedin_credentials.json` + `linkedin_token.json` (cwd, then `$HOME`) — same files as `li_push_rs`. Refreshes the token if a `refresh_token` is present and persists it back. Caption auto-built from the MiGeL DB (matched count, %, distinct codes, companies). Triggered by `--linkedin` on `--migel` and `--migel-stats`; failure is non-fatal (logged, exit 0).
 - `src/reports.rs` — high-level workflows: `run_migel`, `run_ch_rep[_mandates]`, `run_ar_mandates`, `run_lookup_chrn`, `run_company_ranking`, `run_unique_srns`.
 - `src/gui.rs` — egui/eframe GUI (background worker, error dialog).
 
@@ -169,4 +172,4 @@ The scraper is **resume-capable**: per-product variants are appended to `db/sigv
 - **Thresholds**: 2+ keywords: score >= 0.3, max len >= 6; single keyword: score >= 0.5, len >= 8 (>= 0.7 for verbose)
 - swissdamed-specific: company exclusions for radiation therapy (Varian) and dental (Sunstar) in main.rs
 - Key matches: Künzli shoes (464), Aspen orthoses (272), Guido Buschmeier infusion sets (40), PRIM (15), Angelini ThermaCare (14), O2 concentrators (4), nebulizers (2), CGM sensors (1), condoms (2), prosthetics (1)
-- Auto-generates timestamped stats PNG (`swissdamed_migel_stats_hhHmm.dd.mm.yyyy.png`) after each run via `src/migel_stats.rs` (pure Rust, `plotters` crate). Renders title, key-metrics card, company donut, and top-categories horizontal bar chart; updates the README image link and removes prior timestamped PNGs. Use `--migel-stats` to re-render from the latest DBs without re-downloading.
+- Auto-generates timestamped stats PNG (`png/swissdamed_migel_stats_hhHmm.dd.mm.yyyy.png` under the app data dir) after each run via `src/migel_stats.rs` (pure Rust, `plotters` crate). Renders title, key-metrics card, company donut, and top-categories horizontal bar chart; updates the README image link (`png/...`) and removes prior timestamped PNGs in `png/` (and sweeps any legacy ones from the cwd). Use `--migel-stats` to re-render from the latest DBs without re-downloading. Add `--linkedin` to also publish the freshly generated PNG to LinkedIn via `src/linkedin.rs`.

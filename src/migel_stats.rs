@@ -193,32 +193,32 @@ fn donut_wedge(
 }
 
 pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
-    const W: u32 = 1800;
-    const H: u32 = 2500;
+    const W: u32 = 2200;
+    const H: u32 = 5500;
 
     let root = BitMapBackend::new(out_path, (W, H)).into_drawing_area();
     root.fill(&BG)?;
 
-    let center_h = TextStyle::from(("sans-serif", 38).into_font())
+    let center_h = TextStyle::from(("sans-serif", 76).into_font().style(FontStyle::Bold))
         .color(&ACCENT)
         .pos(Pos::new(HPos::Center, VPos::Center));
     root.draw_text(
         "swissdamed MiGeL Matching Results",
         &center_h,
-        (W as i32 / 2, 60),
+        (W as i32 / 2, 90),
     )?;
 
     let now = Local::now();
     let timestamp = now.format("%Hh%M-%d.%m.%Y").to_string();
-    let ts_style = TextStyle::from(("sans-serif", 22).into_font())
+    let ts_style = TextStyle::from(("sans-serif", 44).into_font().style(FontStyle::Bold))
         .color(&TEXT_COLOR)
         .pos(Pos::new(HPos::Right, VPos::Center));
-    root.draw_text(&timestamp, &ts_style, (W as i32 - 40, H as i32 - 30))?;
+    root.draw_text(&timestamp, &ts_style, (W as i32 - 60, H as i32 - 50))?;
 
     // ----- Top-left: Key metrics -----
-    let panel_title = TextStyle::from(("sans-serif", 32).into_font().style(FontStyle::Bold))
+    let panel_title = TextStyle::from(("sans-serif", 64).into_font().style(FontStyle::Bold))
         .color(&TITLE_COLOR);
-    root.draw_text("Key Metrics", &panel_title, (110, 150))?;
+    root.draw_text("Key Metrics", &panel_title, (140, 220))?;
 
     let pct_mapped = if stats.total_products > 0 {
         format!(
@@ -255,36 +255,38 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     ]);
 
     let value_style = TextStyle::from(
-        ("sans-serif", 44).into_font().style(FontStyle::Bold),
+        ("sans-serif", 88).into_font().style(FontStyle::Bold),
     )
     .color(&ACCENT)
     .pos(Pos::new(HPos::Left, VPos::Center));
-    let label_style = TextStyle::from(("sans-serif", 28).into_font())
-        .color(&TEXT_COLOR)
-        .pos(Pos::new(HPos::Left, VPos::Center));
+    let label_style = TextStyle::from(
+        ("sans-serif", 56).into_font().style(FontStyle::Bold),
+    )
+    .color(&TEXT_COLOR)
+    .pos(Pos::new(HPos::Left, VPos::Center));
 
-    let metrics_top = 220;
-    let metrics_step = 130;
+    let metrics_top = 380;
+    let metrics_step = 220;
     for (i, (value, label)) in metrics.iter().enumerate() {
         let y = metrics_top + i as i32 * metrics_step;
-        root.draw_text(value, &value_style, (140, y))?;
-        root.draw_text(label, &label_style, (430, y))?;
+        root.draw_text(value, &value_style, (170, y))?;
+        root.draw_text(label, &label_style, (640, y))?;
     }
 
-    // ----- Top-right: Company donut -----
+    // ----- Donut (placed below metrics, centered horizontally) -----
     let donut_title_style = TextStyle::from(
-        ("sans-serif", 32).into_font().style(FontStyle::Bold),
+        ("sans-serif", 64).into_font().style(FontStyle::Bold),
     )
     .color(&TITLE_COLOR)
     .pos(Pos::new(HPos::Center, VPos::Center));
-    let donut_cx = 1295.0_f64;
-    let donut_cy = 600.0_f64;
-    let r_outer = 235.0_f64;
-    let r_inner = 130.0_f64;
+    let donut_cx = (W as f64) / 2.0;
+    let donut_cy = 2400.0_f64;
+    let r_outer = 380.0_f64;
+    let r_inner = 210.0_f64;
     root.draw_text(
         "Matches by Company",
         &donut_title_style,
-        (donut_cx as i32, 165),
+        (donut_cx as i32, 2000),
     )?;
 
     let threshold = stats.total_matched as f64 * 0.015;
@@ -303,7 +305,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
 
     let total_for_pie: i64 = wedge_data.iter().map(|(_, c)| *c).sum();
     let mut a_cursor = std::f64::consts::FRAC_PI_2;
-    let pct_style = TextStyle::from(("sans-serif", 26).into_font().style(FontStyle::Bold))
+    let pct_style = TextStyle::from(("sans-serif", 52).into_font().style(FontStyle::Bold))
         .color(&TITLE_COLOR)
         .pos(Pos::new(HPos::Center, VPos::Center));
 
@@ -330,33 +332,37 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     }
 
     let center_count_style = TextStyle::from(
-        ("sans-serif", 30).into_font().style(FontStyle::Bold),
+        ("sans-serif", 60).into_font().style(FontStyle::Bold),
     )
     .color(&ACCENT)
     .pos(Pos::new(HPos::Center, VPos::Center));
-    let center_label_style = TextStyle::from(("sans-serif", 22).into_font())
-        .color(&ACCENT)
-        .pos(Pos::new(HPos::Center, VPos::Center));
+    let center_label_style = TextStyle::from(
+        ("sans-serif", 44).into_font().style(FontStyle::Bold),
+    )
+    .color(&ACCENT)
+    .pos(Pos::new(HPos::Center, VPos::Center));
     root.draw_text(
         &ch_fmt(stats.total_matched),
         &center_count_style,
-        (donut_cx as i32, donut_cy as i32 - 14),
+        (donut_cx as i32, donut_cy as i32 - 28),
     )?;
     root.draw_text(
         "matches",
         &center_label_style,
-        (donut_cx as i32, donut_cy as i32 + 22),
+        (donut_cx as i32, donut_cy as i32 + 44),
     )?;
 
     // Legend below donut, two columns
-    let legend_top = (donut_cy + r_outer + 40.0) as i32;
-    let legend_left = 870_i32;
-    let legend_right = 1730_i32;
+    let legend_top = (donut_cy + r_outer + 80.0) as i32;
+    let legend_left = 140_i32;
+    let legend_right = (W as i32) - 140;
     let col_width = (legend_right - legend_left) / 2;
-    let row_height = 32_i32;
-    let legend_text = TextStyle::from(("sans-serif", 21).into_font())
-        .color(&TEXT_COLOR)
-        .pos(Pos::new(HPos::Left, VPos::Center));
+    let row_height = 64_i32;
+    let legend_text = TextStyle::from(
+        ("sans-serif", 42).into_font().style(FontStyle::Bold),
+    )
+    .color(&TEXT_COLOR)
+    .pos(Pos::new(HPos::Left, VPos::Center));
 
     for (idx, (name, cnt)) in wedge_data.iter().enumerate() {
         let col = idx % 2;
@@ -365,25 +371,25 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         let y = legend_top + row as i32 * row_height;
         let color = COMPANY_COLORS[idx % COMPANY_COLORS.len()];
         root.draw(&Rectangle::new(
-            [(x0, y - 9), (x0 + 22, y + 9)],
+            [(x0, y - 18), (x0 + 44, y + 18)],
             color.filled(),
         ))?;
         let truncated = truncate(name, 38);
         let entry = format!("{}  ({})", truncated, ch_fmt(*cnt));
-        root.draw_text(&entry, &legend_text, (x0 + 32, y))?;
+        root.draw_text(&entry, &legend_text, (x0 + 60, y))?;
     }
 
     // ----- Bottom: Top MiGeL categories bar chart -----
     let bar_title_style = TextStyle::from(
-        ("sans-serif", 32).into_font().style(FontStyle::Bold),
+        ("sans-serif", 64).into_font().style(FontStyle::Bold),
     )
     .color(&TITLE_COLOR);
-    root.draw_text("Top MiGeL Categories", &bar_title_style, (110, 1140))?;
+    root.draw_text("Top MiGeL Categories", &bar_title_style, (140, 3400))?;
 
-    let bar_area_left = 110_i32;
-    let bar_area_right = 1720_i32;
-    let bar_area_top = 1200_i32;
-    let bar_area_bottom = 2460_i32;
+    let bar_area_left = 140_i32;
+    let bar_area_right = (W as i32) - 140;
+    let bar_area_top = 3500_i32;
+    let bar_area_bottom = (H as i32) - 100;
     let n = stats.top_categories.len().max(1);
     let slot_height = (bar_area_bottom - bar_area_top) / n as i32;
     let bar_height = (slot_height as f64 * 0.4) as i32;
@@ -397,21 +403,22 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     let bar_x_max = (bar_area_right - bar_area_left - 80) as f64;
 
     let cat_label_style = TextStyle::from(
-        ("sans-serif", 26).into_font().style(FontStyle::Bold),
+        ("sans-serif", 52).into_font().style(FontStyle::Bold),
     )
     .color(&TEXT_COLOR)
     .pos(Pos::new(HPos::Left, VPos::Center));
-    let cat_companies_style =
-        TextStyle::from(("sans-serif", 20).into_font().style(FontStyle::Italic))
-            .color(&SUBTLE_COLOR)
-            .pos(Pos::new(HPos::Left, VPos::Center));
+    let cat_companies_style = TextStyle::from(
+        ("sans-serif", 40).into_font().style(FontStyle::Bold),
+    )
+    .color(&SUBTLE_COLOR)
+    .pos(Pos::new(HPos::Left, VPos::Center));
     let bar_inside_style = TextStyle::from(
-        ("sans-serif", 22).into_font().style(FontStyle::Bold),
+        ("sans-serif", 44).into_font().style(FontStyle::Bold),
     )
     .color(&BG)
     .pos(Pos::new(HPos::Center, VPos::Center));
     let bar_outside_style = TextStyle::from(
-        ("sans-serif", 28).into_font().style(FontStyle::Bold),
+        ("sans-serif", 56).into_font().style(FontStyle::Bold),
     )
     .color(&TEXT_COLOR)
     .pos(Pos::new(HPos::Left, VPos::Center));
@@ -427,7 +434,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         root.draw_text(
             &truncate(bez, 100),
             &cat_label_style,
-            (bar_area_left, bar_y_top - 30),
+            (bar_area_left, bar_y_top - 60),
         )?;
 
         // The bar itself
@@ -450,7 +457,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
             root.draw_text(
                 &ch_fmt(*cnt),
                 &bar_outside_style,
-                (bar_area_left + width_px + 12, slot_mid),
+                (bar_area_left + width_px + 24, slot_mid),
             )?;
         }
 
@@ -463,7 +470,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         root.draw_text(
             &truncate(&companies_text, 180),
             &cat_companies_style,
-            (bar_area_left, bar_y_bot + 28),
+            (bar_area_left, bar_y_bot + 56),
         )?;
     }
 
@@ -481,7 +488,7 @@ fn truncate(s: &str, max: usize) -> String {
     }
 }
 
-fn update_readme(out_filename: &str) -> Result<(), Box<dyn Error>> {
+fn update_readme(rel_path: &str) -> Result<(), Box<dyn Error>> {
     let path = Path::new("README.md");
     if !path.exists() {
         return Ok(());
@@ -490,13 +497,12 @@ fn update_readme(out_filename: &str) -> Result<(), Box<dyn Error>> {
     let mut new_content = String::with_capacity(content.len());
     let mut updated = false;
     for line in content.lines() {
-        if line.starts_with("![MiGeL Matching Stats](swissdamed_migel_stats")
-            && line.ends_with(".png)")
-        {
-            new_content.push_str(&format!(
-                "![MiGeL Matching Stats]({})",
-                out_filename
-            ));
+        let is_old = line.starts_with("![MiGeL Matching Stats](swissdamed_migel_stats")
+            && line.ends_with(".png)");
+        let is_new = line.starts_with("![MiGeL Matching Stats](png/swissdamed_migel_stats")
+            && line.ends_with(".png)");
+        if is_old || is_new {
+            new_content.push_str(&format!("![MiGeL Matching Stats]({})", rel_path));
             updated = true;
         } else {
             new_content.push_str(line);
@@ -505,24 +511,43 @@ fn update_readme(out_filename: &str) -> Result<(), Box<dyn Error>> {
     }
     if updated && new_content.trim_end() != content.trim_end() {
         fs::write(path, new_content)?;
-        eprintln!("Updated README.md -> {}", out_filename);
+        eprintln!("Updated README.md -> {}", rel_path);
     }
     Ok(())
 }
 
-fn cleanup_old_pngs(keep_filename: &str) -> Result<(), Box<dyn Error>> {
-    for entry in fs::read_dir(".")? {
-        let entry = entry?;
-        let name = entry.file_name();
-        let name_str = name.to_string_lossy();
-        if name_str.starts_with("swissdamed_migel_stats_")
-            && name_str.ends_with(".png")
-            && name_str != keep_filename
-        {
-            if let Err(e) = fs::remove_file(entry.path()) {
-                eprintln!("Could not remove old {}: {}", name_str, e);
-            } else {
-                eprintln!("Removed old {}", name_str);
+fn cleanup_old_pngs(png_dir: &Path, keep_filename: &str) -> Result<(), Box<dyn Error>> {
+    // Remove stale PNGs in the png/ directory
+    if png_dir.exists() {
+        for entry in fs::read_dir(png_dir)? {
+            let entry = entry?;
+            let name = entry.file_name();
+            let name_str = name.to_string_lossy();
+            if name_str.starts_with("swissdamed_migel_stats_")
+                && name_str.ends_with(".png")
+                && name_str != keep_filename
+            {
+                if let Err(e) = fs::remove_file(entry.path()) {
+                    eprintln!("Could not remove old {}: {}", name_str, e);
+                } else {
+                    eprintln!("Removed old png/{}", name_str);
+                }
+            }
+        }
+    }
+    // Also sweep any legacy PNGs left in the cwd from older versions
+    if let Ok(entries) = fs::read_dir(".") {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let name_str = name.to_string_lossy();
+            if name_str.starts_with("swissdamed_migel_stats_")
+                && name_str.ends_with(".png")
+            {
+                if let Err(e) = fs::remove_file(entry.path()) {
+                    eprintln!("Could not remove legacy {}: {}", name_str, e);
+                } else {
+                    eprintln!("Removed legacy ./{}", name_str);
+                }
             }
         }
     }
@@ -532,15 +557,19 @@ fn cleanup_old_pngs(keep_filename: &str) -> Result<(), Box<dyn Error>> {
 pub fn generate(
     migel_db: &Path,
     full_db: Option<&Path>,
+    png_dir: &Path,
 ) -> Result<PathBuf, Box<dyn Error>> {
     let stats = read_stats(migel_db, full_db)?;
     let timestamp = Local::now().format("%Hh%M.%d.%m.%Y").to_string();
     let out_filename = format!("swissdamed_migel_stats_{}.png", timestamp);
-    render(&stats, Path::new(&out_filename))?;
-    eprintln!("Saved {}", out_filename);
-    update_readme(&out_filename)?;
-    cleanup_old_pngs(&out_filename)?;
-    Ok(PathBuf::from(out_filename))
+    fs::create_dir_all(png_dir)?;
+    let out_path = png_dir.join(&out_filename);
+    render(&stats, &out_path)?;
+    eprintln!("Saved {}", out_path.display());
+    let rel_for_readme = format!("png/{}", out_filename);
+    update_readme(&rel_for_readme)?;
+    cleanup_old_pngs(png_dir, &out_filename)?;
+    Ok(out_path)
 }
 
 /// Find the latest swissdamed_migel_*.db and swissdamed_<date>.db in the

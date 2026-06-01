@@ -7,6 +7,7 @@ mod error_report;
 pub mod export;
 pub mod gdrive;
 mod gui;
+pub mod linkedin;
 pub mod migel;
 mod migel_stats;
 pub mod reports;
@@ -200,6 +201,10 @@ pub struct Args {
     /// Scrape the SIGVARIS shop and build a GTIN→MiGeL override SQLite DB
     #[arg(long)]
     pub sigvaris_shop: bool,
+
+    /// After generating the MiGeL stats PNG, publish it to LinkedIn
+    #[arg(long)]
+    pub linkedin: bool,
 }
 
 // --- Main ---
@@ -270,7 +275,13 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(ref p) = full_db {
             eprintln!("Total products from {}", p.display());
         }
-        migel_stats::generate(&migel_db, full_db.as_deref())?;
+        let png_dir = app_data_dir().join("png");
+        let png_path = migel_stats::generate(&migel_db, full_db.as_deref(), &png_dir)?;
+        if args.linkedin {
+            if let Err(e) = linkedin::publish_image(&png_path, &migel_db) {
+                eprintln!("LinkedIn publish failed: {}", e);
+            }
+        }
         return Ok(());
     }
 

@@ -339,11 +339,29 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     // 7. Generate stats PNG (Rust, via plotters)
     let db_dir = crate::app_data_dir().join("db");
     let (_, full_db) = crate::migel_stats::find_latest_dbs(&db_dir);
-    if let Err(e) = crate::migel_stats::generate(
+    let png_dir = crate::app_data_dir().join("png");
+    let png_path = match crate::migel_stats::generate(
         std::path::Path::new(&db_filename),
         full_db.as_deref(),
+        &png_dir,
     ) {
-        eprintln!("Could not generate stats PNG: {}", e);
+        Ok(p) => Some(p),
+        Err(e) => {
+            eprintln!("Could not generate stats PNG: {}", e);
+            None
+        }
+    };
+
+    if args.linkedin {
+        if let Some(p) = png_path {
+            if let Err(e) =
+                crate::linkedin::publish_image(&p, std::path::Path::new(&db_filename))
+            {
+                eprintln!("LinkedIn publish failed: {}", e);
+            }
+        } else {
+            eprintln!("Skipping LinkedIn publish: PNG generation failed.");
+        }
     }
 
     Ok(())
