@@ -9,7 +9,6 @@ use std::path::{Path, PathBuf};
 const BG: RGBColor = RGBColor(255, 255, 255);
 const TITLE_COLOR: RGBColor = RGBColor(51, 51, 51);
 const TEXT_COLOR: RGBColor = RGBColor(85, 85, 85);
-const SUBTLE_COLOR: RGBColor = RGBColor(119, 119, 119);
 const ACCENT: RGBColor = RGBColor(46, 125, 50);
 const BAR_COLOR: RGBColor = RGBColor(67, 160, 71);
 
@@ -90,7 +89,7 @@ pub fn read_stats(
 
     let mut stmt = conn.prepare(
         "SELECT migel_code, migel_bezeichnung, COUNT(*) FROM swissdamed \
-         GROUP BY migel_code ORDER BY 3 DESC LIMIT 8",
+         GROUP BY migel_code ORDER BY 3 DESC LIMIT 6",
     )?;
     let top_codes: Vec<(String, String, i64)> = stmt
         .query_map([], |r| {
@@ -193,8 +192,8 @@ fn donut_wedge(
 }
 
 pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
-    const W: u32 = 2200;
-    const H: u32 = 5500;
+    const W: u32 = 2400;
+    const H: u32 = 2400;
 
     let root = BitMapBackend::new(out_path, (W, H)).into_drawing_area();
     root.fill(&BG)?;
@@ -218,7 +217,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     // ----- Top-left: Key metrics -----
     let panel_title = TextStyle::from(("sans-serif", 64).into_font().style(FontStyle::Bold))
         .color(&TITLE_COLOR);
-    root.draw_text("Key Metrics", &panel_title, (140, 220))?;
+    root.draw_text("Key Metrics", &panel_title, (140, 180))?;
 
     let pct_mapped = if stats.total_products > 0 {
         format!(
@@ -240,12 +239,12 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     if stats.override_matched > 0 || stats.override_skipped > 0 {
         metrics.push((
             ch_fmt(stats.override_matched),
-            "  via GTIN overrides (shop.sigvaris.com)".into(),
+            "  via GTIN overrides".into(),
         ));
         metrics.push((ch_fmt(heuristic), "  via heuristic matcher".into()));
         metrics.push((
             ch_fmt(stats.override_skipped),
-            "Skipped by override (BAG-classified non-MiGeL)".into(),
+            "Skipped (BAG non-MiGeL)".into(),
         ));
     }
     metrics.extend([
@@ -265,8 +264,8 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     .color(&TEXT_COLOR)
     .pos(Pos::new(HPos::Left, VPos::Center));
 
-    let metrics_top = 380;
-    let metrics_step = 220;
+    let metrics_top = 280;
+    let metrics_step = 130;
     for (i, (value, label)) in metrics.iter().enumerate() {
         let y = metrics_top + i as i32 * metrics_step;
         root.draw_text(value, &value_style, (170, y))?;
@@ -279,14 +278,14 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     )
     .color(&TITLE_COLOR)
     .pos(Pos::new(HPos::Center, VPos::Center));
-    let donut_cx = (W as f64) / 2.0;
-    let donut_cy = 2400.0_f64;
-    let r_outer = 380.0_f64;
-    let r_inner = 210.0_f64;
+    let donut_cx = 1820.0_f64;
+    let donut_cy = 620.0_f64;
+    let r_outer = 300.0_f64;
+    let r_inner = 170.0_f64;
     root.draw_text(
         "Matches by Company",
         &donut_title_style,
-        (donut_cx as i32, 2000),
+        (donut_cx as i32, 220),
     )?;
 
     let threshold = stats.total_matched as f64 * 0.015;
@@ -352,14 +351,14 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         (donut_cx as i32, donut_cy as i32 + 44),
     )?;
 
-    // Legend below donut, two columns
-    let legend_top = (donut_cy + r_outer + 80.0) as i32;
-    let legend_left = 140_i32;
-    let legend_right = (W as i32) - 140;
+    // Legend below donut, two columns within the right-hand block
+    let legend_top = (donut_cy + r_outer + 60.0) as i32;
+    let legend_left = 1320_i32;
+    let legend_right = (W as i32) - 60;
     let col_width = (legend_right - legend_left) / 2;
-    let row_height = 64_i32;
+    let row_height = 56_i32;
     let legend_text = TextStyle::from(
-        ("sans-serif", 42).into_font().style(FontStyle::Bold),
+        ("sans-serif", 32).into_font().style(FontStyle::Bold),
     )
     .color(&TEXT_COLOR)
     .pos(Pos::new(HPos::Left, VPos::Center));
@@ -374,7 +373,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
             [(x0, y - 18), (x0 + 44, y + 18)],
             color.filled(),
         ))?;
-        let truncated = truncate(name, 38);
+        let truncated = truncate(name, 22);
         let entry = format!("{}  ({})", truncated, ch_fmt(*cnt));
         root.draw_text(&entry, &legend_text, (x0 + 60, y))?;
     }
@@ -384,12 +383,12 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         ("sans-serif", 64).into_font().style(FontStyle::Bold),
     )
     .color(&TITLE_COLOR);
-    root.draw_text("Top MiGeL Categories", &bar_title_style, (140, 3400))?;
+    root.draw_text("Top MiGeL Categories", &bar_title_style, (140, 1420))?;
 
     let bar_area_left = 140_i32;
     let bar_area_right = (W as i32) - 140;
-    let bar_area_top = 3500_i32;
-    let bar_area_bottom = (H as i32) - 100;
+    let bar_area_top = 1540_i32;
+    let bar_area_bottom = (H as i32) - 80;
     let n = stats.top_categories.len().max(1);
     let slot_height = (bar_area_bottom - bar_area_top) / n as i32;
     let bar_height = (slot_height as f64 * 0.4) as i32;
@@ -403,27 +402,22 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     let bar_x_max = (bar_area_right - bar_area_left - 80) as f64;
 
     let cat_label_style = TextStyle::from(
-        ("sans-serif", 52).into_font().style(FontStyle::Bold),
+        ("sans-serif", 44).into_font().style(FontStyle::Bold),
     )
     .color(&TEXT_COLOR)
     .pos(Pos::new(HPos::Left, VPos::Center));
-    let cat_companies_style = TextStyle::from(
-        ("sans-serif", 40).into_font().style(FontStyle::Bold),
-    )
-    .color(&SUBTLE_COLOR)
-    .pos(Pos::new(HPos::Left, VPos::Center));
     let bar_inside_style = TextStyle::from(
-        ("sans-serif", 44).into_font().style(FontStyle::Bold),
+        ("sans-serif", 36).into_font().style(FontStyle::Bold),
     )
     .color(&BG)
     .pos(Pos::new(HPos::Center, VPos::Center));
     let bar_outside_style = TextStyle::from(
-        ("sans-serif", 56).into_font().style(FontStyle::Bold),
+        ("sans-serif", 44).into_font().style(FontStyle::Bold),
     )
     .color(&TEXT_COLOR)
     .pos(Pos::new(HPos::Left, VPos::Center));
 
-    for (i, (bez, cnt, companies)) in stats.top_categories.iter().enumerate() {
+    for (i, (bez, cnt, _companies)) in stats.top_categories.iter().enumerate() {
         let slot_top = bar_area_top + i as i32 * slot_height;
         let slot_mid = slot_top + slot_height / 2;
         let bar_y_top = slot_mid - bar_height / 2;
@@ -434,7 +428,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         root.draw_text(
             &truncate(bez, 100),
             &cat_label_style,
-            (bar_area_left, bar_y_top - 60),
+            (bar_area_left, bar_y_top - 30),
         )?;
 
         // The bar itself
@@ -461,17 +455,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
             )?;
         }
 
-        // Company list below the bar
-        let companies_text: String = companies
-            .iter()
-            .map(|(n, c)| format!("{} ({})", n, c))
-            .collect::<Vec<_>>()
-            .join(", ");
-        root.draw_text(
-            &truncate(&companies_text, 180),
-            &cat_companies_style,
-            (bar_area_left, bar_y_bot + 56),
-        )?;
+        let _ = bar_y_bot;
     }
 
     root.present()?;
