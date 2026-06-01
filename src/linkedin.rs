@@ -141,34 +141,111 @@ fn build_caption(migel_db: &Path) -> String {
             |r| r.get(0),
         )
         .unwrap_or(0);
-    let total: i64 = conn
-        .query_row(
-            "SELECT value FROM meta WHERE key = 'total_products'",
-            [],
+    let read_meta = |key: &str| -> i64 {
+        conn.query_row(
+            "SELECT value FROM meta WHERE key = ?1",
+            [key],
             |r| r.get::<_, String>(0),
         )
         .ok()
         .and_then(|s| s.parse().ok())
-        .unwrap_or(0);
+        .unwrap_or(0)
+    };
+    let total = read_meta("total_products");
+    let override_matched = read_meta("override_matched");
+    let override_skipped = read_meta("override_skipped");
+    let heuristic = matched - override_matched;
     let pct = if total > 0 {
         format!("{:.1}%", matched as f64 / total as f64 * 100.0)
     } else {
         "—".to_string()
     };
-    format!(
-        "swissdamed × MiGeL — daily snapshot\n\
-         \n\
-         {matched} of {total} UDI rows ({pct}) are mapped to a MiGeL position.\n\
-         {codes} distinct MiGeL codes, {companies} manufacturers with matches.\n\
-         \n\
-         Source: swissdamed.ch · Generated with github.com/zdavatz/swissdamed2sqlite\n\
+
+    let top_companies: Vec<(String, i64)> = conn
+        .prepare(
+            "SELECT companyName, COUNT(*) FROM swissdamed \
+             GROUP BY companyName ORDER BY 2 DESC LIMIT 3",
+        )
+        .ok()
+        .and_then(|mut stmt| {
+            stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)))
+                .ok()
+                .map(|it| it.filter_map(|r| r.ok()).collect())
+        })
+        .unwrap_or_default();
+
+    let top_categories: Vec<(String, i64)> = conn
+        .prepare(
+            "SELECT migel_bezeichnung, COUNT(*) FROM swissdamed \
+             GROUP BY migel_code ORDER BY 2 DESC LIMIT 3",
+        )
+        .ok()
+        .and_then(|mut stmt| {
+            stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, i64>(1)?)))
+                .ok()
+                .map(|it| it.filter_map(|r| r.ok()).collect())
+        })
+        .unwrap_or_default();
+
+    let mut out = String::new();
+    // First line is what LinkedIn shows before "…see more" — front-load
+    // the headline numbers so the post conveys its point without expanding.
+    out.push_str(&format!(
+        "swissdamed × MiGeL — daily snapshot: {} of {} UDI rows ({}) mapped · {} codes · {} manufacturers.\n",
+        format_thousands(matched),
+        format_thousands(total),
+        pct,
+        codes,
+        companies,
+    ));
+    if override_matched > 0 || override_skipped > 0 {
+        out.push_str(&format!(
+            "Breakdown: {} via GTIN overrides (shop.sigvaris.com), {} via heuristic matcher; {} skipped (BAG-classified non-MiGeL).\n",
+            format_thousands(override_matched),
+            format_thousands(heuristic),
+            format_thousands(override_skipped),
+        ));
+    }
+
+    if !top_companies.is_empty() {
+        out.push_str("\nTop manufacturers: ");
+        let parts: Vec<String> = top_companies
+            .iter()
+            .map(|(n, c)| format!("{} ({})", n, format_thousands(*c)))
+            .collect();
+        out.push_str(&parts.join(" · "));
+        out.push('\n');
+    }
+
+    if !top_categories.is_empty() {
+        out.push_str("\nTop MiGeL categories:\n");
+        for (bez, cnt) in &top_categories {
+            let short = bez.chars().take(70).collect::<String>();
+            out.push_str(&format!("• {} — {}\n", short, format_thousands(*cnt)));
+        }
+    }
+
+    out.push_str(
+        "\nSource: swissdamed.ch · Generated with github.com/zdavatz/swissdamed2sqlite\n\
          #MedTech #MiGeL #SwissDAMED #UDI",
-        matched = matched,
-        total = total,
-        pct = pct,
-        codes = codes,
-        companies = companies,
-    )
+    );
+    out
+}
+
+fn format_thousands(n: i64) -> String {
+    let s = n.abs().to_string();
+    let bytes = s.as_bytes();
+    let mut out = String::with_capacity(s.len() + s.len() / 3);
+    if n < 0 {
+        out.push('-');
+    }
+    for (i, b) in bytes.iter().enumerate() {
+        if i > 0 && (bytes.len() - i) % 3 == 0 {
+            out.push('\'');
+        }
+        out.push(*b as char);
+    }
+    out
 }
 
 fn default_caption() -> String {
