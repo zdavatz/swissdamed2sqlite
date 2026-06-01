@@ -200,7 +200,7 @@ fn build_caption(migel_db: &Path) -> String {
     ));
     if override_matched > 0 || override_skipped > 0 {
         out.push_str(&format!(
-            "Breakdown: {} via GTIN overrides (shop.sigvaris.com), {} via heuristic matcher; {} skipped (BAG-classified non-MiGeL).\n",
+            "Breakdown: {} via GTIN overrides, {} via heuristic matcher; {} skipped (BAG-classified non-MiGeL).\n",
             format_thousands(override_matched),
             format_thousands(heuristic),
             format_thousands(override_skipped),
