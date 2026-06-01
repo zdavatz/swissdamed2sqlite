@@ -155,35 +155,20 @@ fn build_caption(migel_db: &Path) -> String {
     } else {
         "—".to_string()
     };
-    let matched_fmt = format_thousands(matched);
-    let total_fmt = format_thousands(total);
     format!(
-        "swissdamed × MiGeL: {matched} of {total} UDI rows ({pct}) mapped to MiGeL — {codes} codes, {companies} manufacturers. Daily snapshot.\n\
+        "swissdamed × MiGeL — daily snapshot\n\
          \n\
-         Source: swissdamed.ch · github.com/zdavatz/swissdamed2sqlite\n\
+         {matched} of {total} UDI rows ({pct}) are mapped to a MiGeL position.\n\
+         {codes} distinct MiGeL codes, {companies} manufacturers with matches.\n\
+         \n\
+         Source: swissdamed.ch · Generated with github.com/zdavatz/swissdamed2sqlite\n\
          #MedTech #MiGeL #SwissDAMED #UDI",
-        matched = matched_fmt,
-        total = total_fmt,
+        matched = matched,
+        total = total,
         pct = pct,
         codes = codes,
         companies = companies,
     )
-}
-
-fn format_thousands(n: i64) -> String {
-    let s = n.abs().to_string();
-    let bytes = s.as_bytes();
-    let mut out = String::with_capacity(s.len() + s.len() / 3);
-    if n < 0 {
-        out.push('-');
-    }
-    for (i, b) in bytes.iter().enumerate() {
-        if i > 0 && (bytes.len() - i) % 3 == 0 {
-            out.push('\'');
-        }
-        out.push(*b as char);
-    }
-    out
 }
 
 fn default_caption() -> String {
