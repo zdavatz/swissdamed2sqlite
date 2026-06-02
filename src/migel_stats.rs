@@ -373,7 +373,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
             [(x0, y - 22), (x0 + 54, y + 22)],
             color.filled(),
         ))?;
-        let truncated = truncate(name, 22);
+        let truncated = truncate(name, 14);
         let entry = format!("{}  ({})", truncated, ch_fmt(*cnt));
         root.draw_text(&entry, &legend_text, (x0 + 74, y))?;
     }
@@ -426,7 +426,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
 
         // Category name above the bar
         root.draw_text(
-            &truncate(bez, 100),
+            &truncate(bez, 60),
             &cat_label_style,
             (bar_area_left, bar_y_top - 38),
         )?;
