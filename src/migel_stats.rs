@@ -316,7 +316,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         let pts = donut_wedge(donut_cx, donut_cy, r_outer, r_inner, a_end, a_cursor);
         root.draw(&Polygon::new(pts, color.filled()))?;
 
-        if frac >= 0.03 {
+        if frac >= 0.06 {
             let mid = (a_cursor + a_end) / 2.0;
             let r_label = (r_outer + r_inner) / 2.0;
             let lx = donut_cx + r_label * mid.cos();
@@ -356,9 +356,9 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     let legend_left = 1320_i32;
     let legend_right = (W as i32) - 60;
     let col_width = (legend_right - legend_left) / 2;
-    let row_height = 56_i32;
+    let row_height = 80_i32;
     let legend_text = TextStyle::from(
-        ("sans-serif", 32).into_font().style(FontStyle::Bold),
+        ("sans-serif", 48).into_font().style(FontStyle::Bold),
     )
     .color(&TEXT_COLOR)
     .pos(Pos::new(HPos::Left, VPos::Center));
@@ -370,12 +370,12 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         let y = legend_top + row as i32 * row_height;
         let color = COMPANY_COLORS[idx % COMPANY_COLORS.len()];
         root.draw(&Rectangle::new(
-            [(x0, y - 18), (x0 + 44, y + 18)],
+            [(x0, y - 22), (x0 + 54, y + 22)],
             color.filled(),
         ))?;
         let truncated = truncate(name, 22);
         let entry = format!("{}  ({})", truncated, ch_fmt(*cnt));
-        root.draw_text(&entry, &legend_text, (x0 + 60, y))?;
+        root.draw_text(&entry, &legend_text, (x0 + 74, y))?;
     }
 
     // ----- Bottom: Top MiGeL categories bar chart -----
@@ -383,11 +383,11 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         ("sans-serif", 64).into_font().style(FontStyle::Bold),
     )
     .color(&TITLE_COLOR);
-    root.draw_text("Top MiGeL Categories", &bar_title_style, (140, 1420))?;
+    root.draw_text("Top MiGeL Categories", &bar_title_style, (140, 1320))?;
 
     let bar_area_left = 140_i32;
     let bar_area_right = (W as i32) - 140;
-    let bar_area_top = 1540_i32;
+    let bar_area_top = 1440_i32;
     let bar_area_bottom = (H as i32) - 80;
     let n = stats.top_categories.len().max(1);
     let slot_height = (bar_area_bottom - bar_area_top) / n as i32;
@@ -402,17 +402,17 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     let bar_x_max = (bar_area_right - bar_area_left - 80) as f64;
 
     let cat_label_style = TextStyle::from(
-        ("sans-serif", 44).into_font().style(FontStyle::Bold),
+        ("sans-serif", 60).into_font().style(FontStyle::Bold),
     )
     .color(&TEXT_COLOR)
     .pos(Pos::new(HPos::Left, VPos::Center));
     let bar_inside_style = TextStyle::from(
-        ("sans-serif", 36).into_font().style(FontStyle::Bold),
+        ("sans-serif", 56).into_font().style(FontStyle::Bold),
     )
     .color(&BG)
     .pos(Pos::new(HPos::Center, VPos::Center));
     let bar_outside_style = TextStyle::from(
-        ("sans-serif", 44).into_font().style(FontStyle::Bold),
+        ("sans-serif", 56).into_font().style(FontStyle::Bold),
     )
     .color(&TEXT_COLOR)
     .pos(Pos::new(HPos::Left, VPos::Center));
@@ -428,7 +428,7 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         root.draw_text(
             &truncate(bez, 100),
             &cat_label_style,
-            (bar_area_left, bar_y_top - 30),
+            (bar_area_left, bar_y_top - 38),
         )?;
 
         // The bar itself
