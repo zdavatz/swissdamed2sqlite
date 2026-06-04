@@ -8,6 +8,7 @@ pub mod export;
 pub mod gdrive;
 mod gui;
 pub mod linkedin;
+pub mod twitter;
 pub mod migel;
 mod migel_stats;
 pub mod reports;
@@ -205,6 +206,10 @@ pub struct Args {
     /// After generating the MiGeL stats PNG, publish it to LinkedIn
     #[arg(long)]
     pub linkedin: bool,
+
+    /// After generating the MiGeL stats PNG, publish it to X / Twitter
+    #[arg(long)]
+    pub twitter: bool,
 }
 
 // --- Main ---
@@ -280,6 +285,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         if args.linkedin {
             if let Err(e) = linkedin::publish_image(&png_path, &migel_db) {
                 eprintln!("LinkedIn publish failed: {}", e);
+            }
+        }
+        if args.twitter {
+            if let Err(e) = twitter::publish_image(&png_path, &migel_db) {
+                eprintln!("Twitter publish failed: {}", e);
             }
         }
         return Ok(());

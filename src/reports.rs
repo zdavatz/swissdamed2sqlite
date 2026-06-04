@@ -353,14 +353,26 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     };
 
     if args.linkedin {
-        if let Some(p) = png_path {
+        if let Some(ref p) = png_path {
             if let Err(e) =
-                crate::linkedin::publish_image(&p, std::path::Path::new(&db_filename))
+                crate::linkedin::publish_image(p, std::path::Path::new(&db_filename))
             {
                 eprintln!("LinkedIn publish failed: {}", e);
             }
         } else {
             eprintln!("Skipping LinkedIn publish: PNG generation failed.");
+        }
+    }
+
+    if args.twitter {
+        if let Some(ref p) = png_path {
+            if let Err(e) =
+                crate::twitter::publish_image(p, std::path::Path::new(&db_filename))
+            {
+                eprintln!("Twitter publish failed: {}", e);
+            }
+        } else {
+            eprintln!("Skipping Twitter publish: PNG generation failed.");
         }
     }
 
