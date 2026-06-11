@@ -188,6 +188,12 @@ fn build_caption(migel_db: &Path) -> String {
         .unwrap_or_default();
 
     let mut out = String::new();
+    if let Ok(extra) = std::env::var("SWISSDAMED_CAPTION_EXTRA") {
+        if !extra.trim().is_empty() {
+            out.push_str(extra.trim_end());
+            out.push_str("\n\n");
+        }
+    }
     // First line is what LinkedIn shows before "…see more" — front-load
     // the headline numbers so the post conveys its point without expanding.
     out.push_str(&format!(
@@ -229,7 +235,6 @@ fn build_caption(migel_db: &Path) -> String {
         "\nSource: swissdamed.ch\n\
          Windows: https://apps.microsoft.com/detail/9mvmq21r4mkc?hl=de-DE&gl=CH\n\
          macOS: https://apps.apple.com/my/app/swissdamed2sqlite/id6762261366?mt=12\n\
-         Code: github.com/zdavatz/swissdamed2sqlite\n\
          #MedTech #MiGeL #SwissDAMED #UDI",
     );
     out

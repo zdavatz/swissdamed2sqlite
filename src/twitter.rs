@@ -187,12 +187,21 @@ fn build_caption(migel_db: &Path) -> String {
         "—".to_string()
     };
 
+    let extra = std::env::var("SWISSDAMED_CAPTION_EXTRA")
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let prefix = match extra {
+        Some(e) => format!("{e}\n\n"),
+        None => String::new(),
+    };
     format!(
-        "swissdamed × MiGeL daily snapshot: {} of {} UDI rows ({}) mapped · {} codes · {} manufacturers.\n\
+        "{}swissdamed × MiGeL daily snapshot: {} of {} UDI rows ({}) mapped · {} codes · {} manufacturers.\n\
          \n\
          Windows: https://apps.microsoft.com/detail/9mvmq21r4mkc?hl=de-DE&gl=CH\n\
          macOS: https://apps.apple.com/my/app/swissdamed2sqlite/id6762261366?mt=12\n\
          #MedTech #MiGeL #SwissDAMED #UDI",
+        prefix,
         format_thousands(matched),
         format_thousands(total),
         pct,

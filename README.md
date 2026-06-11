@@ -131,6 +131,14 @@ swissdamed2sqlite --migel --deploy
 # Re-render the MiGeL stats PNG from existing DBs (no download)
 swissdamed2sqlite --migel-stats
 
+# Publish the MiGeL stats PNG to LinkedIn / X-Twitter
+swissdamed2sqlite --migel --linkedin --twitter
+swissdamed2sqlite --migel-stats --linkedin --twitter
+
+# Prepend custom context to the LinkedIn / X caption (e.g. today's additions)
+SWISSDAMED_CAPTION_EXTRA="+81 today, +3 MiGeL matches: embecta pen needles" \
+  swissdamed2sqlite --migel-stats --linkedin --twitter
+
 # Scrape shop.sigvaris.com → build GTIN→MiGeL override DB (consumed by --migel)
 swissdamed2sqlite --sigvaris-shop
 
@@ -186,7 +194,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 
 ### MiGeL Matching Results
 
-![MiGeL Matching Stats](png/swissdamed_migel_stats_10h46.04.06.2026.png)
+![MiGeL Matching Stats](png/swissdamed_migel_stats_11h07.11.06.2026.png)
 
 ## Dependencies
 
