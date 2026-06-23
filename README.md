@@ -188,13 +188,13 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - **Email** — sends CSV as attachment via Gmail API using the same service account delegation (`--mailto recipient@example.com --gdrive-sub user@domain.com`). Non-ASCII subject lines (umlauts etc.) are RFC 2047 encoded.
 - **MiGeL** — matches UDI devices against MiGeL (Mittel- und Gegenständeliste) codes in two layers:
   1. **GTIN overrides** from `db/sigvaris_shop_*.db` (built by `--sigvaris-shop`) take precedence. Each variant is mapped to its exact MiGeL code (or explicit skip for Stützstrumpf / Anti-Thrombose / Reisestrumpf / Klasse 1, per BAG Kap. 17). ~7,860 SIGVARIS rows mapped this way.
-  2. **Heuristic Aho-Corasick** matcher for remaining manufacturers — IDF-weighted multi-language scoring, English-to-German medical term translation (~80 terms with context-aware combinations like "ortho"+"rehab"→"spezialschuhe"), precision filters. Adds ~1,650 matches.
+  2. **Heuristic Aho-Corasick** matcher for remaining manufacturers — IDF-weighted multi-language scoring, English-to-German medical term translation (~80 terms with context-aware combinations like "ortho"+"rehab"→"spezialschuhe"), German compound-word decomposition (e.g. `Ellenbogenschiene`→Ellenbogen-Orthese), and region-gated enrichment for compression garments, ostomy, urinary drainage and wound dressings. Precision is enforced by per-code negative keywords, universal exclusions, generic-token stop-words, and a pure-non-MiGeL **company exclusion** list (e.g. radiation-therapy, dental, sleep-lab and surgical-instrument makers whose entire output would otherwise be false positives). Adds a few thousand matches.
   Output: `db/swissdamed_migel_DD.MM.YYYY.db`. Auto-generates a stats PNG (rendered natively in Rust via [plotters](https://crates.io/crates/plotters)) after each run; use `--migel-stats` to re-render from existing DBs without downloading.
 - **SIGVARIS shop scrape** — fetches all variants of all products from `shop.sigvaris.com` (Shopify endpoints), derives MiGeL codes from `product_type` + Kompressionsklasse, writes to `db/sigvaris_shop_DD.MM.YYYY.db` (table `sigvaris_shop_variants`). Used as override source by `--migel`. Run periodically (~7 min, ~12-18k variants).
 
 ### MiGeL Matching Results
 
-![MiGeL Matching Stats](png/swissdamed_migel_stats_14h22.21.06.2026.png)
+![MiGeL Matching Stats](png/swissdamed_migel_stats_10h06.23.06.2026.png)
 
 ## Dependencies
 

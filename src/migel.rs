@@ -45,6 +45,11 @@ const STOP_WORDS: &[&str] = &[
     "les", "des", "pour", "avec", "par", "une", "dans", "sur", "qui", "que",
     "achat", "location", "piece", "sans", "usage", "unique", "jetable",
     "securite", "securise",
+    // Generic French company-name tokens: companyName is appended into the
+    // product text as "brand", so these would otherwise act as MiGeL keywords
+    // (e.g. "fabrication"+"medicaux" from a manufacturer name matching
+    // 17.02 "Serienfertigung"/"Med."). All real matches go via other keywords.
+    "fabrication", "medicaux", "paramedicaux", "produits", "conception",
     "largeur", "longueur", "hauteur", "diametre",  // dimensions — match across all products
     "gauche", "droite", "droit",  // left/right — match across all products
     // Italian
@@ -131,6 +136,10 @@ const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     ("gauze", &["gaze", "gazekompresse"]),
     ("plaster", &["pflaster"]),
     ("tape", &["tape"]),
+    ("absorbent", &["superabsorber"]),
+    ("superabsorbent", &["superabsorber"]),
+    ("gelling", &["gelierend", "faserverband"]),
+    ("hydrofiber", &["faserverband", "gelierend"]),
     // Respiratory
     ("ventilator", &["beatmungsgeraet"]),
     ("nebulizer", &["vernebler"]),
@@ -321,6 +330,65 @@ pub fn enrich_with_german(text: &str) -> String {
     }
     if has("hip") && orthotic_context {
         additions.push("hueftgelenk");
+    }
+    // Compression garments named "... garment" → region-specific compression
+    // codes (17.15 by mass / 05.11 trunk). Requires BOTH 'garment' and a region
+    // word so generic apparel cannot trigger it.
+    if has("garment") {
+        if has("body") || has("trunk") || has("torso") || has("abdominal") {
+            // Route torso garments to the serial Leib-/Rumpf-Bandage (05.11.10),
+            // consistent with the already-matched abdominal garments. Push
+            // "bandage" (a 05.11 keyword) NOT "kompressionsbandage", so serial
+            // garments are not pulled into the custom-made (nach Mass) 17.15.04.
+            additions.push("leib");
+            additions.push("rumpf");
+            additions.push("bandage");
+        } else if has("arm") {
+            additions.push("armkompressionsstrumpf");
+            additions.push("kompressionsbandage");
+        } else if has("leg") {
+            additions.push("bein");
+            additions.push("kompressionsbandage");
+        } else if has("face") || has("head") || has("neck") {
+            additions.push("kopf");
+            additions.push("hals");
+            additions.push("kompressionsbandage");
+        }
+    }
+    // German orthosis aliases (independent of the English gate):
+    // Halskrawatte/Halskrause → Cervikalstütze (22.12); Gilchrist → shoulder
+    // immobiliser belt (22.09). Note the correct normalized spelling
+    // "schulterguertel" (Schultergürtel → ü becomes ue).
+    if any_contains("halskrawatte") || any_contains("halskrause") {
+        additions.push("cervikalstuetze");
+    }
+    if any_contains("gilchrist") {
+        additions.push("schulterguertel");
+        additions.push("immobilisierung");
+        additions.push("gilchrist");
+    }
+    // Aerosol/nebuliser accessory stem: catch "aerosol*" (aerosoltherapy) and
+    // any "nebuli*" form not in the fixed table. The VWR aerosol-fixative FP is
+    // independently blocked by the ("14.01","fixative") negative keyword.
+    if clean_words.iter().any(|w| w.starts_with("aerosol")) || any_contains("nebuli") {
+        additions.push("vernebler");
+        additions.push("aerosol");
+    }
+    // Ostomy / stoma → Material für Stoma- und Fistelversorgung (29.01).
+    if any_contains("ostomy") || has("colostomy") || has("urostomy") || has("ileostomy") {
+        additions.push("stoma");
+        additions.push("fistelversorgung");
+    }
+    // Urine / secretion drainage bags → Bein-/Bettbeutel (15.14 / 15.15).
+    // Requires a "bag" token to keep IVD urine analyzers/reagents out.
+    if (has("urine") || has("urinary")) && has("bag") {
+        additions.push("sekret");
+        if has("bed") {
+            additions.push("bettbeutel");
+        }
+        if has("leg") {
+            additions.push("beinbeutel");
+        }
     }
 
     if additions.is_empty() {
@@ -649,6 +717,88 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("26.01", "pflegebett"),
     // --- Hand-Orthesen (23.21) should NOT match dental products ---
     ("23.21", "gum"),   // dental brand GUM ≠ hand orthosis
+    // --- Arm-Kompressionsbandage (17.15) should NOT match torso compression
+    // bras or powered sequential-compression (DVT) pumps. The unconditional
+    // `compression`->`kompressionsbandage` enrichment is the only signal; a bra
+    // is a torso garment and an SCD pump is apparatus, not a custom arm bandage.
+    // A compression bra / sequential-compression (DVT) pump is not a
+    // measured-textile Kompressionsbandage. Block at chapter level (17 and 05)
+    // so the `compression`->`kompressionsbandage` enrichment cannot relocate it
+    // to another wrong sub-code (e.g. Arm 17.15.03 or Hüft 05.06.02). Phrase
+    // form avoids colliding with the substring "bra" inside "brace"/"abrasion".
+    ("17", "compression bra"),
+    ("05", "compression bra"),
+    ("17", "sequential compression"),
+    ("05", "sequential compression"),
+    // --- Transfer-Set (03.07.09.20) should NOT match patient-transfer furniture
+    // (hoverboards/stretchers/transfer chairs) or dental tray-transfer copings.
+    // The single generic keyword 'transfer' otherwise meets the threshold.
+    ("03.07.09.20", "hoverboard"),
+    ("03.07.09.20", "stretcher"),
+    ("03.07.09.20", "blower"),
+    ("03.07.09.20", "zephyr"),
+    ("03.07.09.20", "fauteuil"),
+    ("03.07.09.20", "disque"),
+    ("03.07.09.20", "cadre"),
+    ("03.07.09.20", "tray"),
+    ("03.07.09.20", "prosthetic"),
+    // --- Insulin pen WITHOUT cannula (03.05.03) should NOT match pen needles ---
+    ("03.05.03", "needle"),
+    ("03.05.03", "pennadel"),
+    ("03.05.03", "nadel"),
+    // --- Orthosis chapter 23 should NOT match blood-pressure monitors or the
+    // AGFA 'Ortho' radiography screen-film (wrist/ortho enrichment collisions) ---
+    ("23", "blood pressure"),
+    ("23", "blutdruck"),
+    // General rule: catheters, CPAP brands and orthodontics are never orthoses.
+    // Scoped to the orthosis chapters (22/23) so a blocked sub-code FP cannot
+    // relocate to a neighbouring orthosis position (e.g. SOPHYSA CSF catheter,
+    // Air Liquide Respireo CPAP elbow, Ormco orthodontic pad).
+    ("22", "catheter"),
+    ("22", "katheter"),
+    ("23", "catheter"),
+    ("23", "katheter"),
+    ("22", "respireo"),
+    ("23", "respireo"),
+    ("22", "ormco"),
+    ("23", "ormco"),
+    // --- Cervikalstütze (22.12) should NOT match dental cervical matrices,
+    // orthodontic headgear, spinal torque-limiters or neurosurgical skull clamps ---
+    ("22.12", "matrices"),
+    ("22.12", "matryce"),
+    ("22.12", "torque"),
+    ("22.12", "doro"),
+    ("22.12", "headrest"),
+    ("22.12", "britegear"),
+    ("22.12", "ormco"),
+    // --- Orthosis chapter 23 should NOT match surgical levers/spreaders
+    // (DE compound stems) or CPAP/NO breathing-circuit 'elbow' connectors ---
+    ("23", "spreizzange"),
+    ("23", "schulterhebel"),
+    ("23", "huefthebel"),
+    ("23.23", "respireo"),
+    ("23.23", "anti-asphyxia"),
+    ("23.23", "vented"),
+    // --- Alginate, steril wound dressing (35.05.06) should NOT match dental
+    // impression alginate (bare ingredient word 'alginate' collision) ---
+    ("35.05.06", "dental"),
+    ("35.05.06", "impression"),
+    // --- Smaller targeted collisions ---
+    ("15.16", "male condom"),     // contraceptive condoms ≠ urinal condoms
+    ("15.16", "non-medicated"),
+    ("09.03", "external"),        // standalone AEDs ≠ wearable defibrillator vest
+    ("09.03", "monitor"),
+    ("05.14", "catheter"),        // SOPHYSA lumbar catheter ≠ Lumbal-Bandage
+    ("05.14", "katheter"),
+    ("14.01", "fixative"),        // VWR aerosol fixative ≠ Vernebler
+    ("99.30.06", "staender"),     // infusion stands/holders ≠ Schlitzkompresse-Set
+    ("99.30.06", "halter"),
+    ("03.07", "trocar"),         // surgical trocar kits ≠ infusion sets/stands
+    ("99.30.06", "bottle"),
+    ("99.30.06", "cuff"),
+    ("22.03", "cadre"),           // walking frame ≠ Fussheber-Orthese
+    ("22.03", "marche"),
+    ("01.03", "connection hose"), // suction connection hoses ≠ Spülschlauch
 ];
 
 /// Normalize German umlauts so ALL-CAPS text (e.g. ABSAUGGERAETE) matches
@@ -951,6 +1101,14 @@ const COMPOUND_PREFIXES: &[(&str, usize)] = &[
     ("augen", 6),        // Augenkompresse → augen + kompresse
     ("saug", 6),         // Saugkompresse → saug + kompresse
     ("ballon", 6),       // Ballonkatheter → ballon + katheter
+    // Body-part orthosis compounds: German products name the body part as a
+    // compound prefix (Knieschiene → knie + schiene), which the suffix path
+    // does not catch. min-remainder 6 ("schiene"=7) prevents false splits.
+    ("knie", 6),         // Knieschiene → knie + schiene
+    ("ellenbogen", 6),   // Ellenbogenschiene → ellenbogen + schiene
+    ("sprunggelenk", 6), // Sprunggelenkorthese → sprunggelenk + orthese
+    ("unterschenkel", 6),// Unterschenkelorthese → unterschenkel + orthese
+    ("finger", 6),       // Fingerschiene → finger + schiene
 ];
 
 /// Try to decompose a German compound word into known prefix + remainder.
@@ -1102,6 +1260,12 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // Surgical gloves (not MiGeL patient devices)
     &["surgical", "gloves"],
     &["surgical", "glove"],
+    // AGFA = radiography/imaging vendor only; never a MiGeL patient aid. The
+    // `ortho`/`screen film` text otherwise collides with orthosis codes.
+    &["agfa"],
+    // CSF / neurosurgical drainage catheters (interventional, not patient aids).
+    &["lumbar", "catheter"],
+    &["ventricular", "catheter"],
 ];
 
 /// Check if a product is universally excluded from all MiGeL matching.

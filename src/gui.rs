@@ -712,6 +712,14 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
         "Varian Medical Systems Inc",
         "Varian Medical Systems Inc.",
         "Sunstar Europe SA",
+        // Keep in sync with src/reports.rs. Pure non-MiGeL manufacturers whose
+        // entire matched output is false positives (verified: zero correct matches).
+        "Diacor Inc",
+        "SOMNOmedics AG",
+        "Accuratus AG",
+        "ATMOS MedizinTechnik GmbH & Co. KG",
+        "CONCEPTION ET FABRICATION DE PRODUITS MEDICAUX ET PARAMEDICAUX",
+        "iNOsystems SA",
     ];
 
     use rayon::prelude::*;

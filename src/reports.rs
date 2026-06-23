@@ -153,6 +153,17 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         "Varian Medical Systems Inc",
         "Varian Medical Systems Inc.",
         "Sunstar Europe SA",
+        // Pure non-MiGeL manufacturers whose entire matched output is false
+        // positives (verified: zero correct matches). Diacor = patient-transfer
+        // furniture; SOMNOmedics = sleep-lab PSG sensors; Accuratus = reusable
+        // surgical instruments; ATMOS = suction/ENT hardware; CONCEPTION ET
+        // FABRICATION = dental products; iNOsystems = nitric-oxide delivery hardware.
+        "Diacor Inc",
+        "SOMNOmedics AG",
+        "Accuratus AG",
+        "ATMOS MedizinTechnik GmbH & Co. KG",
+        "CONCEPTION ET FABRICATION DE PRODUITS MEDICAUX ET PARAMEDICAUX",
+        "iNOsystems SA",
     ];
     let idx_company = headers.iter().position(|h| h == "companyName");
     let idx_gtin = headers.iter().position(|h| h == "udiDiCode");
