@@ -720,6 +720,9 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
         "ATMOS MedizinTechnik GmbH & Co. KG",
         "CONCEPTION ET FABRICATION DE PRODUITS MEDICAUX ET PARAMEDICAUX",
         "iNOsystems SA",
+        "Episurf Operations AB",
+        "Aesculap AG",
+        "Maquet Cardiopulmonary GmbH",
     ];
 
     use rayon::prelude::*;

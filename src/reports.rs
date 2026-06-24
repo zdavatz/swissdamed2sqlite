@@ -164,6 +164,9 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         "ATMOS MedizinTechnik GmbH & Co. KG",
         "CONCEPTION ET FABRICATION DE PRODUITS MEDICAUX ET PARAMEDICAUX",
         "iNOsystems SA",
+        "Episurf Operations AB",
+        "Aesculap AG",
+        "Maquet Cardiopulmonary GmbH",
     ];
     let idx_company = headers.iter().position(|h| h == "companyName");
     let idx_gtin = headers.iter().position(|h| h == "udiDiCode");
