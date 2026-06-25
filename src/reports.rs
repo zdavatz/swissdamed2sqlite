@@ -167,6 +167,7 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         "Episurf Operations AB",
         "Aesculap AG",
         "Maquet Cardiopulmonary GmbH",
+        "Philips Medizin Systeme Böblingen GmbH",
     ];
     let idx_company = headers.iter().position(|h| h == "companyName");
     let idx_gtin = headers.iter().position(|h| h == "udiDiCode");

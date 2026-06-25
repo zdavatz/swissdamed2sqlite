@@ -723,6 +723,7 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
         "Episurf Operations AB",
         "Aesculap AG",
         "Maquet Cardiopulmonary GmbH",
+        "Philips Medizin Systeme Böblingen GmbH",
     ];
 
     use rayon::prelude::*;

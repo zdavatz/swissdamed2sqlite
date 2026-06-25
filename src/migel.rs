@@ -783,6 +783,12 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // impression alginate (bare ingredient word 'alginate' collision) ---
     ("35.05.06", "dental"),
     ("35.05.06", "impression"),
+    // --- Superabsorber, steril (35.05.05) is a sterile WOUND dressing. Incontinence
+    // underwear (Hartmann MoliCare etc.) is absorbent but belongs to MiGeL ch. 15
+    // (Inkontinenzhilfen), not sterile wound care — the 'absorbent' enrichment leaks. ---
+    ("35.05", "incontinence"),
+    ("35.05", "underwear"),
+    ("35.05", "molicare"),
     // --- Smaller targeted collisions ---
     ("15.16", "male condom"),     // contraceptive condoms ≠ urinal condoms
     ("15.16", "non-medicated"),
