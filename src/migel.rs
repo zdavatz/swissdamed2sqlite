@@ -789,11 +789,28 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("35.05", "incontinence"),
     ("35.05", "underwear"),
     ("35.05", "molicare"),
+    // --- MRI radiofrequency coils (Invivo, Philips) name body parts ("SENSE Knee
+    // Coil", "Shoulder Coil") and leak into orthosis chapter 23 via the body-part
+    // enrichment. No genuine orthosis is a "coil". ---
+    ("23", "coil"),
+    // --- Sensoren (21.07.02) is for diabetic continuous-glucose sensors (Medtronic
+    // Guardian, Abbott FreeStyle Libre). Patient-monitor sensors — capnography
+    // (CO2/flow/Capnostat), pulse-oximetry (SpO2), temperature — are NOT MiGeL. ---
+    ("21.07.02", "co2"),
+    ("21.07.02", "spo2"),
+    ("21.07.02", "flow sensor"),
+    ("21.07.02", "capnostat"),
+    ("21.07.02", "mainstream"),
+    ("21.07.02", "temperature"),
     // --- Smaller targeted collisions ---
     ("15.16", "male condom"),     // contraceptive condoms ≠ urinal condoms
     ("15.16", "non-medicated"),
     ("09.03", "external"),        // standalone AEDs ≠ wearable defibrillator vest
     ("09.03", "monitor"),
+    ("09.03", "paper"),           // defibrillator recording paper ≠ defib vest
+    ("09.03", "heartstart"),      // Philips HeartStart AED ≠ wearable defib vest
+    ("05.11", "abdominal belt"),  // fetal-monitoring CTG belt ≠ Leib-/Rumpf-Bandage
+    ("35.06", "plating"),         // histology silver-plating kit ≠ silver alginate dressing
     ("05.14", "catheter"),        // SOPHYSA lumbar catheter ≠ Lumbal-Bandage
     ("05.14", "katheter"),
     ("14.01", "fixative"),        // VWR aerosol fixative ≠ Vernebler

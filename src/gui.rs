@@ -724,6 +724,11 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
         "Aesculap AG",
         "Maquet Cardiopulmonary GmbH",
         "Philips Medizin Systeme Böblingen GmbH",
+        "Invivo Corporation",
+        "Invivo, a division of Philips Medical Systems",
+        "Philips Healthcare (Suzhou) Co., Ltd.",
+        "Philips Medical Systems DMC GmbH",
+        "BEE Medic GmbH",
     ];
 
     use rayon::prelude::*;

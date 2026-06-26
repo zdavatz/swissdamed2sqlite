@@ -168,6 +168,11 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         "Aesculap AG",
         "Maquet Cardiopulmonary GmbH",
         "Philips Medizin Systeme Böblingen GmbH",
+        "Invivo Corporation",
+        "Invivo, a division of Philips Medical Systems",
+        "Philips Healthcare (Suzhou) Co., Ltd.",
+        "Philips Medical Systems DMC GmbH",
+        "BEE Medic GmbH",
     ];
     let idx_company = headers.iter().position(|h| h == "companyName");
     let idx_gtin = headers.iter().position(|h| h == "udiDiCode");
