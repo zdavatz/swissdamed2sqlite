@@ -729,6 +729,7 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
         "Philips Healthcare (Suzhou) Co., Ltd.",
         "Philips Medical Systems DMC GmbH",
         "BEE Medic GmbH",
+        "Medacta International SA",
     ];
 
     use rayon::prelude::*;

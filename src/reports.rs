@@ -173,6 +173,7 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         "Philips Healthcare (Suzhou) Co., Ltd.",
         "Philips Medical Systems DMC GmbH",
         "BEE Medic GmbH",
+        "Medacta International SA",
     ];
     let idx_company = headers.iter().position(|h| h == "companyName");
     let idx_gtin = headers.iter().position(|h| h == "udiDiCode");

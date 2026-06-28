@@ -809,6 +809,8 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("09.03", "monitor"),
     ("09.03", "paper"),           // defibrillator recording paper ≠ defib vest
     ("09.03", "heartstart"),      // Philips HeartStart AED ≠ wearable defib vest
+    ("09.03", "implantable cardioverter"),  // Boston Sci ICD ≠ wearable defib vest
+    ("09.03", "resynchronization"),         // Boston Sci CRT-D ≠ wearable defib vest
     ("05.11", "abdominal belt"),  // fetal-monitoring CTG belt ≠ Leib-/Rumpf-Bandage
     ("35.06", "plating"),         // histology silver-plating kit ≠ silver alginate dressing
     ("05.14", "catheter"),        // SOPHYSA lumbar catheter ≠ Lumbal-Bandage
