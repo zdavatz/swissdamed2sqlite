@@ -811,6 +811,10 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("09.03", "heartstart"),      // Philips HeartStart AED ≠ wearable defib vest
     ("09.03", "implantable cardioverter"),  // Boston Sci ICD ≠ wearable defib vest
     ("09.03", "resynchronization"),         // Boston Sci CRT-D ≠ wearable defib vest
+    ("21.01", "dreamstation"),    // CPAP modem/wifi accessory w/ oximetry ≠ pulse oximeter
+    ("21.07.02", "respiratory effort"),  // Pro-Tech/Respironics PSG sensors ≠ CGM sensor
+    ("21.07.02", "piezo"),        // piezo respiratory-effort sensor ≠ CGM sensor
+    ("03.07", "windel"),          // TZMO Seni diaper "geschlossenes System" ≠ closed infusion system
     ("05.11", "abdominal belt"),  // fetal-monitoring CTG belt ≠ Leib-/Rumpf-Bandage
     ("35.06", "plating"),         // histology silver-plating kit ≠ silver alginate dressing
     ("05.14", "catheter"),        // SOPHYSA lumbar catheter ≠ Lumbal-Bandage
@@ -1291,6 +1295,12 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // CSF / neurosurgical drainage catheters (interventional, not patient aids).
     &["lumbar", "catheter"],
     &["ventricular", "catheter"],
+    // Respironics CPAP/ventilation mask connectors: a "nebulizing/bronchoscopy
+    // elbow" is a tube fitting on an oro-nasal mask, never a MiGeL device. The bare
+    // word "elbow" otherwise hops across orthosis chapters (22/23) and "nebulizing"
+    // collides with nebulizers (ch.14); the AND-pair pins it precisely.
+    &["nebulizing", "elbow"],
+    &["bronchoscopy", "elbow"],
 ];
 
 /// Check if a product is universally excluded from all MiGeL matching.
