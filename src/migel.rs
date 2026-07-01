@@ -814,7 +814,18 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("21.01", "dreamstation"),    // CPAP modem/wifi accessory w/ oximetry ≠ pulse oximeter
     ("21.07.02", "respiratory effort"),  // Pro-Tech/Respironics PSG sensors ≠ CGM sensor
     ("21.07.02", "piezo"),        // piezo respiratory-effort sensor ≠ CGM sensor
+    ("21.07.02", "emg"),          // Edan EMG/stimulation monitor sensor ≠ CGM sensor
+    ("21.07.02", "nmt"),          // Edan neuromuscular-transmission sensor ≠ CGM sensor
+    ("21.07.02", "stimulation"),  // Edan EMG/stimulation sensor ≠ CGM sensor
+    ("23", "oximeter"),           // Edan finger/pulse oximeter ≠ finger orthosis (ch.23)
+    ("22", "spo2"),               // MIPM SpO2 finger adapter ≠ finger orthosis (hops 23->22.06)
+    ("23", "spo2"),               // MIPM SpO2 finger adapter ≠ finger orthosis (ch.23)
+    ("23", "table"),              // Pivotal powered treatment table ≠ shoulder orthosis (ch.23)
     ("03.07", "windel"),          // TZMO Seni diaper "geschlossenes System" ≠ closed infusion system
+    ("03.07", "vorlage"),         // TZMO Seni incontinence Vorlage (Klettverschluss) ≠ infusion-tube fixation
+    ("22", "vorlage"),            // TZMO Seni incontinence brief ≠ orthosis (hops 03.07->22.04); ch.15 Vorlagen kept
+    ("23", "vorlage"),            // TZMO Seni incontinence brief ≠ orthosis; ch.15 Vorlagen kept
+    ("35.05", "bettschutz"),      // TZMO Seni bed underpad ≠ sterile wound superabsorber
     ("05.11", "abdominal belt"),  // fetal-monitoring CTG belt ≠ Leib-/Rumpf-Bandage
     ("35.06", "plating"),         // histology silver-plating kit ≠ silver alginate dressing
     ("05.14", "catheter"),        // SOPHYSA lumbar catheter ≠ Lumbal-Bandage

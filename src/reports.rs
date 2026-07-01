@@ -175,6 +175,7 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         "BEE Medic GmbH",
         "Medacta International SA",
         "Baitella AG",
+        "Philips Medical Systems Nederland B.V.",
     ];
     let idx_company = headers.iter().position(|h| h == "companyName");
     let idx_gtin = headers.iter().position(|h| h == "udiDiCode");
