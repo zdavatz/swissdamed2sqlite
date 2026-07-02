@@ -789,10 +789,14 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("35.05", "incontinence"),
     ("35.05", "underwear"),
     ("35.05", "molicare"),
-    // --- MRI radiofrequency coils (Invivo, Philips) name body parts ("SENSE Knee
-    // Coil", "Shoulder Coil") and leak into orthosis chapter 23 via the body-part
-    // enrichment. No genuine orthosis is a "coil". ---
+    // --- MRI radiofrequency coils (Invivo, Philips, Shenzhen RF Tech) name body
+    // parts ("SENSE Knee Coil", "8CH FOOT ANKLE COIL", "HD 8CH WRIST ARRAY") and
+    // leak into orthosis chapters 22/23 via the body-part enrichment. No genuine
+    // orthosis is a "coil" or an "array" (MRI channel-count arrays). ---
     ("23", "coil"),
+    ("22", "coil"),
+    ("23", "array"),
+    ("22", "array"),
     // --- Sensoren (21.07.02) is for diabetic continuous-glucose sensors (Medtronic
     // Guardian, Abbott FreeStyle Libre). Patient-monitor sensors — capnography
     // (CO2/flow/Capnostat), pulse-oximetry (SpO2), temperature — are NOT MiGeL. ---
@@ -1312,6 +1316,10 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // collides with nebulizers (ch.14); the AND-pair pins it precisely.
     &["nebulizing", "elbow"],
     &["bronchoscopy", "elbow"],
+    // Laboratory histology/microbiology staining reagents (Merck: Lugol's solution
+    // for Gram staining, Lactophenol blue for staining fungi) are IVD lab solutions,
+    // never a MiGeL blocker/irrigation solution. "staining" never denotes a MiGeL device.
+    &["staining"],
 ];
 
 /// Check if a product is universally excluded from all MiGeL matching.
