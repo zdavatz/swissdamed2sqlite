@@ -1964,6 +1964,21 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // arm/thigh/foot variants) → Wade as the accepted modal default. Worst
     // case = wrong sub-position inside the correct 17.06 chapter.
     (&["compreflex"], &["extender"], "17.06.01.02.1"),
+    // --- Walker boots (audit §2b, maintainer decision 02.07.2026): prefab
+    // ankle-immobilization walkers are FERTIGORTHESEN → 22.02.04 "Sprunggelenk-
+    // Orthese zur Immobilisierung, definierte Position", NOT ch.23 MASSORTHESEN
+    // (custom-made, SVOT/OSM tariff). Covers Span Link (Actimove/DonJoy/
+    // Thuasne/b:joynz/ROM/Air Pump), Ruthner Smartwalker ("walker" is a
+    // substring), and re-codes the Aspen TRAVERSE + Orthobroker BraceID rows
+    // that previously sat in 23.02. Liners/wedges ride along with the system.
+    // Guards: ABLE exoskeleton ("human motion"), GAUKE kit ("first aid"),
+    // REBOTEC YANO-Walker ("yano") — plus defensive walking-frame tokens,
+    // since US-English "walker" also means Gehwagen/Rollator.
+    (
+        &["walker"],
+        &["human motion", "first aid", "yano", "gehwagen", "rollator", "gehgestell", "walking frame"],
+        "22.02.04.00.1",
+    ),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)

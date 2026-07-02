@@ -22,8 +22,8 @@ desc_de	desc_fr	desc_it	brand	device_type	risk_class	expected	note
  VISTA COLLAR CERVICAL	 VISTA COLLAR CERVICAL	 VISTA COLLAR CERVICAL	Aspen Medical Products LLC	MDR	CLASS_I	22.12.01.00.1	genuine
  EVERGREEN LSO, SMALL LUMBAR	 EVERGREEN LSO, SMALL LUMBAR	 EVERGREEN LSO, SMALL LUMBAR	Aspen Medical Products LLC	MDR	CLASS_I	22.15.01.00.1	genuine
  EVERGREEN LSO, MEDIUM LUMBAR	 EVERGREEN LSO, MEDIUM LUMBAR	 EVERGREEN LSO, MEDIUM LUMBAR	Aspen Medical Products LLC	MDR	CLASS_I	22.15.01.00.1	genuine
- TRAVERSE AIR WALKER SHORT XS ANKLE-FOOT	 TRAVERSE AIR WALKER SHORT XS ANKLE-FOOT	 TRAVERSE AIR WALKER SHORT XS ANKLE-FOOT	Aspen Medical Products LLC	MDR	CLASS_I	23.02.01.00.1	genuine
- TRAVERSE AIR WALKER SHORT S ANKLE-FOOT	 TRAVERSE AIR WALKER SHORT S ANKLE-FOOT	 TRAVERSE AIR WALKER SHORT S ANKLE-FOOT	Aspen Medical Products LLC	MDR	CLASS_I	23.02.01.00.1	genuine
+ TRAVERSE AIR WALKER SHORT XS ANKLE-FOOT	 TRAVERSE AIR WALKER SHORT XS ANKLE-FOOT	 TRAVERSE AIR WALKER SHORT XS ANKLE-FOOT	Aspen Medical Products LLC	MDR	CLASS_I	22.02.04.00.1	genuine
+ TRAVERSE AIR WALKER SHORT S ANKLE-FOOT	 TRAVERSE AIR WALKER SHORT S ANKLE-FOOT	 TRAVERSE AIR WALKER SHORT S ANKLE-FOOT	Aspen Medical Products LLC	MDR	CLASS_I	22.02.04.00.1	genuine
  QUICK RELEASE BUCKLE KIT KNEE	 QUICK RELEASE BUCKLE KIT KNEE	 QUICK RELEASE BUCKLE KIT KNEE	Aspen Medical Products LLC	MDR	CLASS_I	23.04.01.00.1	genuine
  OA KNEE+, LEFT MEDIAL/RIGHT LATERAL OAKNEE	 OA KNEE+, LEFT MEDIAL/RIGHT LATERAL OAKNEE	 OA KNEE+, LEFT MEDIAL/RIGHT LATERAL OAKNEE	Aspen Medical Products LLC	MDR	CLASS_I	23.04.01.00.1	genuine
  ASPEN TLSO, SHORT/SMALL TLSO	 ASPEN TLSO, SHORT/SMALL TLSO	 ASPEN TLSO, SHORT/SMALL TLSO	Aspen Medical Products LLC	MDR	CLASS_I	23.10.01.00.1	genuine
@@ -296,3 +296,8 @@ desc_de	desc_fr	desc_it	brand	device_type	risk_class	expected	note
  Coolflex Standard Calf Coolflex Standard Calf	 Coolflex Standard Calf Coolflex Standard Calf	 Coolflex Standard Calf Coolflex Standard Calf	SIGVARIS Inc.	MDR	CLASS_I	17.06.01.02.1	mak-wrap
  Compreboot Compreboot	 Compreboot Compreboot	 Compreboot Compreboot	SIGVARIS Inc.	MDR	CLASS_I	17.06.01.01.1	mak-wrap
  Compreflex Strap Extender Compreflex Strap Extender	 Compreflex Strap Extender Compreflex Strap Extender	 Compreflex Strap Extender Compreflex Strap Extender	SIGVARIS Inc.	MDR	CLASS_I	17.06.01.10.1	mak-wrap
+ b:joynz air walker b:joynz air walker	 b:joynz air walker b:joynz air walker	 b:joynz air walker b:joynz air walker	Span Link International LLC	MDR	CLASS_I	22.02.04.00.1	walker-boot
+ DONJOY NEXTEP WALKER DONJOY NEXTEP WALKER	 DONJOY NEXTEP WALKER DONJOY NEXTEP WALKER	 DONJOY NEXTEP WALKER DONJOY NEXTEP WALKER	Span Link International LLC	MDR	CLASS_I	22.02.04.00.1	walker-boot
+ Smartwalker lang small Smartwalker	 Smartwalker	 Smartwalker	Achim Ruthner GmbH	MDR	CLASS_I	22.02.04.00.1	walker-boot
+ ABLE Exoskeleton ABLE Exoskeleton	 ABLE Exoskeleton ABLE Exoskeleton	 ABLE Exoskeleton ABLE Exoskeleton	ABLE Human Motion	MDR	CLASS_IIA	NONE	walker-guard
+ CP@ First Aid Kit Light - Walker First aid kit /	 CP@ First Aid Kit Light - Walker First aid kit /	 CP@ First Aid Kit Light - Walker First aid kit /	GAUKE Healthcare Co., Ltd.	SPP	CLASS_I	NONE	walker-guard
