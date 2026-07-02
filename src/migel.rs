@@ -1949,6 +1949,21 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // (Heft-)Pflasterspulen → Heft-/Fixier-Pflaster spools ("pflasterspule"
     // is a substring of "heftpflasterspule", one rule covers both).
     (&["pflasterspule"], &[], "35.01.09.03.1"),
+    // --- SIGVARIS Inc. MAK wraps (audit §2b): 17.06 Medizinisch adaptives
+    // Kompressionssystem is literally this product type. All trigger tokens
+    // verified SIGVARIS-Inc.-exclusive (245 rows) and absent from the GTIN
+    // override DB. Order matters: extender + Compreboot before the generic
+    // Compreflex default. ---
+    // Strap Extender → the Zubehör position (Extensionsbinde) names exactly this.
+    (&["compreflex strap extender"], &[], "17.06.01.10.1"),
+    // Compreboot → Fuss.
+    (&["compreboot"], &[], "17.06.01.01.1"),
+    // Coolflex Standard Calf → Wade (region provable from the name).
+    (&["coolflex"], &["extender"], "17.06.01.02.1"),
+    // Generic "Compreflex" rows carry zero body-region text (the line includes
+    // arm/thigh/foot variants) → Wade as the accepted modal default. Worst
+    // case = wrong sub-position inside the correct 17.06 chapter.
+    (&["compreflex"], &["extender"], "17.06.01.02.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
