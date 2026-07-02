@@ -705,11 +705,16 @@ pub fn enrich_with_german(text: &str) -> String {
     // Mehrweg-Inkontinenzprodukte, inklusive Unterlagen und Fixierhosen").
     // The ch.03.07/22/23 "vorlage" negative keywords remain as fences against
     // the historical orthosis hops.
+    // "seni active" (bigram): TZMO's pull-up incontinence pants carry no
+    // category token at all ("Seni Active Plus XXL atmungsaktiv") — brand
+    // line verified TZMO-exclusive corpus-wide (25 rows). Maintainer call
+    // 02.07.2026, not audit-verified.
     if (has("incontinence")
         || any_contains("inkontinenz")
         || any_contains("windelhose")
         || any_contains("vorlage")
-        || any_contains("fixierhose"))
+        || any_contains("fixierhose")
+        || lower.contains("seni active"))
         && !has("fecal")
     {
         additions.push("inkontinenz");
