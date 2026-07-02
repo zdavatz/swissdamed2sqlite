@@ -142,11 +142,9 @@ fn build_caption(migel_db: &Path) -> String {
         )
         .unwrap_or(0);
     let read_meta = |key: &str| -> i64 {
-        conn.query_row(
-            "SELECT value FROM meta WHERE key = ?1",
-            [key],
-            |r| r.get::<_, String>(0),
-        )
+        conn.query_row("SELECT value FROM meta WHERE key = ?1", [key], |r| {
+            r.get::<_, String>(0)
+        })
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(0)

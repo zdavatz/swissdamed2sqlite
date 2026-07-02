@@ -14,7 +14,11 @@ pub fn http_client() -> Result<reqwest::blocking::Client, Box<dyn std::error::Er
 }
 
 pub fn download_all_pages(page_size: u32) -> Result<Vec<Value>, Box<dyn std::error::Error>> {
-    download_all_pages_from("https://swissdamed.ch/public/udi/basic-udis", "UDI", page_size)
+    download_all_pages_from(
+        "https://swissdamed.ch/public/udi/basic-udis",
+        "UDI",
+        page_size,
+    )
 }
 
 pub fn download_all_pages_from(

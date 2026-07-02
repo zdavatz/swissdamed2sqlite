@@ -74,7 +74,11 @@ pub fn write_sqlite_table(
         .iter()
         .map(|h| format!("{} TEXT", quote_ident(h)))
         .collect();
-    let create_sql = format!("CREATE TABLE {} ({})", quote_ident(table_name), col_defs.join(", "));
+    let create_sql = format!(
+        "CREATE TABLE {} ({})",
+        quote_ident(table_name),
+        col_defs.join(", ")
+    );
     conn.execute(&create_sql, [])?;
 
     let placeholders: Vec<&str> = vec!["?"; headers.len()];
@@ -93,8 +97,10 @@ pub fn write_sqlite_table(
     {
         let mut stmt = tx.prepare(&insert_sql)?;
         for row in rows {
-            let params: Vec<&dyn rusqlite::types::ToSql> =
-                row.iter().map(|s| s as &dyn rusqlite::types::ToSql).collect();
+            let params: Vec<&dyn rusqlite::types::ToSql> = row
+                .iter()
+                .map(|s| s as &dyn rusqlite::types::ToSql)
+                .collect();
             stmt.execute(params.as_slice())?;
         }
     }

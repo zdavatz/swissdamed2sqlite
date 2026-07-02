@@ -2,15 +2,21 @@ use serde_json::Value;
 use std::fs;
 use std::process::Command;
 
-use crate::{Args, Config, resolve_setting};
+use crate::{resolve_setting, Args, Config};
 
 // --- P12 key extraction ---
 
 fn extract_pem_from_p12(p12_path: &str) -> Result<String, Box<dyn std::error::Error>> {
     let output = Command::new("openssl")
         .args([
-            "pkcs12", "-in", p12_path, "-nocerts", "-nodes", "-passin",
-            "pass:notasecret", "-legacy",
+            "pkcs12",
+            "-in",
+            p12_path,
+            "-nocerts",
+            "-nodes",
+            "-passin",
+            "pass:notasecret",
+            "-legacy",
         ])
         .output();
 
@@ -19,7 +25,12 @@ fn extract_pem_from_p12(p12_path: &str) -> Result<String, Box<dyn std::error::Er
         Ok(o) if o.status.success() => o,
         _ => Command::new("openssl")
             .args([
-                "pkcs12", "-in", p12_path, "-nocerts", "-nodes", "-passin",
+                "pkcs12",
+                "-in",
+                p12_path,
+                "-nocerts",
+                "-nodes",
+                "-passin",
                 "pass:notasecret",
             ])
             .output()?,
@@ -94,9 +105,7 @@ fn get_google_access_token(
 
 /// Resolve Google service account credentials from CLI args / config file,
 /// extract PEM, and return (pem, email) for token requests.
-fn resolve_google_credentials(
-    args: &Args,
-) -> Result<(String, String), Box<dyn std::error::Error>> {
+fn resolve_google_credentials(args: &Args) -> Result<(String, String), Box<dyn std::error::Error>> {
     let config = Config::load();
     let gdrive_key = resolve_setting(&args.gdrive_key, &config.gdrive_key, "gdrive-key")?;
     let gdrive_email = resolve_setting(&args.gdrive_email, &config.gdrive_email, "gdrive-email")?;
@@ -164,7 +173,8 @@ pub fn gdrive_upload_csv(args: &Args, csv_path: &str) -> Result<(), Box<dyn std:
         );
     }
     let config = Config::load();
-    let gdrive_folder = resolve_setting(&args.gdrive_folder, &config.gdrive_folder, "gdrive-folder")?;
+    let gdrive_folder =
+        resolve_setting(&args.gdrive_folder, &config.gdrive_folder, "gdrive-folder")?;
     let (pem, email) = resolve_google_credentials(args)?;
     eprintln!("Uploading {} to Google Drive...", csv_path);
     let token = get_google_access_token(

@@ -48,7 +48,11 @@ fn extract_array_element(elem: &Value) -> Option<String> {
         }
         Value::String(s) => {
             let t = sanitize(s.trim());
-            if t.is_empty() { None } else { Some(t) }
+            if t.is_empty() {
+                None
+            } else {
+                Some(t)
+            }
         }
         Value::Number(n) => {
             if let Some(i) = n.as_i64() {
@@ -63,7 +67,11 @@ fn extract_array_element(elem: &Value) -> Option<String> {
         Value::Null => None,
         _ => {
             let d = sanitize(&elem.to_string());
-            if d.is_empty() { None } else { Some(d) }
+            if d.is_empty() {
+                None
+            } else {
+                Some(d)
+            }
         }
     }
 }
@@ -270,10 +278,7 @@ pub fn flatten_mandate_detail(detail: &Value) -> Vec<(String, String)> {
             match val {
                 Value::Object(inner) => {
                     for (inner_key, inner_val) in inner {
-                        fields.push((
-                            format!("{}_{}", key, inner_key),
-                            value_to_string(inner_val),
-                        ));
+                        fields.push((format!("{}_{}", key, inner_key), value_to_string(inner_val)));
                     }
                 }
                 _ => {

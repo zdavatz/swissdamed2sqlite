@@ -59,14 +59,10 @@ fn ch_fmt(n: i64) -> String {
     out
 }
 
-pub fn read_stats(
-    migel_db: &Path,
-    full_db: Option<&Path>,
-) -> Result<Stats, Box<dyn Error>> {
+pub fn read_stats(migel_db: &Path, full_db: Option<&Path>) -> Result<Stats, Box<dyn Error>> {
     let conn = Connection::open(migel_db)?;
 
-    let total_matched: i64 =
-        conn.query_row("SELECT COUNT(*) FROM swissdamed", [], |r| r.get(0))?;
+    let total_matched: i64 = conn.query_row("SELECT COUNT(*) FROM swissdamed", [], |r| r.get(0))?;
     let num_migel_codes: i64 = conn.query_row(
         "SELECT COUNT(DISTINCT migel_code) FROM swissdamed",
         [],
@@ -215,8 +211,8 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     root.draw_text(&timestamp, &ts_style, (W as i32 - 60, H as i32 - 50))?;
 
     // ----- Top-left: Key metrics -----
-    let panel_title = TextStyle::from(("sans-serif", 64).into_font().style(FontStyle::Bold))
-        .color(&TITLE_COLOR);
+    let panel_title =
+        TextStyle::from(("sans-serif", 64).into_font().style(FontStyle::Bold)).color(&TITLE_COLOR);
     root.draw_text("Key Metrics", &panel_title, (140, 180))?;
 
     let pct_mapped = if stats.total_products > 0 {
@@ -248,21 +244,26 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         ));
     }
     metrics.extend([
-        (stats.num_migel_codes.to_string(), "Distinct MiGeL codes".into()),
-        (stats.num_companies.to_string(), "Companies with matches".into()),
-        (MIGEL_TOTAL_ITEMS.to_string(), "Total MiGeL items in XLSX".into()),
+        (
+            stats.num_migel_codes.to_string(),
+            "Distinct MiGeL codes".into(),
+        ),
+        (
+            stats.num_companies.to_string(),
+            "Companies with matches".into(),
+        ),
+        (
+            MIGEL_TOTAL_ITEMS.to_string(),
+            "Total MiGeL items in XLSX".into(),
+        ),
     ]);
 
-    let value_style = TextStyle::from(
-        ("sans-serif", 88).into_font().style(FontStyle::Bold),
-    )
-    .color(&ACCENT)
-    .pos(Pos::new(HPos::Left, VPos::Center));
-    let label_style = TextStyle::from(
-        ("sans-serif", 56).into_font().style(FontStyle::Bold),
-    )
-    .color(&TEXT_COLOR)
-    .pos(Pos::new(HPos::Left, VPos::Center));
+    let value_style = TextStyle::from(("sans-serif", 88).into_font().style(FontStyle::Bold))
+        .color(&ACCENT)
+        .pos(Pos::new(HPos::Left, VPos::Center));
+    let label_style = TextStyle::from(("sans-serif", 56).into_font().style(FontStyle::Bold))
+        .color(&TEXT_COLOR)
+        .pos(Pos::new(HPos::Left, VPos::Center));
 
     let metrics_top = 280;
     let metrics_step = 130;
@@ -273,11 +274,9 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     }
 
     // ----- Donut (placed below metrics, centered horizontally) -----
-    let donut_title_style = TextStyle::from(
-        ("sans-serif", 64).into_font().style(FontStyle::Bold),
-    )
-    .color(&TITLE_COLOR)
-    .pos(Pos::new(HPos::Center, VPos::Center));
+    let donut_title_style = TextStyle::from(("sans-serif", 64).into_font().style(FontStyle::Bold))
+        .color(&TITLE_COLOR)
+        .pos(Pos::new(HPos::Center, VPos::Center));
     let donut_cx = 1820.0_f64;
     let donut_cy = 620.0_f64;
     let r_outer = 300.0_f64;
@@ -330,16 +329,12 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         a_cursor = a_end;
     }
 
-    let center_count_style = TextStyle::from(
-        ("sans-serif", 60).into_font().style(FontStyle::Bold),
-    )
-    .color(&ACCENT)
-    .pos(Pos::new(HPos::Center, VPos::Center));
-    let center_label_style = TextStyle::from(
-        ("sans-serif", 44).into_font().style(FontStyle::Bold),
-    )
-    .color(&ACCENT)
-    .pos(Pos::new(HPos::Center, VPos::Center));
+    let center_count_style = TextStyle::from(("sans-serif", 60).into_font().style(FontStyle::Bold))
+        .color(&ACCENT)
+        .pos(Pos::new(HPos::Center, VPos::Center));
+    let center_label_style = TextStyle::from(("sans-serif", 44).into_font().style(FontStyle::Bold))
+        .color(&ACCENT)
+        .pos(Pos::new(HPos::Center, VPos::Center));
     root.draw_text(
         &ch_fmt(stats.total_matched),
         &center_count_style,
@@ -357,11 +352,9 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     let legend_right = (W as i32) - 60;
     let col_width = (legend_right - legend_left) / 2;
     let row_height = 80_i32;
-    let legend_text = TextStyle::from(
-        ("sans-serif", 48).into_font().style(FontStyle::Bold),
-    )
-    .color(&TEXT_COLOR)
-    .pos(Pos::new(HPos::Left, VPos::Center));
+    let legend_text = TextStyle::from(("sans-serif", 48).into_font().style(FontStyle::Bold))
+        .color(&TEXT_COLOR)
+        .pos(Pos::new(HPos::Left, VPos::Center));
 
     for (idx, (name, cnt)) in wedge_data.iter().enumerate() {
         let col = idx % 2;
@@ -379,10 +372,8 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     }
 
     // ----- Bottom: Top MiGeL categories bar chart -----
-    let bar_title_style = TextStyle::from(
-        ("sans-serif", 64).into_font().style(FontStyle::Bold),
-    )
-    .color(&TITLE_COLOR);
+    let bar_title_style =
+        TextStyle::from(("sans-serif", 64).into_font().style(FontStyle::Bold)).color(&TITLE_COLOR);
     root.draw_text("Top MiGeL Categories", &bar_title_style, (140, 1320))?;
 
     let bar_area_left = 140_i32;
@@ -401,21 +392,15 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     let plot_max = (max_val as f64 * 1.15).max(1.0);
     let bar_x_max = (bar_area_right - bar_area_left - 80) as f64;
 
-    let cat_label_style = TextStyle::from(
-        ("sans-serif", 60).into_font().style(FontStyle::Bold),
-    )
-    .color(&TEXT_COLOR)
-    .pos(Pos::new(HPos::Left, VPos::Center));
-    let bar_inside_style = TextStyle::from(
-        ("sans-serif", 56).into_font().style(FontStyle::Bold),
-    )
-    .color(&BG)
-    .pos(Pos::new(HPos::Center, VPos::Center));
-    let bar_outside_style = TextStyle::from(
-        ("sans-serif", 56).into_font().style(FontStyle::Bold),
-    )
-    .color(&TEXT_COLOR)
-    .pos(Pos::new(HPos::Left, VPos::Center));
+    let cat_label_style = TextStyle::from(("sans-serif", 60).into_font().style(FontStyle::Bold))
+        .color(&TEXT_COLOR)
+        .pos(Pos::new(HPos::Left, VPos::Center));
+    let bar_inside_style = TextStyle::from(("sans-serif", 56).into_font().style(FontStyle::Bold))
+        .color(&BG)
+        .pos(Pos::new(HPos::Center, VPos::Center));
+    let bar_outside_style = TextStyle::from(("sans-serif", 56).into_font().style(FontStyle::Bold))
+        .color(&TEXT_COLOR)
+        .pos(Pos::new(HPos::Left, VPos::Center));
 
     for (i, (bez, cnt, _companies)) in stats.top_categories.iter().enumerate() {
         let slot_top = bar_area_top + i as i32 * slot_height;
@@ -524,9 +509,7 @@ fn cleanup_old_pngs(png_dir: &Path, keep_filename: &str) -> Result<(), Box<dyn E
         for entry in entries.flatten() {
             let name = entry.file_name();
             let name_str = name.to_string_lossy();
-            if name_str.starts_with("swissdamed_migel_stats_")
-                && name_str.ends_with(".png")
-            {
+            if name_str.starts_with("swissdamed_migel_stats_") && name_str.ends_with(".png") {
                 if let Err(e) = fs::remove_file(entry.path()) {
                     eprintln!("Could not remove legacy {}: {}", name_str, e);
                 } else {
@@ -597,11 +580,7 @@ pub fn find_latest_dbs(db_dir: &Path) -> (Option<PathBuf>, Option<PathBuf>) {
         }
     }
     let pick_latest = |mut v: Vec<PathBuf>| -> Option<PathBuf> {
-        v.sort_by_key(|p| {
-            fs::metadata(p)
-                .and_then(|m| m.modified())
-                .ok()
-        });
+        v.sort_by_key(|p| fs::metadata(p).and_then(|m| m.modified()).ok());
         v.pop()
     };
     (pick_latest(migel_dbs), pick_latest(full_dbs))

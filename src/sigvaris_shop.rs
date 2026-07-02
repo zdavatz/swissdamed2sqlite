@@ -126,10 +126,16 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
 
     eprintln!("[sigvaris-shop] Discovering product handles ...");
     let discovered = discover_handles(&client).unwrap_or_else(|e| {
-        eprintln!("[sigvaris-shop] Discovery error ({}); will rely on baseline handles", e);
+        eprintln!(
+            "[sigvaris-shop] Discovery error ({}); will rely on baseline handles",
+            e
+        );
         Vec::new()
     });
-    eprintln!("[sigvaris-shop] Found {} distinct product handles via discovery", discovered.len());
+    eprintln!(
+        "[sigvaris-shop] Found {} distinct product handles via discovery",
+        discovered.len()
+    );
 
     // Union of fresh discovery + baseline handles (latest finalized DB) +
     // already-done partial handles. This way, even when Cloudflare blocks
@@ -165,7 +171,10 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut errors = 0usize;
     let mut fallbacks = 0usize;
     let total = handles.len();
-    let to_process: Vec<&String> = handles.iter().filter(|h| !already_done.contains(*h)).collect();
+    let to_process: Vec<&String> = handles
+        .iter()
+        .filter(|h| !already_done.contains(*h))
+        .collect();
     for (i, handle) in to_process.iter().enumerate() {
         let result = fetch_product_with_retry(&client, handle);
         let variants_for_handle: Vec<Variant> = match result {
@@ -184,7 +193,10 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
                     fallbacks += 1;
                     cached.clone()
                 } else {
-                    eprintln!("[sigvaris-shop]   error on {}: {} (no baseline cache)", handle, e);
+                    eprintln!(
+                        "[sigvaris-shop]   error on {}: {} (no baseline cache)",
+                        handle, e
+                    );
                     errors += 1;
                     Vec::new()
                 }
@@ -271,15 +283,24 @@ fn discover_handles(client: &Client) -> Result<Vec<String>, Box<dyn std::error::
     let mut all: HashSet<String> = HashSet::new();
     for col in COLLECTIONS {
         for page in 1..20u32 {
-            let url = format!("{}/collections/{}/products.json?limit=250&page={}", BASE, col, page);
+            let url = format!(
+                "{}/collections/{}/products.json?limit=250&page={}",
+                BASE, col, page
+            );
             // retry on 403 (Cloudflare rate-limit)
             let mut resp_opt = None;
             for wait in [0u64, 10, 30] {
                 if wait > 0 {
-                    eprintln!("[sigvaris-shop]   discovery 403 on {} p{}; sleep {}s", col, page, wait);
+                    eprintln!(
+                        "[sigvaris-shop]   discovery 403 on {} p{}; sleep {}s",
+                        col, page, wait
+                    );
                     thread::sleep(Duration::from_secs(wait));
                 }
-                let r = client.get(&url).header("Accept", "application/json").send()?;
+                let r = client
+                    .get(&url)
+                    .header("Accept", "application/json")
+                    .send()?;
                 if r.status() == reqwest::StatusCode::FORBIDDEN {
                     continue;
                 }
@@ -327,7 +348,10 @@ fn fetch_product_with_retry(
 ) -> Result<Vec<Variant>, Box<dyn std::error::Error>> {
     let backoffs_secs: [u64; 3] = [10, 30, 60];
     let mut last_err: Option<Box<dyn std::error::Error>> = None;
-    for (attempt, wait) in std::iter::once(0u64).chain(backoffs_secs.into_iter()).enumerate() {
+    for (attempt, wait) in std::iter::once(0u64)
+        .chain(backoffs_secs.into_iter())
+        .enumerate()
+    {
         if wait > 0 {
             eprintln!(
                 "[sigvaris-shop]   retry {}/{} for {} after {}s ...",
@@ -352,7 +376,10 @@ fn fetch_product_with_retry(
     Err(last_err.unwrap_or_else(|| "unknown error".into()))
 }
 
-fn fetch_product(client: &Client, handle: &str) -> Result<Vec<Variant>, Box<dyn std::error::Error>> {
+fn fetch_product(
+    client: &Client,
+    handle: &str,
+) -> Result<Vec<Variant>, Box<dyn std::error::Error>> {
     let url = format!("{}/products/{}.json", BASE, handle);
     let resp = client
         .get(&url)
@@ -474,7 +501,10 @@ fn derive_migel(title: &str, product_type: &str, klasse: Option<u8>) -> (Option<
         return (Some("17.05.01.00.1".into()), "Ulcus cruris System".into());
     }
     if s.contains("diabetic") || s.contains("diabetes") {
-        return (Some("17.05.02.00.1".into()), "Diabetes-Kompressionsstrumpf".into());
+        return (
+            Some("17.05.02.00.1".into()),
+            "Diabetes-Kompressionsstrumpf".into(),
+        );
     }
 
     // MiGeL 17.06 — Medizinisch adaptive Kompressionssysteme (Wraps)
@@ -495,14 +525,27 @@ fn derive_migel(title: &str, product_type: &str, klasse: Option<u8>) -> (Option<
     }
 
     // MiGeL 17.12 — Anziehhilfen
-    if ["doff", "donner", "magnide", "simslide", "gleitsocke", "gleithilfe"]
-        .iter()
-        .any(|k| s.contains(k))
+    if [
+        "doff",
+        "donner",
+        "magnide",
+        "simslide",
+        "gleitsocke",
+        "gleithilfe",
+    ]
+    .iter()
+    .any(|k| s.contains(k))
     {
         if s.contains("rolly") || s.contains("cone") || s.contains("rahmen") {
-            return (Some("17.12.01.01.1".into()), "Anziehhilfe Rahmengestell".into());
+            return (
+                Some("17.12.01.01.1".into()),
+                "Anziehhilfe Rahmengestell".into(),
+            );
         }
-        return (Some("17.12.01.00.1".into()), "Anziehhilfe Gleithilfe".into());
+        return (
+            Some("17.12.01.00.1".into()),
+            "Anziehhilfe Gleithilfe".into(),
+        );
     }
 
     // MiGeL 17.15 — Flachstrick (Massanfertigung, flachgestrickt)
@@ -539,7 +582,10 @@ fn derive_migel(title: &str, product_type: &str, klasse: Option<u8>) -> (Option<
             return (Some("05.08.11.00.1".into()), "Bandage Ellbogen".into());
         }
         if s.contains("nacken") || s.contains("cervi") {
-            return (Some("22.12.01.00.1".into()), "Bandage Nacken (Cervikalstütze)".into());
+            return (
+                Some("22.12.01.00.1".into()),
+                "Bandage Nacken (Cervikalstütze)".into(),
+            );
         }
         if s.contains("rücken") || s.contains("lumbo") {
             return (Some("05.14.11.00.1".into()), "Bandage Rücken".into());
@@ -559,27 +605,55 @@ fn derive_migel(title: &str, product_type: &str, klasse: Option<u8>) -> (Option<
 
     if s.contains("arm") && (s.contains("sleeve") || s.contains("armkompr")) {
         if chapter == "17.02" {
-            return (Some("17.02.01.11.1".into()), "Armkompressionsstrumpf Kl.2 Serien".into());
+            return (
+                Some("17.02.01.11.1".into()),
+                "Armkompressionsstrumpf Kl.2 Serien".into(),
+            );
         }
-        return (Some("17.03.01.10.1".into()), "Armkompressionsstrumpf Kl.3/4 nach Mass".into());
+        return (
+            Some("17.03.01.10.1".into()),
+            "Armkompressionsstrumpf Kl.3/4 nach Mass".into(),
+        );
     }
     if s.contains("strumpfhose") && (s.contains("maternity") || s.contains("schwanger")) {
         if chapter == "17.02" {
-            return (Some("17.02.01.09.1".into()), "Maternity Strumpfhose Kl.2 Serien".into());
+            return (
+                Some("17.02.01.09.1".into()),
+                "Maternity Strumpfhose Kl.2 Serien".into(),
+            );
         }
-        return (Some("17.03.01.07.1".into()), "Strumpfhose Kl.3/4 Serien (Maternity n/a)".into());
+        return (
+            Some("17.03.01.07.1".into()),
+            "Strumpfhose Kl.3/4 Serien (Maternity n/a)".into(),
+        );
     }
     if s.contains("strumpfhose") {
-        return (Some(format!("{}.01.07.1", chapter)), format!("Strumpfhose Kl.{} Serien", klasse));
+        return (
+            Some(format!("{}.01.07.1", chapter)),
+            format!("Strumpfhose Kl.{} Serien", klasse),
+        );
     }
     if s.contains("halbschenkel") {
-        return (Some(format!("{}.01.03.1", chapter)), format!("Halbschenkelstrumpf Kl.{} Serien", klasse));
+        return (
+            Some(format!("{}.01.03.1", chapter)),
+            format!("Halbschenkelstrumpf Kl.{} Serien", klasse),
+        );
     }
     if s.contains("schenkelstrumpf") || (s.contains("schenkel") && !s.contains("halb")) {
-        return (Some(format!("{}.01.05.1", chapter)), format!("Schenkelstrumpf Kl.{} Serien", klasse));
+        return (
+            Some(format!("{}.01.05.1", chapter)),
+            format!("Schenkelstrumpf Kl.{} Serien", klasse),
+        );
     }
-    if s.contains("kniestrumpf") || s.contains("kniest") || s.contains("calf") || s.contains("wadenstrumpf") {
-        return (Some(format!("{}.01.01.1", chapter)), format!("Wadenstrumpf Kl.{} Serien", klasse));
+    if s.contains("kniestrumpf")
+        || s.contains("kniest")
+        || s.contains("calf")
+        || s.contains("wadenstrumpf")
+    {
+        return (
+            Some(format!("{}.01.01.1", chapter)),
+            format!("Wadenstrumpf Kl.{} Serien", klasse),
+        );
     }
 
     (None, "Anatomie unklar".into())
@@ -643,11 +717,9 @@ pub fn find_latest_db(db_dir: &Path) -> Option<PathBuf> {
 /// the baseline floor when deciding whether to accept a fresh scrape.
 fn count_variants(db_path: &Path) -> Result<usize, Box<dyn std::error::Error>> {
     let conn = Connection::open(db_path)?;
-    let n: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM sigvaris_shop_variants",
-        [],
-        |r| r.get(0),
-    )?;
+    let n: i64 = conn.query_row("SELECT COUNT(*) FROM sigvaris_shop_variants", [], |r| {
+        r.get(0)
+    })?;
     Ok(n.max(0) as usize)
 }
 

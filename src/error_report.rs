@@ -26,10 +26,14 @@ pub struct InvalidSrn {
 /// Also accepts minor variants: underscores, unicode dashes, missing dash before digits.
 pub fn is_valid_srn(srn: &str) -> bool {
     // Normalize: replace underscores and unicode dashes with ASCII dash
-    let normalized: String = srn.chars().map(|c| match c {
-        '_' | '\u{2010}' | '\u{2011}' | '\u{2012}' | '\u{2013}' | '\u{2014}' | '\u{2015}' => '-',
-        _ => c,
-    }).collect();
+    let normalized: String =
+        srn.chars()
+            .map(|c| match c {
+                '_' | '\u{2010}' | '\u{2011}' | '\u{2012}' | '\u{2013}' | '\u{2014}'
+                | '\u{2015}' => '-',
+                _ => c,
+            })
+            .collect();
     let upper = normalized.to_uppercase();
 
     // Must contain -MF- or -PR- (or MF/PR without trailing dash for formats like DE-MF000005277)
@@ -52,7 +56,11 @@ pub fn is_valid_srn(srn: &str) -> bool {
     }
 
     // Must end with at least 6 digits (possibly with dashes)
-    let digits: String = upper.chars().rev().take_while(|c| c.is_ascii_digit() || *c == '-').collect();
+    let digits: String = upper
+        .chars()
+        .rev()
+        .take_while(|c| c.is_ascii_digit() || *c == '-')
+        .collect();
     let digit_count = digits.chars().filter(|c| c.is_ascii_digit()).count();
     if digit_count < 6 {
         return false;
@@ -68,7 +76,9 @@ pub fn is_valid_srn(srn: &str) -> bool {
 
 /// Write an HTML error report for invalid SRNs to `html/srn_error_report_HHhMM.dd.mm.yyyy.html`.
 /// Returns the path to the written file, or None if there are no invalid SRNs.
-pub fn write_srn_error_report(invalid_srns: &[InvalidSrn]) -> Result<Option<String>, Box<dyn std::error::Error>> {
+pub fn write_srn_error_report(
+    invalid_srns: &[InvalidSrn],
+) -> Result<Option<String>, Box<dyn std::error::Error>> {
     if invalid_srns.is_empty() {
         return Ok(None);
     }
@@ -102,7 +112,7 @@ pub fn write_srn_error_report(invalid_srns: &[InvalidSrn]) -> Result<Option<Stri
          th { background: #2c3e50; color: white; }\n\
          tr:nth-child(even) { background: #f2f2f2; }\n\
          .srn { font-family: monospace; color: #c0392b; font-weight: bold; }\n\
-         </style></head><body>\n"
+         </style></head><body>\n",
     );
     html.push_str(&format!(
         "<h1>SRN Error Report — {}</h1>\n",
@@ -121,7 +131,7 @@ pub fn write_srn_error_report(invalid_srns: &[InvalidSrn]) -> Result<Option<Stri
          <th>Mandate Holder CHRN</th>\
          <th>Mandate Holder</th>\
          <th>Mandate Holder UID</th>\
-         </tr>\n"
+         </tr>\n",
     );
     for (i, entry) in unique.iter().enumerate() {
         html.push_str(&format!(

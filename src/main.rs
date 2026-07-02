@@ -8,11 +8,11 @@ pub mod export;
 pub mod gdrive;
 mod gui;
 pub mod linkedin;
-pub mod twitter;
 pub mod migel;
 mod migel_stats;
 pub mod reports;
 pub mod sigvaris_shop;
+pub mod twitter;
 
 use clap::Parser;
 use std::fs;
@@ -246,7 +246,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             fn AttachConsole(dwProcessId: u32) -> i32;
         }
         const ATTACH_PARENT_PROCESS: u32 = 0xFFFFFFFF;
-        unsafe { AttachConsole(ATTACH_PARENT_PROCESS); }
+        unsafe {
+            AttachConsole(ATTACH_PARENT_PROCESS);
+        }
     }
 
     let args = Args::parse();
@@ -270,12 +272,8 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     if args.migel_stats {
         let db_dir = app_data_dir().join("db");
         let (migel_db, full_db) = migel_stats::find_latest_dbs(&db_dir);
-        let migel_db = migel_db.ok_or_else(|| {
-            format!(
-                "No swissdamed_migel_*.db found in {}",
-                db_dir.display()
-            )
-        })?;
+        let migel_db = migel_db
+            .ok_or_else(|| format!("No swissdamed_migel_*.db found in {}", db_dir.display()))?;
         eprintln!("Reading from {}", migel_db.display());
         if let Some(ref p) = full_db {
             eprintln!("Total products from {}", p.display());

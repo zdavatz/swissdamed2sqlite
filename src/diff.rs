@@ -145,10 +145,7 @@ pub fn diff_csv_files(
 
     let added = diff_rows.iter().filter(|(s, _)| s == "added").count();
     let removed = diff_rows.iter().filter(|(s, _)| s == "removed").count();
-    let changed = diff_rows
-        .iter()
-        .filter(|(s, _)| s == "changed_new")
-        .count();
+    let changed = diff_rows.iter().filter(|(s, _)| s == "changed_new").count();
     eprintln!(
         "Diff written: {} ({} added, {} removed, {} changed)",
         out_filename, added, removed, changed,
