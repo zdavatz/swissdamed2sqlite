@@ -697,15 +697,19 @@ pub fn enrich_with_german(text: &str) -> String {
     // mandatory: fecal-incontinence inserts belong to 15.40 Analtampon (see the
     // dedicated rule above) and must not be dragged into 15.01.
     // The German branches (any_contains: "Inkontinenzeinlagen" compounds,
-    // HYGA; "Windelhosen"/"Vorlage", TZMO Seni — both tokens verified
+    // HYGA; "Windelhosen"/"Vorlage"/"Fixierhosen", TZMO Seni — tokens verified
     // TZMO-exclusive corpus-wide) need the same pushes — a lone
     // compound-decomposed "inkontinenz" keyword stays under the
-    // single-keyword score threshold. The ch.03.07/22/23 "vorlage" negative
-    // keywords remain as fences against the historical orthosis hops.
+    // single-keyword score threshold. Fixierhosen are non-absorbent but the
+    // 15.01 chapter text explicitly includes them ("aufsaugende Einweg- und
+    // Mehrweg-Inkontinenzprodukte, inklusive Unterlagen und Fixierhosen").
+    // The ch.03.07/22/23 "vorlage" negative keywords remain as fences against
+    // the historical orthosis hops.
     if (has("incontinence")
         || any_contains("inkontinenz")
         || any_contains("windelhose")
-        || any_contains("vorlage"))
+        || any_contains("vorlage")
+        || any_contains("fixierhose"))
         && !has("fecal")
     {
         additions.push("inkontinenz");
