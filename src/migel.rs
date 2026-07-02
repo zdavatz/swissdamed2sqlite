@@ -696,13 +696,43 @@ pub fn enrich_with_german(text: &str) -> String {
     // Retail absorbent incontinence products → 15.01. The !fecal guard is
     // mandatory: fecal-incontinence inserts belong to 15.40 Analtampon (see the
     // dedicated rule above) and must not be dragged into 15.01.
-    // The German branch (any_contains: "Inkontinenzeinlagen" compounds, HYGA/
-    // TZMO) needs the same pushes — a lone compound-decomposed "inkontinenz"
-    // keyword stays under the single-keyword score threshold.
-    if (has("incontinence") || any_contains("inkontinenz")) && !has("fecal") {
+    // The German branches (any_contains: "Inkontinenzeinlagen" compounds,
+    // HYGA; "Windelhosen"/"Vorlage", TZMO Seni — both tokens verified
+    // TZMO-exclusive corpus-wide) need the same pushes — a lone
+    // compound-decomposed "inkontinenz" keyword stays under the
+    // single-keyword score threshold. The ch.03.07/22/23 "vorlage" negative
+    // keywords remain as fences against the historical orthosis hops.
+    if (has("incontinence")
+        || any_contains("inkontinenz")
+        || any_contains("windelhose")
+        || any_contains("vorlage"))
+        && !has("fecal")
+    {
         additions.push("inkontinenz");
         additions.push("aufsaugende");
         additions.push("hilfsmittel");
+    }
+    // HANS HEPP first-aid refill plasters (+ ZCC Pflaster-Strip) → 35.01.10
+    // Schnellverbände mit zentralem Wundkissen. Compound tokens only — bare
+    // "pflaster" would hit Wärmepflaster and plaster-case rows.
+    if any_contains("pflastersortiment")
+        || any_contains("pflaster-sortiment")
+        || any_contains("pflasterstrip")
+        || any_contains("pflaster-strip")
+        || any_contains("kinderpflaster")
+        || any_contains("schnellverband")
+    {
+        additions.push("schnellverbaende");
+        additions.push("wundkissen");
+        additions.push("vlies");
+    }
+    // HANS HEPP plain Wundkompressen → 35.01.01 Falt-/Vlieskompressen.
+    // ("wundkompressen" verified single-company corpus-wide; the impregnated/
+    // coated 35.01.02 family stays reachable for "beschichtet" products via
+    // its own keywords.)
+    if any_contains("wundkompressen") {
+        additions.push("falt");
+        additions.push("vlieskompressen");
     }
     // CGM stragglers whose text says "Continuous/Flash Glucose Monitoring" but
     // never "sensor" (SIBIONICS) or that are the reader unit (Abbott Libre).
@@ -1229,8 +1259,12 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("35.07", "surgical"),
     ("35.07", "chirurgisch"),
     // DIN-61634 fixation bandages ≠ 17.30 Kurzzug/Langzug compression bandages
-    // (dimensions don't match). Correct home is 35.01.06 Fixierbinden.
+    // (dimensions don't match). Correct home is the elastic fixation bandage
+    // family 35.01.07.01-.07 "Elastische (Ideal-)Binden, Fixation gedehnt" —
+    // block the kohäsiv sub-series (.20-.25) too, whose shorter keyword list
+    // otherwise outranks it (a plain Fixierbinde is not cohesive).
     ("17.30", "fixierbinde"),
+    ("35.01.07.2", "fixierbinde"),
     // Blister plasters ≠ 35.05 Superabsorber (leak in via the
     // absorbent→superabsorber enrichment, which must stay — Huizhou Foryou
     // superabsorbent dressings depend on it).
@@ -1898,6 +1932,23 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["omnipod"], &[], "03.02.01.00.2"),
     // SIGVARIS Doff'N Donner donning aid → 17.12.01.01.1 Rollmanschetten.
     (&["doff"], &[], "17.12.01.01.1"),
+    // --- IVF Hartmann DermaPlast retail line (audit §2b; all trigger tokens
+    // verified single-company corpus-wide). Sizes aren't text-derivable, so
+    // the audit's representative size position is pinned. Never bare
+    // "dermaplast" (nasal sprays) or bare "conviva" (STE Pharma sea water). ---
+    // Compress Gel/Plus/Protect → beschichtete Wundkompresse. Also corrects
+    // the one Gel row that previously drifted to 99.30.03 (M-Plast).
+    (&["dermaplast compress"], &[], "35.01.02.02.1"),
+    // Sparablanc (transparent + textile) plaster spools → Heft-/Fixier-Pflaster.
+    (&["sparablanc"], &[], "35.01.09.03.1"),
+    // Combifix elastic cohesive gauze bandage → Gazebinden elastisch, kohäsiv.
+    (&["combifix"], &[], "35.01.06.12.1"),
+    // Coop Conviva Protect+ waterproof sterile dressing → Schnellverbände.
+    (&["conviva protect"], &[], "35.01.10.12.1"),
+    // --- HANS HEPP first-aid refills (audit §2b) ---
+    // (Heft-)Pflasterspulen → Heft-/Fixier-Pflaster spools ("pflasterspule"
+    // is a substring of "heftpflasterspule", one rule covers both).
+    (&["pflasterspule"], &[], "35.01.09.03.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
