@@ -17,14 +17,8 @@ use crate::Args;
 fn find_ch_rep_uids(actor_values: &[Value], require_ar: bool) -> HashSet<String> {
     let mut uid_roles: HashMap<String, HashSet<String>> = HashMap::new();
     for v in actor_values {
-        let uid = v
-            .get("companyUid")
-            .and_then(|u| u.as_str())
-            .unwrap_or("");
-        let role = v
-            .get("actorType")
-            .and_then(|t| t.as_str())
-            .unwrap_or("");
+        let uid = v.get("companyUid").and_then(|u| u.as_str()).unwrap_or("");
+        let role = v.get("actorType").and_then(|t| t.as_str()).unwrap_or("");
         if !uid.is_empty() && !role.is_empty() {
             uid_roles
                 .entry(uid.to_string())
@@ -116,9 +110,7 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         .build()?;
     let response = client.get(migel_url).send()?;
     if !response.status().is_success() {
-        return Err(
-            format!("Failed to download MiGel XLSX: HTTP {}", response.status()).into(),
-        );
+        return Err(format!("Failed to download MiGel XLSX: HTTP {}", response.status()).into());
     }
     let bytes = response.bytes()?;
     std::fs::write(migel_file, &bytes)?;
@@ -127,7 +119,10 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     // 3. Parse MiGel items and build keyword index
     eprintln!("Parsing MiGel items...");
     let migel_items = parse_migel_items(migel_file)?;
-    eprintln!("Found {} MiGel items with position numbers", migel_items.len());
+    eprintln!(
+        "Found {} MiGel items with position numbers",
+        migel_items.len()
+    );
 
     let search_index = build_search_index(&migel_items)?;
     eprintln!("Built Aho-Corasick search index");
@@ -149,36 +144,12 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     migel_headers.push("migel_bezeichnung".to_string());
     migel_headers.push("migel_limitation".to_string());
 
-    let excluded_companies: &[&str] = &[
-        "Varian Medical Systems Inc",
-        "Varian Medical Systems Inc.",
-        "Sunstar Europe SA",
-        // Pure non-MiGeL manufacturers whose entire matched output is false
-        // positives (verified: zero correct matches). Diacor = patient-transfer
-        // furniture; SOMNOmedics = sleep-lab PSG sensors; Accuratus = reusable
-        // surgical instruments; ATMOS = suction/ENT hardware; CONCEPTION ET
-        // FABRICATION = dental products; iNOsystems = nitric-oxide delivery hardware.
-        "Diacor Inc",
-        "SOMNOmedics AG",
-        "Accuratus AG",
-        "ATMOS MedizinTechnik GmbH & Co. KG",
-        "CONCEPTION ET FABRICATION DE PRODUITS MEDICAUX ET PARAMEDICAUX",
-        "iNOsystems SA",
-        "Episurf Operations AB",
-        "Aesculap AG",
-        "Maquet Cardiopulmonary GmbH",
-        "Philips Medizin Systeme Böblingen GmbH",
-        "Invivo Corporation",
-        "Invivo, a division of Philips Medical Systems",
-        "Philips Healthcare (Suzhou) Co., Ltd.",
-        "Philips Medical Systems DMC GmbH",
-        "BEE Medic GmbH",
-        "Medacta International SA",
-        "Baitella AG",
-        "Philips Medical Systems Nederland B.V.",
-    ];
+    // Shared single source of truth for both CLI and GUI (src/migel.rs).
+    let excluded_companies: &[&str] = crate::migel::EXCLUDED_COMPANIES;
     let idx_company = headers.iter().position(|h| h == "companyName");
     let idx_gtin = headers.iter().position(|h| h == "udiDiCode");
+    let idx_device_type = headers.iter().position(|h| h == "deviceType");
+    let idx_risk_class = headers.iter().position(|h| h == "riskClass");
 
     // Optional GTIN→MiGeL override map from the latest sigvaris_shop_*.db.
     // Lookup keys are both gtin14 (matches swissdamed) and gtin13. A value of
@@ -189,11 +160,7 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         match crate::sigvaris_shop::find_latest_db(&db_dir) {
             Some(p) => match crate::sigvaris_shop::load_overrides(&p) {
                 Ok(m) => {
-                    eprintln!(
-                        "Loaded {} GTIN overrides from {}",
-                        m.len(),
-                        p.display()
-                    );
+                    eprintln!("Loaded {} GTIN overrides from {}", m.len(), p.display());
                     m
                 }
                 Err(e) => {
@@ -204,8 +171,10 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             None => HashMap::new(),
         };
     // Index MiGel items by position_nr for O(1) override lookup
-    let migel_by_pos: HashMap<&str, &MigelItem> =
-        migel_items.iter().map(|m| (m.position_nr.as_str(), m)).collect();
+    let migel_by_pos: HashMap<&str, &MigelItem> = migel_items
+        .iter()
+        .map(|m| (m.position_nr.as_str(), m))
+        .collect();
 
     let override_hits = std::sync::atomic::AtomicUsize::new(0);
     let override_skips = std::sync::atomic::AtomicUsize::new(0);
@@ -221,6 +190,17 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
 
+            // Structured metadata for the IVD/Class-III hard gate inside
+            // find_best_migel_match (applied after curated forced matches).
+            let device_type = idx_device_type
+                .and_then(|i| row.get(i))
+                .map(String::as_str)
+                .unwrap_or("");
+            let risk_class = idx_risk_class
+                .and_then(|i| row.get(i))
+                .map(String::as_str)
+                .unwrap_or("");
+
             // 1. Override lookup by GTIN — takes precedence over heuristic matcher
             if let Some(gi) = idx_gtin {
                 if let Some(gtin) = row.get(gi) {
@@ -228,8 +208,7 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                         match decision {
                             None => {
                                 // Explicit skip (e.g. SIGVARIS Stützstrumpf / Anti-Thrombose)
-                                override_skips
-                                    .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                                override_skips.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                                 return None;
                             }
                             Some(code) => {
@@ -299,6 +278,8 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                 &desc_fr,
                 &desc_it,
                 &brand,
+                device_type,
+                risk_class,
                 &migel_items,
                 &search_index,
             )
@@ -377,9 +358,7 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
 
     if args.linkedin {
         if let Some(ref p) = png_path {
-            if let Err(e) =
-                crate::linkedin::publish_image(p, std::path::Path::new(&db_filename))
-            {
+            if let Err(e) = crate::linkedin::publish_image(p, std::path::Path::new(&db_filename)) {
                 eprintln!("LinkedIn publish failed: {}", e);
             }
         } else {
@@ -389,9 +368,7 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
 
     if args.twitter {
         if let Some(ref p) = png_path {
-            if let Err(e) =
-                crate::twitter::publish_image(p, std::path::Path::new(&db_filename))
-            {
+            if let Err(e) = crate::twitter::publish_image(p, std::path::Path::new(&db_filename)) {
                 eprintln!("Twitter publish failed: {}", e);
             }
         } else {
@@ -405,11 +382,8 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
 // --- CH-REP only (companies with only AR/IM roles, no MF/PR) ---
 
 pub fn run_ch_rep(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
-    let actor_values = download_all_pages_from(
-        "https://swissdamed.ch/public/act/actors",
-        "actors",
-        50,
-    )?;
+    let actor_values =
+        download_all_pages_from("https://swissdamed.ch/public/act/actors", "actors", 50)?;
 
     let ch_rep_uids = find_ch_rep_uids(&actor_values, false);
 
@@ -445,11 +419,8 @@ pub fn run_ch_rep(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
 
 pub fn run_ch_rep_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     // 1. Download actors
-    let actor_values = download_all_pages_from(
-        "https://swissdamed.ch/public/act/actors",
-        "actors",
-        50,
-    )?;
+    let actor_values =
+        download_all_pages_from("https://swissdamed.ch/public/act/actors", "actors", 50)?;
 
     // 2. Identify CH-REP UIDs
     let ch_rep_uids = find_ch_rep_uids(&actor_values, args.ar_only);
@@ -465,17 +436,11 @@ pub fn run_ch_rep_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>
     let mut actor_id_to_uid: HashMap<String, String> = HashMap::new();
     let mut uid_to_info: HashMap<String, (String, String, String)> = HashMap::new();
     for v in &actor_values {
-        let uid = v
-            .get("companyUid")
-            .and_then(|u| u.as_str())
-            .unwrap_or("");
+        let uid = v.get("companyUid").and_then(|u| u.as_str()).unwrap_or("");
         if !ch_rep_uids.contains(uid) {
             continue;
         }
-        let role = v
-            .get("actorType")
-            .and_then(|t| t.as_str())
-            .unwrap_or("");
+        let role = v.get("actorType").and_then(|t| t.as_str()).unwrap_or("");
         if args.ar_only && role != "AR" {
             continue;
         }
@@ -503,18 +468,12 @@ pub fn run_ch_rep_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>
     }
 
     // 4. Download mandates and count per CH-REP company
-    let mandate_values = download_all_pages_from(
-        "https://swissdamed.ch/public/act/mandates",
-        "mandates",
-        50,
-    )?;
+    let mandate_values =
+        download_all_pages_from("https://swissdamed.ch/public/act/mandates", "mandates", 50)?;
 
     let mut uid_mandate_count: HashMap<String, u32> = HashMap::new();
     for m in &mandate_values {
-        let actor_id = m
-            .get("actorId")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+        let actor_id = m.get("actorId").and_then(|v| v.as_str()).unwrap_or("");
         if let Some(uid) = actor_id_to_uid.get(actor_id) {
             *uid_mandate_count.entry(uid.clone()).or_insert(0) += 1;
         }
@@ -525,7 +484,13 @@ pub fn run_ch_rep_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>
         .iter()
         .map(|(uid, (name, city, country))| {
             let count = uid_mandate_count.get(uid).copied().unwrap_or(0);
-            (name.clone(), uid.clone(), city.clone(), country.clone(), count)
+            (
+                name.clone(),
+                uid.clone(),
+                city.clone(),
+                country.clone(),
+                count,
+            )
         })
         .collect();
     ranked.sort_by(|a, b| b.4.cmp(&a.4).then(a.0.cmp(&b.0)));
@@ -663,8 +628,7 @@ pub fn run_company_ranking(args: &Args) -> Result<(), Box<dyn std::error::Error>
 // --- Unique SRNs export ---
 
 pub fn run_unique_srns(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
-    let actors =
-        download_all_pages_from("https://swissdamed.ch/public/act/actors", "actors", 50)?;
+    let actors = download_all_pages_from("https://swissdamed.ch/public/act/actors", "actors", 50)?;
     let actor_headers = collect_flat_headers(&actors);
     let actor_rows = build_flat_rows(&actors, &actor_headers);
 
@@ -683,10 +647,7 @@ pub fn run_unique_srns(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         if actor_type != "AR" {
             continue;
         }
-        let id = id_idx
-            .and_then(|i| row.get(i))
-            .cloned()
-            .unwrap_or_default();
+        let id = id_idx.and_then(|i| row.get(i)).cloned().unwrap_or_default();
         let chrn = chrn_idx
             .and_then(|i| row.get(i))
             .cloned()
@@ -745,10 +706,7 @@ pub fn run_unique_srns(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             );
         }
         let url = format!("https://swissdamed.ch/public/act/mandates/{}", mid);
-        let resp = client
-            .get(&url)
-            .header("Accept", "application/json")
-            .send();
+        let resp = client.get(&url).header("Accept", "application/json").send();
         if let Ok(resp) = resp {
             if let Ok(detail) = resp.json::<Value>() {
                 let srn = detail
@@ -789,14 +747,9 @@ pub fn run_unique_srns(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
                     });
                     continue;
                 }
-                srn_map.entry(srn).or_insert((
-                    mfr_name,
-                    mtype,
-                    country,
-                    actor_chrn,
-                    actor_name,
-                    actor_uid,
-                ));
+                srn_map
+                    .entry(srn)
+                    .or_insert((mfr_name, mtype, country, actor_chrn, actor_name, actor_uid));
             }
         }
     }
@@ -853,11 +806,8 @@ pub fn run_unique_srns(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
 // --- Lookup CHRN → SRNs ---
 
 pub fn run_lookup_chrn(chrn: &str, args: &Args) -> Result<(), Box<dyn std::error::Error>> {
-    let actor_values = download_all_pages_from(
-        "https://swissdamed.ch/public/act/actors",
-        "actors",
-        50,
-    )?;
+    let actor_values =
+        download_all_pages_from("https://swissdamed.ch/public/act/actors", "actors", 50)?;
 
     let matching_actors: Vec<&Value> = actor_values
         .iter()
@@ -884,11 +834,8 @@ pub fn run_lookup_chrn(chrn: &str, args: &Args) -> Result<(), Box<dyn std::error
         })
         .collect();
 
-    let mandate_values = download_all_pages_from(
-        "https://swissdamed.ch/public/act/mandates",
-        "mandates",
-        50,
-    )?;
+    let mandate_values =
+        download_all_pages_from("https://swissdamed.ch/public/act/mandates", "mandates", 50)?;
 
     let matching_mandate_ids: Vec<(String, String)> = mandate_values
         .iter()
@@ -1012,18 +959,12 @@ pub fn run_lookup_chrn(chrn: &str, args: &Args) -> Result<(), Box<dyn std::error
 
 pub fn run_ar_mandates(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     // 1. Download actors
-    let actor_values = download_all_pages_from(
-        "https://swissdamed.ch/public/act/actors",
-        "actors",
-        50,
-    )?;
+    let actor_values =
+        download_all_pages_from("https://swissdamed.ch/public/act/actors", "actors", 50)?;
 
     // 2. Download mandates
-    let mandate_values = download_all_pages_from(
-        "https://swissdamed.ch/public/act/mandates",
-        "mandates",
-        50,
-    )?;
+    let mandate_values =
+        download_all_pages_from("https://swissdamed.ch/public/act/mandates", "mandates", 50)?;
 
     // 3. Filter AR actors and build a lookup by id
     let ar_actors: Vec<&Value> = actor_values

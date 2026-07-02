@@ -164,13 +164,15 @@ impl eframe::App for App {
             // Header with icon
             ui.horizontal(|ui| {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let icon_button = ui.add(
-                        egui::ImageButton::new(egui::load::SizedTexture::new(
-                            icon_texture.id(),
-                            egui::vec2(36.0, 36.0),
-                        ))
-                        .frame(false),
-                    ).on_hover_text("zdavatz@ywesee.com");
+                    let icon_button = ui
+                        .add(
+                            egui::ImageButton::new(egui::load::SizedTexture::new(
+                                icon_texture.id(),
+                                egui::vec2(36.0, 36.0),
+                            ))
+                            .frame(false),
+                        )
+                        .on_hover_text("zdavatz@ywesee.com");
                     if icon_button.clicked() {
                         let _ = open::that("mailto:zdavatz@ywesee.com");
                     }
@@ -394,13 +396,7 @@ fn run_products_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
         }
     }
 
-    done(
-        true,
-        &format!(
-            "{} rows saved to CSV + SQLite",
-            rows.len()
-        ),
-    );
+    done(true, &format!("{} rows saved to CSV + SQLite", rows.len()));
 }
 
 /// Look up all SRNs for a given CHRN.
@@ -512,7 +508,10 @@ fn run_chrn_lookup(chrn: String, tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context
         }
     };
 
-    let ids_only: Vec<String> = matching_mandate_ids.iter().map(|(_, mid)| mid.clone()).collect();
+    let ids_only: Vec<String> = matching_mandate_ids
+        .iter()
+        .map(|(_, mid)| mid.clone())
+        .collect();
     let details = match crate::data::fetch_mandate_details(&client, &ids_only) {
         Ok(d) => d,
         Err(e) => {
@@ -535,26 +534,38 @@ fn run_chrn_lookup(chrn: String, tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context
         }
     }
 
-    let mut joined_headers: Vec<String> = actor_headers.iter().map(|h| format!("actor_{}", h)).collect();
+    let mut joined_headers: Vec<String> = actor_headers
+        .iter()
+        .map(|h| format!("actor_{}", h))
+        .collect();
     joined_headers.extend(detail_key_order.iter().map(|h| format!("mandate_{}", h)));
 
     let mut rows: Vec<Vec<String>> = Vec::new();
     for (i, (_actor_id_str, _mandate_id_str)) in matching_mandate_ids.iter().enumerate() {
         // Find the actor for this mandate
-        let actor = matching.iter().find(|a| {
-            a.get("id").and_then(|v| v.as_str()) == Some(_actor_id_str.as_str())
-        });
+        let actor = matching
+            .iter()
+            .find(|a| a.get("id").and_then(|v| v.as_str()) == Some(_actor_id_str.as_str()));
         let actor_vals: Vec<String> = if let Some(actor) = actor {
-            actor_headers.iter().map(|h| crate::data::get_field(actor, h)).collect()
+            actor_headers
+                .iter()
+                .map(|h| crate::data::get_field(actor, h))
+                .collect()
         } else {
             actor_headers.iter().map(|_| String::new()).collect()
         };
 
         let detail_vals: Vec<String> = if let Some(detail) = details.get(i) {
             let flat = crate::data::flatten_mandate_detail(detail);
-            detail_key_order.iter().map(|k| {
-                flat.iter().find(|(fk, _)| fk == k).map(|(_, v)| v.clone()).unwrap_or_default()
-            }).collect()
+            detail_key_order
+                .iter()
+                .map(|k| {
+                    flat.iter()
+                        .find(|(fk, _)| fk == k)
+                        .map(|(_, v)| v.clone())
+                        .unwrap_or_default()
+                })
+                .collect()
         } else {
             detail_key_order.iter().map(|_| String::new()).collect()
         };
@@ -707,32 +718,11 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
     let idx_device = headers.iter().position(|h| h == "deviceName");
     let idx_model = headers.iter().position(|h| h == "modelName");
     let idx_company = headers.iter().position(|h| h == "companyName");
+    let idx_device_type = headers.iter().position(|h| h == "deviceType");
+    let idx_risk_class = headers.iter().position(|h| h == "riskClass");
 
-    let excluded_companies: &[&str] = &[
-        "Varian Medical Systems Inc",
-        "Varian Medical Systems Inc.",
-        "Sunstar Europe SA",
-        // Keep in sync with src/reports.rs. Pure non-MiGeL manufacturers whose
-        // entire matched output is false positives (verified: zero correct matches).
-        "Diacor Inc",
-        "SOMNOmedics AG",
-        "Accuratus AG",
-        "ATMOS MedizinTechnik GmbH & Co. KG",
-        "CONCEPTION ET FABRICATION DE PRODUITS MEDICAUX ET PARAMEDICAUX",
-        "iNOsystems SA",
-        "Episurf Operations AB",
-        "Aesculap AG",
-        "Maquet Cardiopulmonary GmbH",
-        "Philips Medizin Systeme Böblingen GmbH",
-        "Invivo Corporation",
-        "Invivo, a division of Philips Medical Systems",
-        "Philips Healthcare (Suzhou) Co., Ltd.",
-        "Philips Medical Systems DMC GmbH",
-        "BEE Medic GmbH",
-        "Medacta International SA",
-        "Baitella AG",
-        "Philips Medical Systems Nederland B.V.",
-    ];
+    // Shared single source of truth for both CLI and GUI (src/migel.rs).
+    let excluded_companies: &[&str] = crate::migel::EXCLUDED_COMPANIES;
 
     use rayon::prelude::*;
     let matched_rows: Vec<Vec<String>> = rows
@@ -745,6 +735,17 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
                     }
                 }
             }
+
+            // Structured metadata for the IVD/Class-III hard gate inside
+            // find_best_migel_match (applied after curated forced matches).
+            let device_type = idx_device_type
+                .and_then(|i| row.get(i))
+                .map(String::as_str)
+                .unwrap_or("");
+            let risk_class = idx_risk_class
+                .and_then(|i| row.get(i))
+                .map(String::as_str)
+                .unwrap_or("");
 
             let mut desc_de = String::new();
             let mut desc_fr = String::new();
@@ -767,8 +768,14 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
                 }
             }
 
-            let device = idx_device.and_then(|i| row.get(i)).cloned().unwrap_or_default();
-            let model = idx_model.and_then(|i| row.get(i)).cloned().unwrap_or_default();
+            let device = idx_device
+                .and_then(|i| row.get(i))
+                .cloned()
+                .unwrap_or_default();
+            let model = idx_model
+                .and_then(|i| row.get(i))
+                .cloned()
+                .unwrap_or_default();
             if !device.is_empty() {
                 desc_de = format!("{} {}", desc_de, device);
                 desc_fr = format!("{} {}", desc_fr, device);
@@ -780,10 +787,20 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
                 desc_it = format!("{} {}", desc_it, model);
             }
 
-            let brand = idx_brand.and_then(|i| row.get(i)).cloned().unwrap_or_default();
+            let brand = idx_brand
+                .and_then(|i| row.get(i))
+                .cloned()
+                .unwrap_or_default();
 
             crate::migel::find_best_migel_match(
-                &desc_de, &desc_fr, &desc_it, &brand, &migel_items, &search_index,
+                &desc_de,
+                &desc_fr,
+                &desc_it,
+                &brand,
+                device_type,
+                risk_class,
+                &migel_items,
+                &search_index,
             )
             .map(|migel| {
                 let mut matched_row = row.clone();
@@ -863,7 +880,9 @@ pub fn run_error_dialog(message: &str) {
         options,
         Box::new(move |cc| {
             cc.egui_ctx.set_visuals(egui::Visuals::light());
-            Ok(Box::new(ErrorDialog { message: message.clone() }))
+            Ok(Box::new(ErrorDialog {
+                message: message.clone(),
+            }))
         }),
     );
 }
@@ -890,10 +909,7 @@ impl eframe::App for ErrorDialog {
 /// Launch the GUI application.
 pub fn run_gui() -> eframe::Result {
     let mut viewport = egui::ViewportBuilder::default()
-        .with_title(format!(
-            "swissdamed2sqlite v{}",
-            env!("CARGO_PKG_VERSION")
-        ))
+        .with_title(format!("swissdamed2sqlite v{}", env!("CARGO_PKG_VERSION")))
         .with_inner_size([750.0, 600.0])
         .with_min_inner_size([500.0, 400.0]);
 

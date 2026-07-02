@@ -28,72 +28,286 @@ pub struct MigelItem {
 
 const STOP_WORDS: &[&str] = &[
     // German articles, prepositions, conjunctions
-    "der", "die", "das", "den", "dem", "des", "ein", "eine", "eines", "einem", "einen", "einer",
-    "fuer", "mit", "von", "und", "oder", "bei", "auf", "nach", "ueber", "unter", "aus", "bis",
-    "pro", "als", "inkl", "exkl", "max", "min", "per", "zur", "zum", "ins", "vom", "ohne",
-    "auch", "sich", "noch", "wenn", "muss", "darf", "resp", "bzw",
+    "der",
+    "die",
+    "das",
+    "den",
+    "dem",
+    "des",
+    "ein",
+    "eine",
+    "eines",
+    "einem",
+    "einen",
+    "einer",
+    "fuer",
+    "mit",
+    "von",
+    "und",
+    "oder",
+    "bei",
+    "auf",
+    "nach",
+    "ueber",
+    "unter",
+    "aus",
+    "bis",
+    "pro",
+    "als",
+    "inkl",
+    "exkl",
+    "max",
+    "min",
+    "per",
+    "zur",
+    "zum",
+    "ins",
+    "vom",
+    "ohne",
+    "auch",
+    "sich",
+    "noch",
+    "wenn",
+    "muss",
+    "darf",
+    "resp",
+    "bzw",
     // German generic terms (too common in both MiGeL and products)
-    "kauf", "miete", "tag", "jahr", "monate", "stueck", "set", "alle", "nur",
-    "wird", "ist", "kann", "sind", "werden", "wurde", "hat", "haben",
-    "steril", "unsteril", "sterile", "non", // too common across all medical products
-    "diverse", "divers", "diversi",          // MiGeL catch-all qualifier
-    "gross", "klein", "lang", "kurz",        // size/length descriptors
-    "position", "definierte", "einstellbare", // MiGeL qualifiers
-    "laenge", "breite", "hoehe", "durchmesser", // dimensions
-    "links", "rechts",  // left/right
+    "kauf",
+    "miete",
+    "tag",
+    "jahr",
+    "monate",
+    "stueck",
+    "set",
+    "alle",
+    "nur",
+    "wird",
+    "ist",
+    "kann",
+    "sind",
+    "werden",
+    "wurde",
+    "hat",
+    "haben",
+    "steril",
+    "unsteril",
+    "sterile",
+    "non", // too common across all medical products
+    "diverse",
+    "divers",
+    "diversi", // MiGeL catch-all qualifier
+    "gross",
+    "klein",
+    "lang",
+    "kurz", // size/length descriptors
+    "position",
+    "definierte",
+    "einstellbare", // MiGeL qualifiers
+    "laenge",
+    "breite",
+    "hoehe",
+    "durchmesser", // dimensions
+    "links",
+    "rechts", // left/right
     // French
-    "les", "des", "pour", "avec", "par", "une", "dans", "sur", "qui", "que",
-    "achat", "location", "piece", "sans", "usage", "unique", "jetable",
-    "securite", "securise",
+    "les",
+    "des",
+    "pour",
+    "avec",
+    "par",
+    "une",
+    "dans",
+    "sur",
+    "qui",
+    "que",
+    "achat",
+    "location",
+    "piece",
+    "sans",
+    "usage",
+    "unique",
+    "jetable",
+    "securite",
+    "securise",
     // Generic French company-name tokens: companyName is appended into the
     // product text as "brand", so these would otherwise act as MiGeL keywords
     // (e.g. "fabrication"+"medicaux" from a manufacturer name matching
     // 17.02 "Serienfertigung"/"Med."). All real matches go via other keywords.
-    "fabrication", "medicaux", "paramedicaux", "produits", "conception",
-    "largeur", "longueur", "hauteur", "diametre",  // dimensions — match across all products
-    "gauche", "droite", "droit",  // left/right — match across all products
+    "fabrication",
+    "medicaux",
+    "paramedicaux",
+    "produits",
+    "conception",
+    "largeur",
+    "longueur",
+    "hauteur",
+    "diametre", // dimensions — match across all products
+    "gauche",
+    "droite",
+    "droit", // left/right — match across all products
     // Italian
-    "acquisto", "noleggio", "pezzo", "senza", "monouso", "perdere",
+    "acquisto",
+    "noleggio",
+    "pezzo",
+    "senza",
+    "monouso",
+    "perdere",
     "sicurezza",
-    "larghezza", "lunghezza", "altezza", "diametro",  // dimensions
-    "sinistra", "destra",  // left/right
+    "larghezza",
+    "lunghezza",
+    "altezza",
+    "diametro", // dimensions
+    "sinistra",
+    "destra", // left/right
     // English
-    "the", "for", "and", "with", "per",
+    "the",
+    "for",
+    "and",
+    "with",
+    "per",
     // Generic medical/product terms that match too broadly at word level
-    "material", "produkt", "products", "product", "medical", "device",
-    "system", "systeme", "systems", "geraet", "geraete", "appareil",
+    "material",
+    "produkt",
+    "products",
+    "product",
+    "medical",
+    "device",
+    "system",
+    "systeme",
+    "systems",
+    "geraet",
+    "geraete",
+    "appareil",
     // Cross-type medical terms (used for both screws/stockings/catheters/etc.)
-    "compression", "compressione", "kompression",
-    "verlaengerung", "extension", "estensione", "prolongation",
-    "silikon", "silicone",
+    "compression",
+    "compressione",
+    "kompression",
+    "verlaengerung",
+    "extension",
+    "estensione",
+    "prolongation",
+    "silikon",
+    "silicone",
     // Generic surgical instrument terms (match across many unrelated instrument types)
-    "ecarteur", "divaricatore", "retraktor",
+    "ecarteur",
+    "divaricatore",
+    "retraktor",
     // Shape/form descriptors (match across unrelated product types)
-    "tubolare", "tubulaire", "tubular",
+    "tubolare",
+    "tubulaire",
+    "tubular",
     // Generic anatomical terms (match across surgical vs. orthopedic/support devices)
-    "addominale", "abdominale", "abdominal",
-    "cervicale", "cervical", "zervikal",
+    "addominale",
+    "abdominale",
+    "abdominal",
+    "cervicale",
+    "cervical",
+    "zervikal",
     // Generic functional terms (match across surgical/orthopedic devices)
-    "sostegno", "soutien", "support", "stuetze",
+    "sostegno",
+    "soutien",
+    "support",
+    "stuetze",
     // Generic material/property terms (match across bandages, gauze, tape, etc.)
-    "elastique", "elastico", "elastic",  // FR/IT/EN "elastic" — too generic cross-language
+    "elastique",
+    "elastico",
+    "elastic", // FR/IT/EN "elastic" — too generic cross-language
     // NOTE: "elastisch" (DE) intentionally NOT stop-worded — needed for "Tape elastisch" matching
-    "stumpf", "mousse",  // "blunt" — matches across cannulas, retractors, screws
+    "stumpf",
+    "mousse", // "blunt" — matches across cannulas, retractors, screws
     // Generic body part / anatomy terms (too broad when used alone)
-    "smussa", "smusso",  // IT "blunt" — matches across cannulas, screws, retractors
+    "smussa",
+    "smusso", // IT "blunt" — matches across cannulas, screws, retractors
     // Generic device type terms (too many subtypes to match reliably)
-    "aiguille",  // FR "needle" — matches all needle/cannula products
-    "seringue",  // FR "syringe" — matches all syringe types
-    "siringa",   // IT "syringe" — matches all syringe types
+    "aiguille", // FR "needle" — matches all needle/cannula products
+    "seringue", // FR "syringe" — matches all syringe types
+    "siringa",  // IT "syringe" — matches all syringe types
 ];
+
+/// Companies whose entire matched output is false positives (verified per company:
+/// zero correct matches, pure non-MiGeL product lines). Shared by src/reports.rs
+/// (CLI) and src/gui.rs (GUI) — single source of truth, exact-string matching on
+/// `companyName`.
+pub const EXCLUDED_COMPANIES: &[&str] = &[
+    "Varian Medical Systems Inc",
+    "Varian Medical Systems Inc.",
+    "Sunstar Europe SA",
+    // Diacor = patient-transfer furniture; SOMNOmedics = sleep-lab PSG sensors;
+    // Accuratus = reusable surgical instruments; ATMOS = suction/ENT hardware;
+    // CONCEPTION ET FABRICATION = dental products; iNOsystems = nitric-oxide
+    // delivery hardware.
+    "Diacor Inc",
+    "SOMNOmedics AG",
+    "Accuratus AG",
+    "ATMOS MedizinTechnik GmbH & Co. KG",
+    "CONCEPTION ET FABRICATION DE PRODUITS MEDICAUX ET PARAMEDICAUX",
+    "iNOsystems SA",
+    "Episurf Operations AB",
+    "Aesculap AG",
+    "Maquet Cardiopulmonary GmbH",
+    "Philips Medizin Systeme Böblingen GmbH",
+    "Invivo Corporation",
+    "Invivo, a division of Philips Medical Systems",
+    "Philips Healthcare (Suzhou) Co., Ltd.",
+    "Philips Medical Systems DMC GmbH",
+    "BEE Medic GmbH",
+    "Medacta International SA",
+    "Baitella AG",
+    "Philips Medical Systems Nederland B.V.",
+    // --- Jul 2026 audit additions (each verified 100% FP output, zero cross-
+    // company collateral): ---
+    "Dr. Jean Bausch GmbH & Co. KG", // dental articulating papers ('transfer' homonym); NOT Bausch & Lomb
+    "Angelini Pharma Inc.", // ThermaCare heat wraps — proven code-hopper (23.03→23.10/23.04)
+    "RFSU AB",              // contraceptive condoms ≠ 15.16 Urinal-Kondome
+    "Braebon",              // sleep-lab sensors → 21.07.02 magnet
+    "Lifemotion Medical Technology Co., Ltd.", // sleep-lab sensors → 21.07.02 magnet
+    "Itamar Medical Ltd.",  // sleep-lab PAT sensors → 21.07.02 magnet
+    "Maquet Critical Care AB", // ECMO/ICU sensors → 21.07.02 magnet
+    "Becton Dickinson Infusion Therapy Systems Inc.", // IV cannulas; 'Infusion' in company name itself triggers
+    "MANI, INC.",            // vitrectomy trocars — hop chain 03.07→99.30.06
+    "Steeper Group Ltd",     // custom cosmetic prostheses = SVOT/OSM tariff, not keyword-assignable
+    "Oertli-Instrumente AG", // phaco/vitrectomy consoles
+    "Alpha-Bio Tec Ltd",     // dental abutments ('shoulder'/'transfer' homonyms)
+    "Fesia Technology S.L.", // FES neurorehab garments — no MiGeL position
+    "SAM Medical Products",  // emergency-trauma pelvic binders/splints
+    "Dongguan Jiuhui Industrial Limited [EN]", // factory insoles — 26.01.01 requires individual fabrication
+    "Cordis US Corp.",                         // vascular closure — hop 15.11→15.13 foreclosed
+    "Hilotherm GmbH",                          // cold-therapy cuff holders
+    "medK GmbH", // cath-lab inflation devices (hemostasis band ≠ 17.15 Kompressionsbandage)
+    "Silony Medical GmbH", // spinal-surgery instruments ('VERTICALE Cervical' homonym)
+    "BionIT Labs S.r.l.", // myoelectric prosthesis parts ('wrist' homonym)
+];
+
+/// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
+/// (implants / interventional) devices are as a class never self-applied MiGeL
+/// aids. Applied inside `find_best_migel_match` AFTER the curated forced
+/// matches, so a verified pin (e.g. Omnipod 5 patch pumps, which are CLASS_III
+/// closed-loop systems) overrides the coarse gate, while the whole IVD/Class-III
+/// corpus stays immune to heuristic keyword drift.
+pub fn is_metadata_excluded(device_type: &str, risk_class: &str) -> bool {
+    device_type == "IVDR" || device_type == "IVDD" || risk_class == "CLASS_III"
+}
 
 /// English-to-German medical term dictionary for matching products with English-only
 /// descriptions against German MiGeL keywords. When an English term is found in the
 /// product text, its German equivalents are appended to improve matching.
 const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     // Body parts / anatomical regions
-    ("cervical", &["cervikalstuetze", "halskrause", "halswirbelsaeule"]),
-    ("lumbar", &["lumbal", "lendenwirbelsaeule", "lumbalstuetze", "orthese", "stabilisierung"]),
+    (
+        "cervical",
+        &["cervikalstuetze", "halskrause", "halswirbelsaeule"],
+    ),
+    (
+        "lumbar",
+        &[
+            "lumbal",
+            "lendenwirbelsaeule",
+            "lumbalstuetze",
+            "orthese",
+            "stabilisierung",
+        ],
+    ),
     ("lumbo", &["lumbal", "lendenwirbelsaeule", "lumbalstuetze"]),
     ("sacral", &["lendenwirbelsaeule", "lumbalstuetze"]),
     ("abdominal", &["leib", "leibbandage", "rumpf", "bandage"]),
@@ -103,7 +317,10 @@ const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     ("ankle", &["sprunggelenk", "sprunggelenksorthese"]),
     ("wrist", &["handgelenk", "handgelenkorthese"]),
     ("shoulder", &["schulter", "schulterorthese"]),
-    ("clavicle", &["schluesselbein", "schluesselbeinbandage", "rucksackverband"]),
+    (
+        "clavicle",
+        &["schluesselbein", "schluesselbeinbandage", "rucksackverband"],
+    ),
     ("sling", &["schulterorthese"]),
     ("elbow", &["ellenbogen", "ellenbogenorthese"]),
     ("finger", &["finger", "fingerorthese"]),
@@ -154,7 +371,10 @@ const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     ("injection", &["injektion"]),
     ("pump", &["pumpe"]),
     // Ankle/foot
-    ("ankle-foot", &["sprunggelenk", "fussorthese", "unterschenkel"]),
+    (
+        "ankle-foot",
+        &["sprunggelenk", "fussorthese", "unterschenkel"],
+    ),
     ("scoliosis", &["skoliose", "rumpf", "orthesen"]),
     ("scoli", &["skoliose", "rumpf", "orthesen"]),
     ("tlso", &["rumpf", "orthesen", "thorakolumbal"]),
@@ -170,7 +390,10 @@ const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     ("aerosol", &["aerosol", "vernebler"]),
     ("mesh", &["netz"]),
     // Pulse oximeter / spirometer / peak flow → MiGeL 21.01
-    ("oximeter", &["pulsoxymeter", "sauerstoffsaettigung", "pulsmonitor"]),
+    (
+        "oximeter",
+        &["pulsoxymeter", "sauerstoffsaettigung", "pulsmonitor"],
+    ),
     ("oximetry", &["pulsoxymeter", "sauerstoffsaettigung"]),
     ("spirometer", &["spirometriegeraet", "spirometrie"]),
     ("spirometry", &["spirometriegeraet", "spirometrie"]),
@@ -181,9 +404,15 @@ const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     ("stimulation", &["stimulation"]),
     ("electrode", &["elektrode"]),
     ("electrodes", &["elektrode", "elektroden"]),
-    ("neurostimulation", &["elektrode", "stimulation", "neuromuskular", "modulation"]),
+    (
+        "neurostimulation",
+        &["elektrode", "stimulation", "neuromuskular", "modulation"],
+    ),
     ("transcutaneous", &["transkutan", "perkutan"]),
-    ("tens", &["elektrode", "stimulation", "neuromuskular", "modulation"]),
+    (
+        "tens",
+        &["elektrode", "stimulation", "neuromuskular", "modulation"],
+    ),
     ("transcranial", &["transkraniell"]),
     // Cotton / wound care basics
     ("cotton", &["watte", "baumwolle"]),
@@ -206,6 +435,23 @@ const EN_DE_MEDICAL_TERMS: &[(&str, &[&str])] = &[
     ("immobilizer", &["immobilisierung", "orthese"]),
     ("mobilisation", &["mobilisierung", "mobilisation"]),
     ("mobilization", &["mobilisierung", "mobilisation"]),
+    // "Heavy Inco" garments (ESSITY TENA) → 15.01 aufsaugende Inkontinenzhilfen.
+    // Exact-word gate: never fires on "Incorporated"/"incontinence". Pushing
+    // "schwere" biases IDF toward 15.01.02 (schwere Inkontinenz) matching "Heavy".
+    (
+        "inco",
+        &["inkontinenz", "aufsaugende", "hilfsmittel", "schwere"],
+    ),
+    // Respironics InnoSpire nebulizers / LiteTouch aerosol masks (brand-exclusive
+    // tokens; the devices carry no "nebulizer"/"aerosol" text of their own).
+    ("innospire", &["vernebler", "aerosol"]),
+    ("litetouch", &["maske", "aerosol"]),
+    // Petrolatum(-impregnated) gauze → 35.01.02 Imprägnierte Wundkompresse.
+    // Do NOT trigger on "paraffin" (histology-lab FPs: Sakura, VWR).
+    (
+        "petrolatum",
+        &["impraegnierte", "wundkompresse", "nichtklebend"],
+    ),
 ];
 
 /// Enrich text with German translations of English medical terms.
@@ -292,13 +538,12 @@ pub fn enrich_with_german(text: &str) -> String {
     }
     // Shoulder abduction cushions/slings → MiGeL 22.09.03.00.1
     // (Schulterabduktionsorthese / Schulterabduktionskissen)
-    let shoulder_abduction =
-        any_contains("abduktionskissen")
-            || any_contains("schulterkissen")
-            || any_contains("armabduktion")
-            || any_contains("ruthnersling")
-            || ((has("shoulder") || has("schulter"))
-                && (has("abduction") || has("abduktion") || has("pillow")));
+    let shoulder_abduction = any_contains("abduktionskissen")
+        || any_contains("schulterkissen")
+        || any_contains("armabduktion")
+        || any_contains("ruthnersling")
+        || ((has("shoulder") || has("schulter"))
+            && (has("abduction") || has("abduktion") || has("pillow")));
     if shoulder_abduction {
         additions.push("schulterabduktionskissen");
         additions.push("schulterabduktionsorthese");
@@ -334,6 +579,15 @@ pub fn enrich_with_german(text: &str) -> String {
     // Compression garments named "... garment" → region-specific compression
     // codes (17.15 by mass / 05.11 trunk). Requires BOTH 'garment' and a region
     // word so generic apparel cannot trigger it.
+    // Region detection uses "<region> garment" BIGRAMS with precedence
+    // leg > arm/hand > face/head/neck > ear: Macom's deviceName "Leg, Arm and
+    // Ear Garments" contributes bare 'arm'/'leg' words AND the 'ear garment'
+    // bigram to EVERY row, so bare has() region words mis-route (all 116 LA001
+    // rows took the arm branch) and ear must rank lowest. The tradeName carries
+    // the row's true region as a bigram ("Leg Garment" / "Arm Garment" / ...).
+    // Note: "Full Body Garment" rows never reach scoring — no full-body position
+    // exists in MiGeL; they are killed by the ["full body","garment"] universal
+    // exclusion.
     if has("garment") {
         if has("body") || has("trunk") || has("torso") || has("abdominal") {
             // Route torso garments to the serial Leib-/Rumpf-Bandage (05.11.10),
@@ -343,13 +597,22 @@ pub fn enrich_with_german(text: &str) -> String {
             additions.push("leib");
             additions.push("rumpf");
             additions.push("bandage");
-        } else if has("arm") {
-            additions.push("armkompressionsstrumpf");
-            additions.push("kompressionsbandage");
-        } else if has("leg") {
+        } else if lower.contains("leg garment") {
             additions.push("bein");
             additions.push("kompressionsbandage");
-        } else if has("face") || has("head") || has("neck") {
+        } else if lower.contains("arm garment") || lower.contains("hand garment") {
+            additions.push("armkompressionsstrumpf");
+            additions.push("kompressionsbandage");
+        } else if lower.contains("face garment")
+            || lower.contains("head garment")
+            || lower.contains("neck garment")
+            || lower.contains("chin garment")
+        {
+            additions.push("kopf");
+            additions.push("hals");
+            additions.push("kompressionsbandage");
+        } else if lower.contains("ear garment") {
+            // Ear compression garments belong to the Kopf/Hals region family.
             additions.push("kopf");
             additions.push("hals");
             additions.push("kompressionsbandage");
@@ -375,20 +638,124 @@ pub fn enrich_with_german(text: &str) -> String {
         additions.push("aerosol");
     }
     // Ostomy / stoma → Material für Stoma- und Fistelversorgung (29.01).
-    if any_contains("ostomy") || has("colostomy") || has("urostomy") || has("ileostomy") {
+    // "stomabandage" covers German Stomabandagen (Achim Ruthner); Gürtel are
+    // explicitly listed in 29.01.01, and the 05.11 Limitation itself redirects
+    // stoma carriers here. Do NOT use bare "stoma" (substring-hits "Stomach").
+    if any_contains("ostomy")
+        || has("colostomy")
+        || has("urostomy")
+        || has("ileostomy")
+        || any_contains("stomabandage")
+    {
         additions.push("stoma");
         additions.push("fistelversorgung");
     }
-    // Urine / secretion drainage bags → Bein-/Bettbeutel (15.14 / 15.15).
-    // Requires a "bag" token to keep IVD urine analyzers/reagents out.
-    if (has("urine") || has("urinary")) && has("bag") {
+    // Urine / secretion drainage bags → Bein-/Bettbeutel (15.14 / 15.15) plus
+    // their accessory positions. Requires a "bag" token to keep IVD urine
+    // analyzers/reagents out. Rows with no region token default to Bettbeutel
+    // (15.15.x) — verified: all such rows are urine-drainage products.
+    // "leg bag" as a bigram is urology-exclusive, so accessory rows that never
+    // say "urine" ("Leg Bag Sleeve", "Leg Bag Straps") still qualify.
+    let urine_bag = (has("urine") || has("urinary")) && has("bag");
+    let leg_bag = lower.contains("leg bag") || (urine_bag && has("leg"));
+    if urine_bag || leg_bag {
         additions.push("sekret");
         if has("bed") {
             additions.push("bettbeutel");
         }
-        if has("leg") {
+        if leg_bag {
             additions.push("beinbeutel");
+            if has("sleeve") {
+                additions.push("beinbeuteltasche"); // 15.14.99.01.1
+            }
+            if has("strap") || has("straps") {
+                additions.push("haltebaender"); // 15.14.99.02.1 Haltebänder für Urinbeutel
+                additions.push("urinbeutel");
+            }
         }
+        if has("hanger") || has("hangers") {
+            additions.push("halterung"); // 15.15.99.01.1 Halterung/Befestigung für Bettbeutel
+            additions.push("befestigung");
+            additions.push("bettbeutel");
+        }
+        if !has("bed") && !leg_bag && !has("hanger") && !has("hangers") {
+            additions.push("bettbeutel");
+        }
+    }
+    // Insulin pen needles → 03.07.09.16.1 Penkanülen (safety variants may land
+    // on 03.07.09.15.1 Sicherheits-Penkanülen — also correct).
+    if has("pen") && (has("needle") || has("needles")) {
+        additions.push("penkanuelen");
+    }
+    // Insulin disposable syringes → 03.07.10.10.1. Push only the insulin-specific
+    // compound (split_words turns it into insulin + wegwerfspritzen); bare
+    // "wegwerfspritzen" would risk drifting to the generic 03.07.10.15.1.
+    if has("insulin") && (has("syringe") || has("syringes")) {
+        additions.push("insulin-wegwerfspritzen");
+    }
+    // Retail absorbent incontinence products → 15.01. The !fecal guard is
+    // mandatory: fecal-incontinence inserts belong to 15.40 Analtampon (see the
+    // dedicated rule above) and must not be dragged into 15.01.
+    // The German branch (any_contains: "Inkontinenzeinlagen" compounds, HYGA/
+    // TZMO) needs the same pushes — a lone compound-decomposed "inkontinenz"
+    // keyword stays under the single-keyword score threshold.
+    if (has("incontinence") || any_contains("inkontinenz")) && !has("fecal") {
+        additions.push("inkontinenz");
+        additions.push("aufsaugende");
+        additions.push("hilfsmittel");
+    }
+    // CGM stragglers whose text says "Continuous/Flash Glucose Monitoring" but
+    // never "sensor" (SIBIONICS) or that are the reader unit (Abbott Libre).
+    // The gate is tight (glucose AND monitoring AND continuous|flash) so the
+    // pushed "sensoren" cannot re-open the 21.07.02 magnet for non-CGM devices.
+    if has("glucose") && has("monitoring") && (has("continuous") || has("flash")) {
+        if has("reader") {
+            additions.push("lesegeraet"); // 21.07.01.00.1
+        } else {
+            additions.push("sensoren"); // 21.07.02.00.1
+            additions.push("glukose");
+        }
+    }
+    // Breast pumps → 01.01 Milchpumpen (electric vs manual split).
+    if has("breast") && (has("pump") || has("pumps")) {
+        if has("electric") || has("electrical") {
+            additions.push("einzelmilchpumpe"); // 01.01.02.00.1
+            additions.push("elektrisch");
+        } else {
+            additions.push("milchpumpe"); // 01.01.01.00.1
+            additions.push("handbetrieben");
+        }
+    }
+    // Blood-ketone test strips → 21.03.01.03.1 Reagenzträger für
+    // Blutketonbestimmungen. Control solutions are fenced off by the
+    // ("21.03","control solution") negative keyword.
+    if has("ketone") && (has("blood") || has("strip") || has("strips")) {
+        additions.push("blutketonbestimmungen");
+        additions.push("reagenztraeger");
+    }
+    // Simple arm slings → 05.10 Armtraggurten (the exact MiGeL position).
+    // Device texts carry singular "Armtraggurt" or EN "arm sling"; the MiGeL
+    // keyword is the plural "Armtraggurten" which word-level matching never
+    // fires on. Without this, the generic sling→schulterorthese enrichment
+    // mis-codes them to 23.10 Rumpf-Orthesen. armtraggurten's high IDF
+    // (3 MiGeL items) outranks the generic schulterorthese candidates.
+    if any_contains("armtraggurt")
+        || ((has("arm") || any_contains("forearm")) && (has("sling") || has("slings")))
+    {
+        additions.push("armtraggurten");
+    }
+    // Cast / post-OP / offloading shoes sit on 26.01.04 "Spezialschuhe für
+    // Verbände", not "... für Orthesen" (.01). The 'shoe' EN_DE entry already
+    // pushes "spezialschuhe"; adding "verbaende" makes the Verbände sub-position
+    // outrank the Orthesen one. Trigger tokens are Span-Link/Thuasne-exclusive.
+    if (has("shoe") || has("shoes"))
+        && (has("cast")
+            || has("post-op")
+            || has("postop")
+            || any_contains("offloading")
+            || any_contains("podo-med"))
+    {
+        additions.push("verbaende");
     }
 
     if additions.is_empty() {
@@ -716,7 +1083,7 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("26.01", "rahmen"),
     ("26.01", "pflegebett"),
     // --- Hand-Orthesen (23.21) should NOT match dental products ---
-    ("23.21", "gum"),   // dental brand GUM ≠ hand orthosis
+    ("23.21", "gum"), // dental brand GUM ≠ hand orthosis
     // --- Arm-Kompressionsbandage (17.15) should NOT match torso compression
     // bras or powered sequential-compression (DVT) pumps. The unconditional
     // `compression`->`kompressionsbandage` enrichment is the only signal; a bra
@@ -807,42 +1174,78 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("21.07.02", "mainstream"),
     ("21.07.02", "temperature"),
     // --- Smaller targeted collisions ---
-    ("15.16", "male condom"),     // contraceptive condoms ≠ urinal condoms
+    ("15.16", "male condom"), // contraceptive condoms ≠ urinal condoms
     ("15.16", "non-medicated"),
-    ("09.03", "external"),        // standalone AEDs ≠ wearable defibrillator vest
+    ("09.03", "external"), // standalone AEDs ≠ wearable defibrillator vest
     ("09.03", "monitor"),
-    ("09.03", "paper"),           // defibrillator recording paper ≠ defib vest
-    ("09.03", "heartstart"),      // Philips HeartStart AED ≠ wearable defib vest
-    ("09.03", "implantable cardioverter"),  // Boston Sci ICD ≠ wearable defib vest
-    ("09.03", "resynchronization"),         // Boston Sci CRT-D ≠ wearable defib vest
-    ("21.01", "dreamstation"),    // CPAP modem/wifi accessory w/ oximetry ≠ pulse oximeter
-    ("21.07.02", "respiratory effort"),  // Pro-Tech/Respironics PSG sensors ≠ CGM sensor
-    ("21.07.02", "piezo"),        // piezo respiratory-effort sensor ≠ CGM sensor
-    ("21.07.02", "emg"),          // Edan EMG/stimulation monitor sensor ≠ CGM sensor
-    ("21.07.02", "nmt"),          // Edan neuromuscular-transmission sensor ≠ CGM sensor
-    ("21.07.02", "stimulation"),  // Edan EMG/stimulation sensor ≠ CGM sensor
-    ("23", "oximeter"),           // Edan finger/pulse oximeter ≠ finger orthosis (ch.23)
-    ("22", "spo2"),               // MIPM SpO2 finger adapter ≠ finger orthosis (hops 23->22.06)
-    ("23", "spo2"),               // MIPM SpO2 finger adapter ≠ finger orthosis (ch.23)
-    ("23", "table"),              // Pivotal powered treatment table ≠ shoulder orthosis (ch.23)
-    ("03.07", "windel"),          // TZMO Seni diaper "geschlossenes System" ≠ closed infusion system
-    ("03.07", "vorlage"),         // TZMO Seni incontinence Vorlage (Klettverschluss) ≠ infusion-tube fixation
-    ("22", "vorlage"),            // TZMO Seni incontinence brief ≠ orthosis (hops 03.07->22.04); ch.15 Vorlagen kept
-    ("23", "vorlage"),            // TZMO Seni incontinence brief ≠ orthosis; ch.15 Vorlagen kept
-    ("35.05", "bettschutz"),      // TZMO Seni bed underpad ≠ sterile wound superabsorber
-    ("05.11", "abdominal belt"),  // fetal-monitoring CTG belt ≠ Leib-/Rumpf-Bandage
-    ("35.06", "plating"),         // histology silver-plating kit ≠ silver alginate dressing
-    ("05.14", "catheter"),        // SOPHYSA lumbar catheter ≠ Lumbal-Bandage
+    ("09.03", "paper"),      // defibrillator recording paper ≠ defib vest
+    ("09.03", "heartstart"), // Philips HeartStart AED ≠ wearable defib vest
+    ("09.03", "implantable cardioverter"), // Boston Sci ICD ≠ wearable defib vest
+    ("09.03", "resynchronization"), // Boston Sci CRT-D ≠ wearable defib vest
+    ("21.01", "dreamstation"), // CPAP modem/wifi accessory w/ oximetry ≠ pulse oximeter
+    ("21.07.02", "respiratory effort"), // Pro-Tech/Respironics PSG sensors ≠ CGM sensor
+    ("21.07.02", "piezo"),   // piezo respiratory-effort sensor ≠ CGM sensor
+    ("21.07.02", "emg"),     // Edan EMG/stimulation monitor sensor ≠ CGM sensor
+    ("21.07.02", "nmt"),     // Edan neuromuscular-transmission sensor ≠ CGM sensor
+    ("21.07.02", "stimulation"), // Edan EMG/stimulation sensor ≠ CGM sensor
+    ("23", "oximeter"),      // Edan finger/pulse oximeter ≠ finger orthosis (ch.23)
+    ("22", "spo2"),          // MIPM SpO2 finger adapter ≠ finger orthosis (hops 23->22.06)
+    ("23", "spo2"),          // MIPM SpO2 finger adapter ≠ finger orthosis (ch.23)
+    ("23", "table"),         // Pivotal powered treatment table ≠ shoulder orthosis (ch.23)
+    ("03.07", "windel"),     // TZMO Seni diaper "geschlossenes System" ≠ closed infusion system
+    ("03.07", "vorlage"), // TZMO Seni incontinence Vorlage (Klettverschluss) ≠ infusion-tube fixation
+    ("22", "vorlage"), // TZMO Seni incontinence brief ≠ orthosis (hops 03.07->22.04); ch.15 Vorlagen kept
+    ("23", "vorlage"), // TZMO Seni incontinence brief ≠ orthosis; ch.15 Vorlagen kept
+    ("35.05", "bettschutz"), // TZMO Seni bed underpad ≠ sterile wound superabsorber
+    ("05.11", "abdominal belt"), // fetal-monitoring CTG belt ≠ Leib-/Rumpf-Bandage
+    ("35.06", "plating"), // histology silver-plating kit ≠ silver alginate dressing
+    ("05.14", "catheter"), // SOPHYSA lumbar catheter ≠ Lumbal-Bandage
     ("05.14", "katheter"),
-    ("14.01", "fixative"),        // VWR aerosol fixative ≠ Vernebler
-    ("99.30.06", "staender"),     // infusion stands/holders ≠ Schlitzkompresse-Set
+    ("14.01", "fixative"),    // VWR aerosol fixative ≠ Vernebler
+    ("99.30.06", "staender"), // infusion stands/holders ≠ Schlitzkompresse-Set
     ("99.30.06", "halter"),
-    ("03.07", "trocar"),         // surgical trocar kits ≠ infusion sets/stands
+    ("03.07", "trocar"), // surgical trocar kits ≠ infusion sets/stands
     ("99.30.06", "bottle"),
     ("99.30.06", "cuff"),
-    ("22.03", "cadre"),           // walking frame ≠ Fussheber-Orthese
+    ("22.03", "cadre"), // walking frame ≠ Fussheber-Orthese
     ("22.03", "marche"),
     ("01.03", "connection hose"), // suction connection hoses ≠ Spülschlauch
+    // --- Jul 2026 audit additions ---
+    // Margomed gravity IV administration sets ≠ 99.30.06.02.1 (that code requires
+    // a complete sterile home-infusion kit). Deliberately scoped narrow: the
+    // desired hop target IS 03.07.01.* (Infusionsschlauch mit Tropfenregler).
+    ("99.30.06", "margomed"),
+    // Bare FR "gaze" (plain square gauze) ≠ 35.01.12 Augenkompressen (eye-shape
+    // only). Hop to 35.01.01 Falt-/Vlieskompressen is the correct family.
+    ("35.01.12", "gaze"),
+    // Knitted finger sleeves (IVF Hartmann Tricot Fingerling) are a genuine
+    // MiGeL device at 35.01.14.11.1 "Fingerlinge Stoff/Leder" — never an
+    // orthosis. Block the whole 22/23 hop-target family; 35.01.14 stays open.
+    ("22", "fingerling"),
+    ("23", "fingerling"),
+    // Adhesive surgical dressings ≠ 35.07 medical-honey codes (require >60%
+    // Honig). Hop to 35.01.10 Schnellverbände is the correct family.
+    ("35.07", "chirurgical"),
+    ("35.07", "surgical"),
+    ("35.07", "chirurgisch"),
+    // DIN-61634 fixation bandages ≠ 17.30 Kurzzug/Langzug compression bandages
+    // (dimensions don't match). Correct home is 35.01.06 Fixierbinden.
+    ("17.30", "fixierbinde"),
+    // Blister plasters ≠ 35.05 Superabsorber (leak in via the
+    // absorbent→superabsorber enrichment, which must stay — Huizhou Foryou
+    // superabsorbent dressings depend on it).
+    ("35.05", "plaster"),
+    ("35.05", "pflaster"),
+    // Blood-ketone CONTROL solutions ≠ 21.03 Reagenzträger (test strips only).
+    ("21.03", "control solution"),
+    // Plain square gauze ≠ 35.01.05 Stillkompressen (second hop after the
+    // 35.01.12 Augenkompressen block; correct home is 35.01.01 Faltkompressen).
+    ("35.01.05", "gaze"),
+    // Tricot (knitted fabric) finger sleeves belong to 35.01.14.11 Fingerlinge
+    // Stoff/Leder — the .10 Gummi and .12 Netz siblings' shorter keyword lists
+    // otherwise outrank it on the shared "fingerlinge" keyword.
+    ("35.01.14.10", "tricot"),
+    ("35.01.14.12", "tricot"),
 ];
 
 /// Normalize German umlauts so ALL-CAPS text (e.g. ABSAUGGERAETE) matches
@@ -858,16 +1261,26 @@ pub fn normalize_german(text: &str) -> String {
         .replace('Ä', "Ae")
         .replace('Ö', "Oe")
         .replace('Ü', "Ue")
-        .replace('é', "e").replace('É', "E")
-        .replace('è', "e").replace('È', "E")
-        .replace('ê', "e").replace('Ê', "E")
-        .replace('à', "a").replace('À', "A")
-        .replace('â', "a").replace('Â', "A")
-        .replace('ù', "u").replace('Ù', "U")
-        .replace('û', "u").replace('Û', "U")
-        .replace('ô', "o").replace('Ô', "O")
-        .replace('î', "i").replace('Î', "I")
-        .replace('ç', "c").replace('Ç', "C")
+        .replace('é', "e")
+        .replace('É', "E")
+        .replace('è', "e")
+        .replace('È', "E")
+        .replace('ê', "e")
+        .replace('Ê', "E")
+        .replace('à', "a")
+        .replace('À', "A")
+        .replace('â', "a")
+        .replace('Â', "A")
+        .replace('ù', "u")
+        .replace('Ù', "U")
+        .replace('û', "u")
+        .replace('Û', "U")
+        .replace('ô', "o")
+        .replace('Ô', "O")
+        .replace('î', "i")
+        .replace('Î', "I")
+        .replace('ç', "c")
+        .replace('Ç', "C")
 }
 
 /// Extract search keywords from first line of text (min 3 chars).
@@ -944,8 +1357,7 @@ pub fn parse_migel_items(path: &str) -> Result<Vec<MigelItem>, Box<dyn Error>> {
             for i in (1..7).rev() {
                 let val = cell_str(row, i);
                 if !val.is_empty() {
-                    category_texts[i] =
-                        bezeichnung.lines().next().unwrap_or("").trim().to_string();
+                    category_texts[i] = bezeichnung.lines().next().unwrap_or("").trim().to_string();
                     for j in (i + 1)..7 {
                         category_texts[j] = String::new();
                     }
@@ -964,7 +1376,8 @@ pub fn parse_migel_items(path: &str) -> Result<Vec<MigelItem>, Box<dyn Error>> {
             // Category hierarchy keywords (from parent categories, >= 8 chars)
             // e.g., "Injektions- und Infusionsmaterialien" → ["injektions", "infusionsmaterialien"]
             // Only long, specific terms to avoid generic matches
-            let cat_text = category_texts.iter()
+            let cat_text = category_texts
+                .iter()
                 .filter(|t| !t.is_empty())
                 .cloned()
                 .collect::<Vec<_>>()
@@ -1061,7 +1474,9 @@ pub struct MigelSearchIndex {
 }
 
 /// Build an Aho-Corasick search index for fast candidate finding.
-pub fn build_search_index(items: &[MigelItem]) -> Result<MigelSearchIndex, Box<dyn std::error::Error>> {
+pub fn build_search_index(
+    items: &[MigelItem],
+) -> Result<MigelSearchIndex, Box<dyn std::error::Error>> {
     // Build inverted index: keyword → item indices
     let mut keyword_to_items: HashMap<String, Vec<usize>> = HashMap::new();
     for (i, item) in items.iter().enumerate() {
@@ -1148,11 +1563,13 @@ const COMPOUND_PREFIXES: &[(&str, usize)] = &[
     // Body-part orthosis compounds: German products name the body part as a
     // compound prefix (Knieschiene → knie + schiene), which the suffix path
     // does not catch. min-remainder 6 ("schiene"=7) prevents false splits.
-    ("knie", 6),         // Knieschiene → knie + schiene
-    ("ellenbogen", 6),   // Ellenbogenschiene → ellenbogen + schiene
-    ("sprunggelenk", 6), // Sprunggelenkorthese → sprunggelenk + orthese
-    ("unterschenkel", 6),// Unterschenkelorthese → unterschenkel + orthese
-    ("finger", 6),       // Fingerschiene → finger + schiene
+    ("knie", 6),          // Knieschiene → knie + schiene
+    ("ellenbogen", 6),    // Ellenbogenschiene → ellenbogen + schiene
+    ("sprunggelenk", 6),  // Sprunggelenkorthese → sprunggelenk + orthese
+    ("unterschenkel", 6), // Unterschenkelorthese → unterschenkel + orthese
+    ("finger", 6),        // Fingerschiene → finger + schiene
+    ("inkontinenz", 6),   // Inkontinenzeinlage → inkontinenz + einlage (all
+                          // 'inkontinenz' compounds DB-wide are genuine products)
 ];
 
 /// Try to decompose a German compound word into known prefix + remainder.
@@ -1224,10 +1641,13 @@ fn keyword_score(
     idf: &HashMap<String, f64>,
 ) -> (f64, usize, usize, f64) {
     let total_len: f64 = keywords.iter().map(|k| k.len() as f64).sum();
-    let total_idf: f64 = keywords.iter().map(|k| {
-        let idf_w = idf.get(k.as_str()).copied().unwrap_or(1.0);
-        k.len() as f64 * idf_w
-    }).sum();
+    let total_idf: f64 = keywords
+        .iter()
+        .map(|k| {
+            let idf_w = idf.get(k.as_str()).copied().unwrap_or(1.0);
+            k.len() as f64 * idf_w
+        })
+        .sum();
     if total_len == 0.0 {
         return (0.0, 0, 0, 0.0);
     }
@@ -1247,7 +1667,11 @@ fn keyword_score(
         }
     }
     let score = matched_len / total_len;
-    let idf_score = if total_idf > 0.0 { matched_idf / total_idf } else { 0.0 };
+    let idf_score = if total_idf > 0.0 {
+        matched_idf / total_idf
+    } else {
+        0.0
+    };
     (score, max_matched_len, matched_count, idf_score)
 }
 
@@ -1320,6 +1744,29 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // for Gram staining, Lactophenol blue for staining fungi) are IVD lab solutions,
     // never a MiGeL blocker/irrigation solution. "staining" never denotes a MiGeL device.
     &["staining"],
+    // --- Jul 2026 audit additions ---
+    // Macom "Full Body Garment" post-liposuction suits: no Ganzkörper position
+    // exists anywhere in MiGeL; the garment region routing would otherwise pull
+    // them into 05.11 Leib-/Rumpf-Bandage. Region-specific garments unaffected.
+    &["full body", "garment"],
+    // OBA foam positioning aids ≠ 17.30.15 Pelotte (Schaumstoff homonym). OBA
+    // itself stays unexcluded — it has genuine nebulizer matches.
+    &["positionierungshilfe", "schaumstoff"],
+    // Cervical/lumbar traction devices (Aspen ComforTrac): MiGeL has zero
+    // traction positions; a chapter-scoped block would hop via the body-part
+    // enrichment. ('extraction' bleed only touches surgical rows — harmless.)
+    &["traction"],
+    // Phlebotomy chairs ('Entnahmestuhl' shares the 'entnahme' compound
+    // fragment with 03.07 Entnahmespike).
+    &["entnahmestuhl"],
+    // Reusable hot/cold gel compresses: genuine MiGeL 16.01 positions exist,
+    // but the matcher has no ch.16 path today and the FR 'cheville' keyword
+    // mis-routes them to 05.02. LIFT this exclusion if a 16.01 recall rule is
+    // ever added.
+    &["hot", "cold"],
+    // Orthobroker LSO spare front panels ≠ 05.14 Lumbal-Bandage. The 'lumbo'
+    // AND-term protects Aspen's 9 correct "COLLAR FRONT PANEL" rows.
+    &["front panel", "lumbo"],
 ];
 
 /// Check if a product is universally excluded from all MiGeL matching.
@@ -1342,6 +1789,136 @@ fn is_excluded_by_negative_keywords(combined_text: &str, migel_code: &str) -> bo
     false
 }
 
+/// Accessory stop-list for the Respironics home-ventilator forced matches:
+/// circuits, tubing, humidifiers, stands etc. are accessories, not the
+/// rentable 14.12.02 base unit.
+const VENT_ACCESSORY_STOPS: &[&str] = &[
+    "cable",
+    "case",
+    "bag",
+    "stand",
+    "battery",
+    "mount",
+    "power supply",
+    "nurse call",
+    "adapter",
+    "adaptor",
+    "circ",
+    "tubing",
+    "humidifier",
+    "accessor",
+    "filter",
+    "mask",
+];
+
+/// Accessory stop-list for the Respironics PAP (CPAP/BiPAP) forced matches.
+/// Must cover the same accessory classes as the ventilator list: a row vetoed
+/// by a specific rule (e.g. "bipap a40" + circuit) falls through to the later
+/// bare-"bipap" rule, so the stop tokens have to hold there too. "circ" covers
+/// circuit/circuits and the abbreviated "Disp Circ".
+const PAP_ACCESSORY_STOPS: &[&str] = &[
+    "cable",
+    "cord",
+    "stand",
+    "battery",
+    "modem",
+    "wi-fi",
+    "wifi",
+    "case",
+    "serial",
+    "spo2",
+    "link",
+    "circ",
+    "tubing",
+    "humidifier",
+    "accessor",
+    "filter",
+    "mask",
+];
+
+/// Curated recall rules: (all_of, none_of, position_nr).
+/// If a product's RAW combined text (pre-enrichment, normalized + lowercased,
+/// including the company name) contains every `all_of` substring and none of
+/// the `none_of` substrings, the row is pinned directly to `position_nr`,
+/// bypassing keyword scoring. First matching rule wins, so order matters
+/// (e.g. "bipap a30/a40" ventilators before the bare "bipap" PAP rule).
+///
+/// This is the recall-side counterpart of UNIVERSAL_EXCLUSIONS: use it for
+/// verified brand/category-exclusive tokens where the heuristic scorer cannot
+/// reach the correct position — either because the MiGeL Bezeichnung is too
+/// verbose (score dilution: "Krücken für Erwachsene, ergonomischer Griff"
+/// leaves any single matched keyword under the 0.5 threshold) or because IDF
+/// ranking would drift to a sibling code. Every trigger below was verified
+/// against the full UDI corpus to hit only the intended rows.
+const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
+    // GCE MediSelect II / MediReg II medical-O2 cylinder regulators (brand-
+    // exclusive tokens; GCE's MediConnect/Medimeter hospital-pipeline lines
+    // don't carry them). Rental position incl. maintenance.
+    (&["mediselect"], &[], "14.10.42.00.2"),
+    (&["medireg"], &[], "14.10.42.00.2"),
+    // German crutches ("Unterarmgehstützen", REBOTEC): MiGeL Bezeichnung says
+    // only "Krücken", so no organic keyword path exists.
+    (&["gehstuetze"], &[], "10.01.01.00.1"),
+    // Corrective contact lenses → 25.01.01 Brillen/Kontaktlinsen (chapter 25
+    // has no organic keyword path). Bigram/substring never matches accessories
+    // (solutions, cases) — verified corpus-wide.
+    (&["contact lens"], &[], "25.01.01.00.1"),
+    (&["kontaktlinse"], &[], "25.01.01.00.1"),
+    // Respironics home ventilators → 14.12.02 Heimbeatmungsgerät, Miete.
+    // The Bezeichnung compound "Heimbeatmungsgerät" is unreachable via the
+    // ventilator→beatmungsgeraet enrichment. MUST come before the PAP rules:
+    // "BiPAP A30/A40" are ventilators, bare "bipap" is a PAP device.
+    (&["trilogy"], VENT_ACCESSORY_STOPS, "14.12.02.00.2"),
+    (&["garbin"], VENT_ACCESSORY_STOPS, "14.12.02.00.2"),
+    (&["bipap a30"], VENT_ACCESSORY_STOPS, "14.12.02.00.2"),
+    (&["bipap a40"], VENT_ACCESSORY_STOPS, "14.12.02.00.2"),
+    (
+        &["ventilator", "respironics"],
+        VENT_ACCESSORY_STOPS,
+        "14.12.02.00.2",
+    ),
+    // Respironics PAP devices. AutoSV = servo-ventilation (14.11.03); all other
+    // brand-token rows are CPAP/BiPAP base units with humidification (14.11.02).
+    // All trigger tokens verified Respironics-exclusive corpus-wide.
+    (&["autosv"], PAP_ACCESSORY_STOPS, "14.11.03.00.2"),
+    (&["dreamstation"], PAP_ACCESSORY_STOPS, "14.11.02.00.2"),
+    (&["system one"], PAP_ACCESSORY_STOPS, "14.11.02.00.2"),
+    (&["remstar"], PAP_ACCESSORY_STOPS, "14.11.02.00.2"),
+    (&["dorma"], PAP_ACCESSORY_STOPS, "14.11.02.00.2"),
+    (&["bipap"], PAP_ACCESSORY_STOPS, "14.11.02.00.2"),
+    // MIR handheld spirometers → 21.01.15 Portables Spirometriegerät (score
+    // dilution: "Portables Spirometriegerät (inkl. Mundstück)"). "spirometer"
+    // as substring misses accessory rows (they say "spirometry"); the
+    // "smart one" bigram is guarded against ostomy "one-piece" products.
+    (&["spirobank"], &[], "21.01.15.00.1"),
+    (&["spirometer"], &[], "21.01.15.00.1"),
+    (&["smart one"], &["piece"], "21.01.15.00.1"),
+    // Insulet Omnipod patch pumps → 03.02.01 Insulinpumpen-System (Bezeichnung
+    // explicitly anticipates patch pumps; PodPals overlays never carry the token).
+    (&["omnipod"], &[], "03.02.01.00.2"),
+    // SIGVARIS Doff'N Donner donning aid → 17.12.01.01.1 Rollmanschetten.
+    (&["doff"], &[], "17.12.01.01.1"),
+];
+
+/// Check the curated forced-match rules against the raw (pre-enrichment)
+/// combined text. Returns the pinned MiGeL item if a rule fires and its
+/// position exists in the current XLSX (else falls through to the heuristic).
+fn find_forced_match<'a>(
+    raw_combined: &str,
+    migel_items: &'a [MigelItem],
+) -> Option<&'a MigelItem> {
+    for &(all_of, none_of, position_nr) in FORCED_MATCHES {
+        if all_of.iter().all(|t| raw_combined.contains(t))
+            && !none_of.iter().any(|t| raw_combined.contains(t))
+        {
+            if let Some(item) = migel_items.iter().find(|m| m.position_nr == position_nr) {
+                return Some(item);
+            }
+        }
+    }
+    None
+}
+
 /// Find the best-matching MiGeL item for a product.
 /// CRITICAL: Each language's keywords are scored ONLY against the same language's
 /// product description. This prevents cross-language false positives (e.g.,
@@ -1351,9 +1928,27 @@ pub fn find_best_migel_match<'a>(
     desc_fr: &str,
     desc_it: &str,
     brand: &str,
+    device_type: &str,
+    risk_class: &str,
     migel_items: &'a [MigelItem],
     search_index: &MigelSearchIndex,
 ) -> Option<&'a MigelItem> {
+    // Step -1: curated forced matches on the RAW text (pre-enrichment, so the
+    // rules can't be triggered by enrichment side effects). Highest priority:
+    // these are verified brand/category-exclusive pins and deliberately outrank
+    // the metadata gate below (e.g. Omnipod 5 is CLASS_III yet genuine MiGeL).
+    let raw_combined =
+        normalize_german(&format!("{} {} {} {}", desc_de, desc_fr, desc_it, brand)).to_lowercase();
+    if let Some(item) = find_forced_match(&raw_combined, migel_items) {
+        return Some(item);
+    }
+
+    // Step -0.5: hard metadata gate — IVD and Class III devices never reach
+    // the heuristic matcher, immunizing them against keyword drift.
+    if is_metadata_excluded(device_type, risk_class) {
+        return None;
+    }
+
     // Enrich with German translations of English medical terms before normalizing
     let de_enriched = enrich_with_german(&format!("{} {}", desc_de, brand));
     let de_lower = normalize_german(&de_enriched).to_lowercase();
@@ -1404,7 +1999,8 @@ pub fn find_best_migel_match<'a>(
             }
 
             let idf = &search_index.idf_weights;
-            let (score_de, max_len_de, count_de, idf_de) = keyword_score(&de_words, &item.keywords_de, true, true, idf);
+            let (score_de, max_len_de, count_de, idf_de) =
+                keyword_score(&de_words, &item.keywords_de, true, true, idf);
             let (score_fr, max_len_fr, count_fr, idf_fr) = if fr_is_distinct {
                 keyword_score(&fr_words, &item.keywords_fr, false, false, idf)
             } else {
@@ -1456,10 +2052,10 @@ pub fn find_best_migel_match<'a>(
                 (score_fr, max_fr, total_fr),
                 (score_it, max_it, total_it),
             ]
-                .iter()
-                .copied()
-                .max_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal))
-                .unwrap_or((0.0, 0, 0));
+            .iter()
+            .copied()
+            .max_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal))
+            .unwrap_or((0.0, 0, 0));
 
             // Best IDF score across languages (for ranking among passing candidates)
             // Category IDF bonus rewards matches where product text aligns with
@@ -1471,10 +2067,7 @@ pub fn find_best_migel_match<'a>(
             // A product named "Katheterventil" matching MiGeL "Katheterventil" gets
             // high coverage (1.0), while a 30-word surgical instrument description
             // matching one keyword gets low coverage (~0.03).
-            let significant_words = de_words.iter()
-                .filter(|w| w.len() >= 4)
-                .count()
-                .max(1) as f64;
+            let significant_words = de_words.iter().filter(|w| w.len() >= 4).count().max(1) as f64;
             let coverage = best_count as f64 / significant_words;
             let best_idf = best_idf + coverage * 0.3;
 
@@ -1514,13 +2107,91 @@ pub fn find_best_migel_match<'a>(
         })
         .collect::<Vec<_>>();
 
-    // Sort by IDF score descending, then max_len descending
+    // Sort by IDF score descending, then max_len descending, then position_nr
+    // ascending. The final tiebreak is essential for determinism: candidates
+    // come from a HashSet, so exact score ties (common between sibling
+    // positions like Kauf/Miete variants) would otherwise flip randomly
+    // between runs, producing phantom diffs in the daily output.
     passing.sort_by(|a, b| {
         b.1.partial_cmp(&a.1)
             .unwrap_or(std::cmp::Ordering::Equal)
             .then(b.2.cmp(&a.2))
+            .then(
+                migel_items[a.0]
+                    .position_nr
+                    .cmp(&migel_items[b.0].position_nr),
+            )
     });
 
     // Return the best-ranked candidate
     passing.first().map(|&(idx, _, _, _)| &migel_items[idx])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Golden-set regression test: 279 rows sampled from the audited &
+    /// verified 02.07.2026 matcher output (2 exemplars per company × code
+    /// family), plus every adversarially-confirmed false-positive cluster as
+    /// expected-NONE, the excluded-company list, deliberate never-match
+    /// exemplars (hearing aids, surgical, dental, imaging, IVD, stents, MRI
+    /// coils), and the curated forced-match pins. Runs against the pinned
+    /// MiGeL XLSX in tests/fixtures/ so BAG list updates can't shift results.
+    ///
+    /// GTIN-override-layer rows (SIGVARIS shop DB) are deliberately absent —
+    /// they never reach `find_best_migel_match`.
+    ///
+    /// If this test fails after an intentional rule change: inspect every
+    /// listed row, confirm each delta is intended, and regenerate the fixture
+    /// from a verified run.
+    #[test]
+    fn golden_set() {
+        let xlsx = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/migel.xlsx");
+        let items = parse_migel_items(xlsx).expect("parse pinned MiGeL XLSX fixture");
+        let index = build_search_index(&items).expect("build search index");
+        let tsv = include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/golden_set.tsv"
+        ));
+
+        let mut failures: Vec<String> = Vec::new();
+        let mut total = 0;
+        for line in tsv.lines().skip(1) {
+            if line.trim().is_empty() {
+                continue;
+            }
+            let f: Vec<&str> = line.split('\t').collect();
+            assert!(f.len() >= 8, "malformed golden row: {}", line);
+            let (de, fr, it, brand, dtype, risk, expected, note) =
+                (f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]);
+            total += 1;
+
+            // Replicate the company-exclusion gate applied by run_migel/gui
+            // before the matcher is invoked.
+            let got_code = if EXCLUDED_COMPANIES.contains(&brand) {
+                "NONE".to_string()
+            } else {
+                find_best_migel_match(de, fr, it, brand, dtype, risk, &items, &index)
+                    .map(|m| m.position_nr.clone())
+                    .unwrap_or_else(|| "NONE".to_string())
+            };
+
+            if got_code != expected {
+                let snippet: String = de.chars().take(90).collect();
+                failures.push(format!(
+                    "[{}] brand={} expected={} got={} | {}",
+                    note, brand, expected, got_code, snippet
+                ));
+            }
+        }
+
+        assert!(
+            failures.is_empty(),
+            "{} of {} golden rows failed:\n{}",
+            failures.len(),
+            total,
+            failures.join("\n")
+        );
+    }
 }
