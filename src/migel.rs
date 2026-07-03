@@ -705,16 +705,22 @@ pub fn enrich_with_german(text: &str) -> String {
     // Mehrweg-Inkontinenzprodukte, inklusive Unterlagen und Fixierhosen").
     // The ch.03.07/22/23 "vorlage" negative keywords remain as fences against
     // the historical orthosis hops.
-    // "seni active" (bigram): TZMO's pull-up incontinence pants carry no
-    // category token at all ("Seni Active Plus XXL atmungsaktiv") — brand
-    // line verified TZMO-exclusive corpus-wide (25 rows). Maintainer call
-    // 02.07.2026, not audit-verified.
+    // "seni" (brand token): TZMO's entire Seni line is incontinence — pull-up
+    // pants ("Seni Active Plus XXL atmungsaktiv"), anatomical pads ("Seni Lady
+    // Slim Micro, atmungsaktive, anatomische Einlage"), night pads ("Seni Lady
+    // Super Night") and bed underpads ("Seni Soft Super Dry Bettschutzunterlage")
+    // carry no shared category token, so key on the brand. Verified
+    // TZMO-exclusive corpus-wide: 117 rows, zero collisions (no "senior"/
+    // substring hits anywhere). All land 15.01.03 (chapter text covers pads,
+    // Fixierhosen AND "Unterlagen"). Supersedes the earlier "seni active"
+    // bigram. Maintainer call 03.07.2026 (includes Super Night + Bettschutz-
+    // unterlage, previously left out by design).
     if (has("incontinence")
         || any_contains("inkontinenz")
         || any_contains("windelhose")
         || any_contains("vorlage")
         || any_contains("fixierhose")
-        || lower.contains("seni active"))
+        || lower.contains("seni"))
         && !has("fecal")
     {
         additions.push("inkontinenz");
@@ -2221,7 +2227,7 @@ pub fn find_best_migel_match<'a>(
 mod tests {
     use super::*;
 
-    /// Golden-set regression test: 279 rows sampled from the audited &
+    /// Golden-set regression test: ~310 rows sampled from the audited &
     /// verified 02.07.2026 matcher output (2 exemplars per company × code
     /// family), plus every adversarially-confirmed false-positive cluster as
     /// expected-NONE, the excluded-company list, deliberate never-match
