@@ -312,8 +312,9 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     }
 
-    // 6. Write matched rows to SQLite
-    let db_filename = output_db("swissdamed_migel")?;
+    // 6. Write matched rows to SQLite (stable filename, overwritten each run —
+    //    no longer one dated DB per day)
+    let db_filename = output_db_fixed("swissdamed_migel")?;
     write_sqlite(&migel_headers, &matched_rows, &db_filename)?;
     eprintln!("SQLite written: {}", db_filename);
 

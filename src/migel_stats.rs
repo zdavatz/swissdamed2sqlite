@@ -555,7 +555,8 @@ pub fn generate(
     Ok(out_path)
 }
 
-/// Find the latest swissdamed_migel_*.db and swissdamed_<date>.db in the
+/// Find the MiGeL match DB (fixed `swissdamed_migel.db`, or a legacy dated
+/// `swissdamed_migel_*.db`) and the latest full `swissdamed_<date>.db` in the
 /// app data dir's `db/` subdirectory.
 pub fn find_latest_dbs(db_dir: &Path) -> (Option<PathBuf>, Option<PathBuf>) {
     let mut migel_dbs: Vec<PathBuf> = Vec::new();
@@ -564,7 +565,8 @@ pub fn find_latest_dbs(db_dir: &Path) -> (Option<PathBuf>, Option<PathBuf>) {
         for e in entries.flatten() {
             let name = e.file_name().to_string_lossy().into_owned();
             if name.ends_with(".db") {
-                if name.starts_with("swissdamed_migel_") {
+                if name == "swissdamed_migel.db" || name.starts_with("swissdamed_migel_") {
+                    // Fixed name (current) OR legacy dated files (backward compat)
                     migel_dbs.push(e.path());
                 } else if name.starts_with("swissdamed_")
                     && name

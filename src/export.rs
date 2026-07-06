@@ -26,6 +26,18 @@ pub fn output_db(name: &str) -> Result<String, Box<dyn std::error::Error>> {
         .to_string())
 }
 
+/// Like [`output_db`] but without the date stamp — a stable filename that is
+/// overwritten on each run (used for the MiGeL match DB so it no longer
+/// accumulates one file per day).
+pub fn output_db_fixed(name: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let dir = app_data_dir().join("db");
+    fs::create_dir_all(&dir)?;
+    Ok(dir
+        .join(format!("{}.db", name))
+        .to_string_lossy()
+        .to_string())
+}
+
 pub fn write_csv(
     headers: &[String],
     rows: &[Vec<String>],
