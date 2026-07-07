@@ -278,6 +278,72 @@ fn default_caption() -> String {
         .to_string()
 }
 
+/// Pull the `urn:li:…` identifier out of either a bare URN or a full feed URL
+/// (`https://www.linkedin.com/feed/update/urn:li:share:123.../`). The URN runs
+/// from `urn:li:` until the next `/`, `?`, whitespace, or end of string.
+fn extract_urn(s: &str) -> Option<String> {
+    let start = s.find("urn:li:")?;
+    let tail = &s[start..];
+    let end = tail
+        .find(|c: char| c == '/' || c == '?' || c.is_whitespace())
+        .unwrap_or(tail.len());
+    Some(tail[..end].to_string())
+}
+
+/// Percent-encode a URN for use as a REST path segment (the `:` separators
+/// become `%3A`). Only RFC 3986 unreserved bytes pass through unescaped.
+fn percent_encode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 8);
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                out.push(b as char)
+            }
+            _ => out.push_str(&format!("%{:02X}", b)),
+        }
+    }
+    out
+}
+
+/// Delete a previously published LinkedIn post via the Posts API.
+///
+/// `post_ref` may be a bare post URN (`urn:li:share:…` / `urn:li:ugcPost:…`)
+/// or a full feed URL — the URN is extracted either way. The authenticated
+/// member must be the post's author (uses the same token as [`publish_image`]).
+pub fn delete_post(post_ref: &str) -> Result<(), Box<dyn Error>> {
+    let urn = extract_urn(post_ref)
+        .ok_or_else(|| format!("no 'urn:li:…' found in {:?}", post_ref))?;
+
+    let (creds_path, creds) = load_credentials()?;
+    eprintln!("[linkedin] Using credentials: {}", creds_path.display());
+    let (token_path, token) = load_token()?;
+
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(120))
+        .build()?;
+    let token = refresh_token(&client, &creds, &token, &token_path);
+    let auth = format!("Bearer {}", token.access_token);
+
+    let url = format!(
+        "https://api.linkedin.com/rest/posts/{}",
+        percent_encode(&urn)
+    );
+    eprintln!("[linkedin] Deleting {}", urn);
+    let resp = client
+        .delete(&url)
+        .header("Authorization", &auth)
+        .header("LinkedIn-Version", LINKEDIN_VERSION)
+        .header("X-Restli-Protocol-Version", "2.0.0")
+        .send()?;
+    let status = resp.status();
+    if status.is_success() {
+        eprintln!("[linkedin] Deleted {}", urn);
+        return Ok(());
+    }
+    let body = resp.text().unwrap_or_default();
+    Err(format!("delete failed ({}): {}", status, body).into())
+}
+
 /// Upload the given PNG to LinkedIn as an image post.
 pub fn publish_image(png_path: &Path, migel_db: &Path) -> Result<String, Box<dyn Error>> {
     let (creds_path, creds) = load_credentials()?;

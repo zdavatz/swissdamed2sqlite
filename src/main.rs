@@ -210,6 +210,12 @@ pub struct Args {
     /// After generating the MiGeL stats PNG, publish it to X / Twitter
     #[arg(long)]
     pub twitter: bool,
+
+    /// Delete a previously published LinkedIn post. Accepts a bare post URN
+    /// (urn:li:share:… / urn:li:ugcPost:…) or a full feed URL. Runs standalone
+    /// (no download/match) and exits.
+    #[arg(long, value_name = "URN_OR_URL")]
+    pub linkedin_delete: Option<String>,
 }
 
 // --- Main ---
@@ -266,6 +272,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --sigvaris-shop mode (scrape shop.sigvaris.com, build override DB)
     if args.sigvaris_shop {
         return sigvaris_shop::run();
+    }
+
+    // Handle --linkedin-delete mode (delete a post, no download/render)
+    if let Some(ref post_ref) = args.linkedin_delete {
+        linkedin::delete_post(post_ref)?;
+        return Ok(());
     }
 
     // Handle --migel-stats mode (render PNG from existing DBs, no download)
