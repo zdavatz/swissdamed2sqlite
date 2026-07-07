@@ -281,6 +281,7 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "ZimVie US Corp LLC", // dental/spine implants ('Transfer Screws' → 03.07.09.20 Transfer-Set)
     "Gauthier Biomedical, Inc.", // surgical instruments ('Cervical'/'Lumbar' probes → ch.22 orthoses)
     "Ultradent Products, Inc.", // dental ('Valo' curing light → 23.21.01 Hand-Orthese)
+    "Braemer Manufacturing LLC", // cardiac Holter monitors (ePatch ECG Recorder → 21.07.02 CGM-Sensoren magnet)
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
