@@ -113,23 +113,30 @@ pub fn read_stats(migel_db: &Path, full_db: Option<&Path>) -> Result<Stats, Box<
         top_categories.push((bez, cnt, companies));
     }
 
-    let total_products = match full_db {
-        Some(p) => {
-            let conn2 = Connection::open(p)?;
-            conn2
-                .query_row("SELECT COUNT(*) FROM swissdamed", [], |r| r.get(0))
-                .unwrap_or(0)
-        }
-        None => conn
-            .query_row(
-                "SELECT value FROM meta WHERE key = 'total_products'",
-                [],
-                |r| r.get::<_, String>(0),
-            )
-            .ok()
-            .and_then(|s| s.parse::<i64>().ok())
-            .unwrap_or(0),
-    };
+    // Prefer the matcher's own recorded corpus size (meta.total_products) — it
+    // is exactly the number of rows the matcher ran against on the last --migel
+    // run. The dated full-product DB is only a fallback: it is NOT regenerated
+    // on every --migel run, so counting a stale one (e.g. an old 49k-row DB
+    // against today's 92k corpus) would nearly double the reported match %.
+    // Fall back to the full DB row count only when the meta row is missing.
+    let total_products = conn
+        .query_row(
+            "SELECT value FROM meta WHERE key = 'total_products'",
+            [],
+            |r| r.get::<_, String>(0),
+        )
+        .ok()
+        .and_then(|s| s.parse::<i64>().ok())
+        .filter(|&n| n > 0)
+        .or_else(|| {
+            full_db.and_then(|p| {
+                Connection::open(p)
+                    .ok()?
+                    .query_row("SELECT COUNT(*) FROM swissdamed", [], |r| r.get(0))
+                    .ok()
+            })
+        })
+        .unwrap_or(0);
 
     let override_matched: i64 = conn
         .query_row(

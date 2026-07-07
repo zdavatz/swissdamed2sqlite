@@ -275,9 +275,6 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         let migel_db = migel_db
             .ok_or_else(|| format!("No swissdamed_migel_*.db found in {}", db_dir.display()))?;
         eprintln!("Reading from {}", migel_db.display());
-        if let Some(ref p) = full_db {
-            eprintln!("Total products from {}", p.display());
-        }
         let png_dir = app_data_dir().join("png");
         let png_path = migel_stats::generate(&migel_db, full_db.as_deref(), &png_dir)?;
         if args.linkedin {
