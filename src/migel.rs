@@ -282,6 +282,7 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Gauthier Biomedical, Inc.", // surgical instruments ('Cervical'/'Lumbar' probes → ch.22 orthoses)
     "Ultradent Products, Inc.", // dental ('Valo' curing light → 23.21.01 Hand-Orthese)
     "Braemer Manufacturing LLC", // cardiac Holter monitors (ePatch ECG Recorder → 21.07.02 CGM-Sensoren magnet)
+    "ANEUVO", // non-invasive nerve-stimulation system (ExaStim → 17.30.15 Pelotte Schaumstoff)
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1300,6 +1301,24 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // otherwise outrank it on the shared "fingerlinge" keyword.
     ("35.01.14.10", "tricot"),
     ("35.01.14.12", "tricot"),
+    // --- Jul 10 2026 daily additions ---
+    // Dental endodontic "absorbent paper points" (DIADENT et al.) leak into
+    // 35.05.05 Superabsorber via the bare absorbent→superabsorber enrichment
+    // (needed for Huizhou Foryou "Super absorbent dressing"). A paper point is
+    // a root-canal drying cone, never a wound superabsorber.
+    ("35.05", "paper point"),
+    // First-aid "Absorbent Non-Woven Compress" (GAUKE) ≠ 35.05.05 Superabsorber
+    // (that code is a sterile SAP-core wound pad). Huizhou's genuine
+    // "Super absorbent dressing" has no "compress" token, so it is untouched;
+    // correct home for a plain non-woven compress is 35.01 Vlieskompresse.
+    ("35.05", "non-woven compress"),
+    // Surgical endoscopic nebulizers (Capnopharm CapnoPen, a PIPAC intraperitoneal
+    // aerosol device) ≠ 14.01 respiratory Vernebler zu Aerosol-Apparat.
+    ("14.01", "endoscopic"),
+    ("14.01", "endoskop"),
+    // Temperature sensors (AFERETICA apheresis "Sensore Temperatura", et al.)
+    // ≠ 21.07.02 CGM-Sensoren magnet. Substring covers temperature/temperatura.
+    ("21.07.02", "temperatur"),
 ];
 
 /// Normalize German umlauts so ALL-CAPS text (e.g. ABSAUGGERAETE) matches
@@ -1916,8 +1935,11 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // Corrective contact lenses → 25.01.01 Brillen/Kontaktlinsen (chapter 25
     // has no organic keyword path). Bigram/substring never matches accessories
     // (solutions, cases) — verified corpus-wide.
-    (&["contact lens"], &[], "25.01.01.00.1"),
-    (&["kontaktlinse"], &[], "25.01.01.00.1"),
+    // none_of excludes ophthalmologists' diagnostic gonioscopy/slit-lamp lenses
+    // (Haag-Streit "Diagnostic Contact Lens") — those are instruments, not the
+    // corrective vision aids MiGeL 25.01.01 covers.
+    (&["contact lens"], &["diagnostic", "gonio"], "25.01.01.00.1"),
+    (&["kontaktlinse"], &["diagnostik", "gonio"], "25.01.01.00.1"),
     // Respironics home ventilators → 14.12.02 Heimbeatmungsgerät, Miete.
     // The Bezeichnung compound "Heimbeatmungsgerät" is unreachable via the
     // ventilator→beatmungsgeraet enrichment. MUST come before the PAP rules:
@@ -1999,6 +2021,15 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
         &["human motion", "first aid", "yano", "gehwagen", "rollator", "gehgestell", "walking frame"],
         "22.02.04.00.1",
     ),
+    // --- Jul 10 2026 (intra-day) ---
+    // Tobler & Co. "Trikotschlauch elastisch" = a knitted, stretchable tubular
+    // stockinette bandage → 35.01.08 Schlauchverbände ("Gestrickte, dehnbare
+    // Schlauchverbände zum Einmalgebrauch"). Without the pin it scores on the bare
+    // shared word "elastisch" and mis-routes to 05.20.04 "Tape elastisch" (adhesive
+    // kinesio tape — a different product). "trikotschlauch" is Tobler-exclusive
+    // corpus-wide (19 rows, incl. the "(BW/KZ)" cotton/short-stretch variant); the
+    // rows carry no width, so pin the family base position (2 cm) as representative.
+    (&["trikotschlauch"], &[], "35.01.08.01.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
