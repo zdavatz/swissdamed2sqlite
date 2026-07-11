@@ -238,6 +238,11 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // CONCEPTION ET FABRICATION = dental products; iNOsystems = nitric-oxide
     // delivery hardware.
     "Diacor Inc",
+    // Etac Immedia A/S = patient-transfer/positioning aids (slide sheets, transfer
+    // mattress, positioning cushions) — same class as Diacor. All 3 corpus rows are
+    // non-Pflichtleistung; "TransferMattress" was mis-matching 03.07.09.20 "Transfer-Set"
+    // (an *insulin-pump* transfer set) on the bare "transfer" homonym (added 11.07.2026).
+    "Etac Immedia A/S",
     "SOMNOmedics AG",
     "Accuratus AG",
     "ATMOS MedizinTechnik GmbH & Co. KG",
