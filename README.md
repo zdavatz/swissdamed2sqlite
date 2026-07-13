@@ -194,7 +194,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 
 ### MiGeL Matching Results
 
-![MiGeL Matching Stats](png/swissdamed_migel_stats_22h19.13.07.2026.png)
+![MiGeL Matching Stats](png/swissdamed_migel_stats_22h22.13.07.2026.png)
 
 ## Dependencies
 
