@@ -239,16 +239,37 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // delivery hardware.
     "Diacor Inc",
     // Etac Immedia A/S = patient-transfer/positioning aids (slide sheets, transfer
-    // mattress, positioning cushions) — same class as Diacor. All 3 corpus rows are
-    // non-Pflichtleistung; "TransferMattress" was mis-matching 03.07.09.20 "Transfer-Set"
-    // (an *insulin-pump* transfer set) on the bare "transfer" homonym (added 11.07.2026).
+    // boards, turning mattresses, hoist slings, positioning wedges) — same class as
+    // Diacor. Re-verified 13.07.2026 after the company grew from 3 to 339 corpus rows:
+    // un-excluded, it draws 37 matches and *all 37 are FPs* — 35 to 03.07.09.20
+    // "Transfer-Set" (an *insulin-pump* set) via the bare "transfer" homonym, 2 to
+    // 23.10.01 "Rumpf-Orthesen" via "Sling" (a hoist sling). Its 2 "Underpad absorbing"
+    // rows match nothing even un-excluded, so the exclusion costs zero recall.
     "Etac Immedia A/S",
+    // Ropox A/S = height-adjustable bathroom/care furniture + hoists (toilet support
+    // arms, changing beds, bathtubs, shower beds, toilet lifters, walking trainers).
+    // Not Pflichtleistung. Its 5 matches were all "Domino Sling" — the sling for its
+    // "All-in-One Hoist" — mis-routed to 23.10.01 "Rumpf-Orthesen" (added 13.07.2026).
+    // NB: no generic "sling" negative keyword — the genuine arm-sling -> 05.10
+    // Armtraggurten recall rule depends on that token; fix by company scope instead.
+    "Ropox A/S",
+    // CDM Center of Excellence Ltd. = disposable PPE + dental consumables (bouffant
+    // caps, face shields, isolation gowns, shoe covers, mouth mirrors, protective
+    // sleeves, G30 irrigation needles). Nothing on MiGeL. Its matches were "shoes
+    // cover" -> 26.01.04.01 "Spezialschuhe für Orthesen" and generic dental irrigation
+    // syringes -> 03.07.10.01 "Spritze Luer/Luer-Lock" (added 13.07.2026).
+    "CDM Center of Excellence Ltd.",
     "SOMNOmedics AG",
     "Accuratus AG",
     "ATMOS MedizinTechnik GmbH & Co. KG",
     "CONCEPTION ET FABRICATION DE PRODUITS MEDICAUX ET PARAMEDICAUX",
     "iNOsystems SA",
     "Episurf Operations AB",
+    // Synthes GmbH = surgical implants/instruments only (same class as Aesculap /
+    // Silony / Accuratus). Its "Vertebral Body Retainer Distractor / Cervical Cages"
+    // — an implantable spinal cage — was mis-routing to 22.12.01 "Cervikalstütze" on
+    // the "cervical" homonym; a neck collar it is not (added 13.07.2026).
+    "Synthes GmbH",
     "Aesculap AG",
     "Maquet Cardiopulmonary GmbH",
     "Philips Medizin Systeme Böblingen GmbH",
