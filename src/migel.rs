@@ -309,6 +309,44 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Ultradent Products, Inc.", // dental ('Valo' curing light → 23.21.01 Hand-Orthese)
     "Braemer Manufacturing LLC", // cardiac Holter monitors (ePatch ECG Recorder → 21.07.02 CGM-Sensoren magnet)
     "ANEUVO", // non-invasive nerve-stimulation system (ExaStim → 17.30.15 Pelotte Schaumstoff)
+    // --- 15.07.2026 additions (each verified 100% FP output over the whole
+    // matched set, zero cross-company collateral, whole catalogue non-MiGeL): ---
+    // Harsoria Healthcare = whole-catalogue hospital/invasive vascular & airway
+    // disposables (IV cannulas, endotracheal tubes, hemodialysis catheter kits,
+    // arterial-venous fistula needles, blood-collection needles, IV giving sets) —
+    // same class as Becton Dickinson Infusion Therapy. Entirely new to the corpus
+    // (0 -> 585 rows). Its 343 matches were all FPs: 332 "IV Cannula" -> 03.05.03
+    // "Pen zur Injektion von Insulin, OHNE Kanüle" (the "ohne Kanüle" text leaks
+    // "kanüle" as a positive keyword; 03.05.03 has zero genuine matches corpus-
+    // wide), 8 IV giving sets -> 99.30.06.02, 3 nebulizer masks -> 14.01.30.10.
+    // NB: no generic "kanüle" negative keyword — company scope avoids code-hopping
+    // future cannula makers, matching the BD/Ropox precedent.
+    "Harsoria Healthcare Pvt. Ltd.",
+    // ARTIQO GmbH = hip-replacement surgical instruments/implants only (Hip Rasps,
+    // ELEC Ceramic Femoral Heads, Reusable Surgical Instruments, Trial Components,
+    // Hip Stems, Instrument Trays) — same class as Synthes/Aesculap. The CLASS_III
+    // implants gate out; the 26 matches were "Hip Rasps"/"Trial Components"
+    // (CLASS_I instruments) -> 23.10.01 "Rumpf-Orthesen diverse".
+    "ARTIQO GmbH",
+    // MEDICOM SAS = PPE + dental disposables (nitrile/latex/vinyl gloves, TIIR face
+    // masks, shoe covers, face drapes, cotton rolls, isolation/surgical gowns) —
+    // same class as CDM Center of Excellence. Its 15 matches were "Shoe covers" ->
+    // 26.01.04.01 "Spezialschuhe für Orthesen" (disposable overshoes, not orthoses).
+    "MEDICOM SAS",
+    // Haag-Streit AG = ophthalmic diagnostic/surgical hardware (slit lamps, surgical
+    // microscopes, headrests, beam splitters, gonioscopy/laser contact lenses). Its
+    // 10 matches were "Laser Contact Lens" -> 25.01.01 "Brillen/Kontaktlinsen": a
+    // clinician's laser-therapy contact glass, not a corrective vision aid.
+    "Haag-Streit AG",
+    // Thorasys Thoracic Medical Systems = tremoflo airway-oscillometry lung-function
+    // diagnostics + calibration loads only. Its 3 matches were "tremoflo" ->
+    // 21.07.02 "Sensoren" (the CGM-glucose-sensor magnet); an oscillometry unit it is.
+    "Thorasys Thoracic Medical Systems Inc",
+    // PK Benelux BV = OTC consumer-health / food supplements (D-Mannose, Obesimed,
+    // Carb & Fat blocker, Fungal-Nail / athlete's-foot / hemorrhoid gels, nasal
+    // spray) — nothing on MiGeL. Its 1 match was "Hypertonic Nasal and Sinus spray"
+    // -> 35.05.09 "Hydrogel, steril" (a saline spray, not a wound hydrogel).
+    "PK Benelux BV",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
