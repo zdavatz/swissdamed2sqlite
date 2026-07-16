@@ -347,6 +347,15 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // spray) — nothing on MiGeL. Its 1 match was "Hypertonic Nasal and Sinus spray"
     // -> 35.05.09 "Hydrogel, steril" (a saline spray, not a wound hydrogel).
     "PK Benelux BV",
+    // --- 16.07.2026 addition ---
+    // Black Tie Medical / Tulip Medical Products = autologous fat-grafting kit maker
+    // for aesthetic/plastic surgery (adipose harvesting kits, Tulip injectors,
+    // Carraway harvesters, micro/nanofat kits, "SOFT BREAST MICROFAT" kits) — a
+    // cosmetic-surgery instrument line, nothing on MiGeL. All 18 of its matches were
+    // the documented "transfer" homonym -> 03.07.09.20 "Transfer-Set" (an INSULIN-
+    // PUMP set) via "Soft Transfer Nano Fat Kit" / "Sizing Transfers" / DNTC-01.
+    // Same failure mode as Etac, Diacor, ZimVie "Transfer Screws", Dr. Jean Bausch.
+    "Black Tie Medical Inc. DBA Tulip Medical Products",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1121,6 +1130,12 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("03.07.09.20", "mepilex"),
     ("03.07.09.20", "rollbrett"),
     ("03.07.09.20", "bezug"),
+    // ...nor patient-transfer mobility furniture: REBOTEC's "Transfer-Duschrollstühle"
+    // (transfer shower wheelchairs) rode the same "transfer" homonym as rollbrett.
+    // REBOTEC can't be company-excluded — it owns 216 genuine crutch rows (10.01.01)
+    // — so the shower-wheelchair line is fenced off by keyword (16.07.2026).
+    ("03.07.09.20", "rollstuhl"),
+    ("03.07.09.20", "dusch"),
     // Transfer-Set should NOT match dental impression copings (Nobel Biocare etc.)
     ("03.07.09.20", "impression"),
     ("03.07.09.20", "coping"),
@@ -1291,6 +1306,14 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // --- Smaller targeted collisions ---
     ("15.16", "male condom"), // contraceptive condoms ≠ urinal condoms
     ("15.16", "non-medicated"),
+    // Every 15.16.99.* position is an accessory "für Urinalkondome" (Klebestreifen /
+    // Klebeband / Kleber). Scoring matched TZMO's "Matopat Matodrape medizinische
+    // Klebestreifen" on the bare head noun "Klebestreifen", dropping the decisive
+    // "für Urinalkondome" qualifier — a surgical-drape adhesive strip is not
+    // urinal-condom tape. TZMO can't be company-excluded (206 genuine Seni rows),
+    // so the OR-drape/gown product line is fenced off by keyword (16.07.2026).
+    ("15.16", "drape"), // Matodrape surgical drapes / OP-Abdeckung
+    ("15.16", "abdeck"), // Abdecktuch / Abdeckkappen
     ("09.03", "external"), // standalone AEDs ≠ wearable defibrillator vest
     ("09.03", "monitor"),
     ("09.03", "paper"),      // defibrillator recording paper ≠ defib vest
