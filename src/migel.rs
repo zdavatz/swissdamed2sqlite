@@ -837,6 +837,15 @@ pub fn enrich_with_german(text: &str) -> String {
     // Fixierhosen AND "Unterlagen"). Supersedes the earlier "seni active"
     // bigram. Maintainer call 03.07.2026 (includes Super Night + Bettschutz-
     // unterlage, previously left out by design).
+    // Postpartum/maternity pads (Wöchnerinnenvorlagen / Wochenbett) are absorbent
+    // "Vorlagen" too, so the broad "vorlage" substring drags them onto 15.01
+    // "Inkontinenz" — but lochia after childbirth is a normal physiological
+    // process, not incontinence, and MiGeL's 15.01 chapter is strictly
+    // incontinence (mittlere/schwere/totale + Enuresis nocturna). Fence the
+    // maternity line off (TZMO's Absorgyn brand; "wöchnerin" is postpartum-
+    // exclusive corpus-wide — 1 row). Genuine Seni incontinence Vorlagen are
+    // unaffected (they carry no postpartum marker).
+    let postpartum = any_contains("wöchnerin") || any_contains("wochenbett");
     if (has("incontinence")
         || any_contains("inkontinenz")
         || any_contains("windelhose")
@@ -844,6 +853,7 @@ pub fn enrich_with_german(text: &str) -> String {
         || any_contains("fixierhose")
         || lower.contains("seni"))
         && !has("fecal")
+        && !postpartum
     {
         additions.push("inkontinenz");
         additions.push("aufsaugende");
