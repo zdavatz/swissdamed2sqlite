@@ -384,6 +384,13 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // PUMP set) via "Soft Transfer Nano Fat Kit" / "Sizing Transfers" / DNTC-01.
     // Same failure mode as Etac, Diacor, ZimVie "Transfer Screws", Dr. Jean Bausch.
     "Black Tie Medical Inc. DBA Tulip Medical Products",
+    // --- 17.07.2026 addition (golden-pin audit) ---
+    // Medovate Limited = the SAFIRA "Safer Injection For Regional Anaesthesia"
+    // system only (Driver, Foot Pedal, Syringe Luer, Syringe NRFit) — a clinician
+    // regional-anaesthesia device, not a self-injection MiGeL syringe. Its match was
+    // "SAFIRA Syringe Luer" -> 03.07.10.01 "Spritze Luer/Luer-Lock bis 10 ml" on the
+    // bare "syringe/luer" tokens. Whole catalogue (5 rows) is the SAFIRA system.
+    "Medovate Limited",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1044,6 +1051,14 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // Einweg Pinzette (99.31.05) should NOT match connectors
     ("99.31.05", "konnektor"),
     ("99.31.05", "connector"),
+    // (Diabetic socks are fenced at the source via UNIVERSAL_EXCLUSIONS
+    // ["diabetic","sock"] — a per-chapter negative keyword just made them hop
+    // 17.15.03 -> 05.06.02.)
+    // Orthosis chapters (22/23) should NOT match a spare "buckle kit": Aspen's
+    // "QUICK RELEASE BUCKLE KIT" is 5 replacement buckles for a knee brace, not an
+    // orthosis. "buckle kit" occurs in exactly 1 corpus row (17.07.2026 audit).
+    ("22", "buckle kit"),
+    ("23", "buckle kit"),
     // --- Orthesis body-part exclusions ---
     // Hand-Orthesen (23.21) should NOT match other body parts
     ("23.21", "patella"),
@@ -1189,6 +1204,10 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // — so the shower-wheelchair line is fenced off by keyword (16.07.2026).
     ("03.07.09.20", "rollstuhl"),
     ("03.07.09.20", "dusch"),
+    // ...nor a "Rollator de transfert" (transfer rollator / walking frame): Identités'
+    // mobility rollator rode the same "transfer" homonym. "rollator" occurs in 52
+    // corpus rows, only this one matched here (17.07.2026 golden-pin audit).
+    ("03.07.09.20", "rollator"),
     // Transfer-Set should NOT match dental impression copings (Nobel Biocare etc.)
     ("03.07.09.20", "impression"),
     ("03.07.09.20", "coping"),
@@ -1905,6 +1924,14 @@ fn keyword_score(
 /// which should NOT match any MiGeL code. These are checked against the
 /// combined DE+FR+IT text.
 const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
+    // Diabetic (protective) socks are not a medical compression Pflichtleistung.
+    // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
+    // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
+    // hopped to 05.06.02 Hüft-Kompressionsbandage — so exclude at the source. The
+    // ["diabetic","sock"] pair fires only on these (verified 14/14 corpus-wide,
+    // 17.07.2026 golden-pin audit); genuine diabetic shoes/CGM/wound dressings
+    // carry no "sock" and stay matchable.
+    &["diabetic", "sock"],
     // PTA balloon dilatation catheters (interventional cardiology)
     &["pta", "balloon"],
     &["pta", "ballonnet"],
