@@ -564,6 +564,21 @@ pub fn enrich_with_german(text: &str) -> String {
     if has("fecal") && (has("incontinence") || has("insert") || has("plug")) {
         additions.push("analtampon");
     }
+    // "Plastik*" compounds → MiGeL's term of art for the material is "Kunststoff".
+    // TZMO's "Matoset Plastikpinzette, anatomisch, grün, 13cm, steril" is verbatim
+    // 99.31.05.01 "Einweg Pinzette, Kunststoff, steril", but only the head noun
+    // reaches the keyword set (suffix path: plastikpinzette → pinzette) and a lone
+    // keyword can't clear the verbose-text threshold — so the decisive material
+    // qualifier is lost and the plastic tweezers fall through, while the metal
+    // sibling matches 99.31.05.02 purely because its text literally says "Metall".
+    // Substring test (not `has`) because the material is fused into the compound.
+    // Blast radius verified 17.07.2026: "plastik" occurs in exactly 2 corpus rows
+    // (both this product) and "kunststoff" in exactly 3 MiGeL positions — the two
+    // non-tweezer ones (24.01.01.01 Augenprothese, 99.30.04.01 Behandlungs-Set)
+    // need keywords these rows lack or are too verbose to outscore .05.01.
+    if any_contains("plastik") {
+        additions.push("kunststoff");
+    }
     // Arm compression sleeves → MiGeL 17.02.01.11.1 (Armkompressionsstrumpf KKL2, Serie)
     // Push the supporting descriptor keywords so the score crosses the threshold;
     // IDF ranking will pick the Armkompressionsstrumpf position over Waden/Schenkel
