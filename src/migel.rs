@@ -24,6 +24,34 @@ pub struct MigelItem {
     pub category_de: Vec<String>,
     /// Union of all keywords (used for candidate index)
     pub all_keywords: Vec<String>,
+    /// Parsed physical dimensions of this position (for size-aware routing).
+    pub dims: Dims,
+}
+
+/// Parsed physical-dimension signature of a MiGeL position or a product, used by
+/// the size-aware routing refiner. Many MiGeL positions are siblings that differ
+/// ONLY by a dimension (dressing size "AxB cm", plaster/bandage width "Breite N
+/// cm", syringe volume "bis 10 ml" / "20-60 ml", honey weight "N g"). The
+/// heuristic matcher is dimension-blind and — because such siblings share every
+/// keyword — deterministically lands on the lowest position_nr (usually the
+/// smallest size). `head` groups siblings; the typed key vectors let the refiner
+/// move an already-chosen match to the correctly-sized sibling within its group.
+#[derive(Default, Clone)]
+pub struct Dims {
+    /// Bezeichnung with all dimension tokens stripped (sub-group key). Clinical
+    /// qualifiers (steril, sanfthaftend, kohäsiv, ...) are KEPT so genuinely
+    /// distinct product variants never collapse into one routing group.
+    pub head: String,
+    /// Area sizes as sorted "AxB" (cm), e.g. "5x5", "10x20".
+    pub area: Vec<String>,
+    /// Width values in cm (canonical), e.g. "1.25", "2.5".
+    pub width: Vec<String>,
+    /// Point volumes in ml.
+    pub volume: Vec<f64>,
+    /// Weights in grams (canonical).
+    pub weight: Vec<String>,
+    /// Volume range [lo, hi] in ml (lo=0 for "bis N", hi=+inf for "ab N").
+    pub vrange: Option<(f64, f64)>,
 }
 
 const STOP_WORDS: &[&str] = &[
@@ -1570,6 +1598,10 @@ pub fn parse_migel_items(path: &str) -> Result<Vec<MigelItem>, Box<dyn Error>> {
             all_kw.sort();
             all_kw.dedup();
 
+            // Parse physical dimensions from the FULL (multi-line) Bezeichnung —
+            // dressing sizes live on line 2 ("5x5cm"), so first_line is not enough.
+            let dims = compute_dims(&bezeichnung);
+
             items.push(MigelItem {
                 position_nr: pos_nr,
                 bezeichnung: first_line,
@@ -1582,6 +1614,7 @@ pub fn parse_migel_items(path: &str) -> Result<Vec<MigelItem>, Box<dyn Error>> {
                 secondary_it: Vec::new(),
                 category_de,
                 all_keywords: all_kw,
+                dims,
             });
         }
     }
@@ -1646,6 +1679,10 @@ pub struct MigelSearchIndex {
     pattern_items: Vec<Vec<usize>>,
     /// IDF weights: keyword → log(N/df) where N=total items, df=items containing keyword
     pub idf_weights: HashMap<String, f64>,
+    /// Dimension-discriminated sibling groups (for size-aware routing).
+    route_groups: Vec<RouteGroup>,
+    /// item index → index into `route_groups` (only for items in a group).
+    item_group: HashMap<usize, usize>,
 }
 
 /// Build an Aho-Corasick search index for fast candidate finding.
@@ -1705,10 +1742,14 @@ pub fn build_search_index(
         .start_kind(StartKind::Unanchored)
         .build(&patterns)?;
 
+    let (route_groups, item_group) = build_route_groups(items);
+
     Ok(MigelSearchIndex {
         automaton,
         pattern_items,
         idf_weights,
+        route_groups,
+        item_group,
     })
 }
 
@@ -2093,6 +2134,14 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // (Heft-)Pflasterspulen → Heft-/Fixier-Pflaster spools ("pflasterspule"
     // is a substring of "heftpflasterspule", one rule covers both).
     (&["pflasterspule"], &[], "35.01.09.03.1"),
+    // TZMO Plastopore "Hypoallergenes Vliesheftpflaster" → 35.01.09 Heft-/
+    // Fixier-Pflaster (Vlies). Scores only on the compound-suffix "pflaster"
+    // (single keyword, below threshold) because "vlies" is fused into
+    // "vliesheftpflaster" and the material "plastik" is absent. Pin the family
+    // (17.07.2026); the size-routing refiner then places each roll by its stated
+    // width (1.25cm→.01, 2.5cm→.03). "vliesheftpflaster" verified TZMO-exclusive
+    // corpus-wide (2 rows, both genuine fixation plasters).
+    (&["vliesheftpflaster"], &[], "35.01.09.03.1"),
     // --- SIGVARIS Inc. MAK wraps (audit §2b): 17.06 Medizinisch adaptives
     // Kompressionssystem is literally this product type. All trigger tokens
     // verified SIGVARIS-Inc.-exclusive (245 rows) and absent from the GTIN
@@ -2137,20 +2186,418 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
 /// Check the curated forced-match rules against the raw (pre-enrichment)
 /// combined text. Returns the pinned MiGeL item if a rule fires and its
 /// position exists in the current XLSX (else falls through to the heuristic).
-fn find_forced_match<'a>(
-    raw_combined: &str,
-    migel_items: &'a [MigelItem],
-) -> Option<&'a MigelItem> {
+fn find_forced_match(raw_combined: &str, migel_items: &[MigelItem]) -> Option<usize> {
     for &(all_of, none_of, position_nr) in FORCED_MATCHES {
         if all_of.iter().all(|t| raw_combined.contains(t))
             && !none_of.iter().any(|t| raw_combined.contains(t))
         {
-            if let Some(item) = migel_items.iter().find(|m| m.position_nr == position_nr) {
-                return Some(item);
+            if let Some(idx) = migel_items.iter().position(|m| m.position_nr == position_nr) {
+                return Some(idx);
             }
         }
     }
     None
+}
+
+// ===========================================================================
+// Size-aware routing refiner
+// ===========================================================================
+// After the heuristic matcher picks a winning position, this layer moves the
+// match to the correctly-sized sibling WITHIN the same clinical sub-group when
+// the product states a matching dimension. It can never create or destroy a
+// match, nor cross a clinical distinction — only relocate a match among true
+// same-product size siblings. If the product states no parseable dimension, or
+// the dimension is ambiguous / matches no sibling, the original winner stands.
+
+/// Measurement unit that can immediately follow a number in product/position text.
+#[derive(Clone, Copy, PartialEq)]
+enum Unit {
+    Cm,
+    Mm,
+    Ml,
+    M,
+    L,
+    G,
+}
+
+/// A number token parsed out of text, with the unit that immediately follows it
+/// (if any) and byte offsets used to detect `x`-separated area pairs.
+struct NumTok {
+    val: f64,
+    unit: Option<Unit>,
+    num_start: usize,
+    end: usize,
+}
+
+/// Which dimension axis distinguishes the siblings of a routing sub-group.
+#[derive(Clone, Copy, PartialEq)]
+enum Axis {
+    Area,
+    Width,
+    Volume,
+    VolRange,
+    Weight,
+}
+
+/// A set of MiGeL positions that are identical except for one dimension axis.
+struct RouteGroup {
+    axis: Axis,
+    /// item indices into the `MigelItem` slice
+    members: Vec<usize>,
+}
+
+/// Canonical string for a numeric value ("10", "7.5", "1.25" — no trailing zeros).
+fn canon_num(v: f64) -> String {
+    format!("{}", v)
+}
+
+/// Try to match a measurement unit at byte offset `k`, requiring a word boundary
+/// after it (so "liter" is not read as unit "l"). Returns the unit and its end.
+fn match_unit(b: &[u8], k: usize, n: usize) -> (Option<Unit>, usize) {
+    let boundary = |end: usize| end >= n || !b[end].is_ascii_alphanumeric();
+    // two-char units first so "ml"/"cm"/"mm" win over "m"
+    for (s, u) in [
+        (b"cm".as_slice(), Unit::Cm),
+        (b"mm".as_slice(), Unit::Mm),
+        (b"ml".as_slice(), Unit::Ml),
+    ] {
+        if k + 2 <= n && &b[k..k + 2] == s && boundary(k + 2) {
+            return (Some(u), k + 2);
+        }
+    }
+    for (ch, u) in [(b'm', Unit::M), (b'l', Unit::L), (b'g', Unit::G)] {
+        if k < n && b[k] == ch && boundary(k + 1) {
+            return (Some(u), k + 1);
+        }
+    }
+    (None, k)
+}
+
+/// Scan all numbers (with optional decimal comma/point) and their trailing units.
+fn scan_nums(text: &str) -> Vec<NumTok> {
+    let b = text.as_bytes();
+    let n = b.len();
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < n {
+        if !b[i].is_ascii_digit() {
+            i += 1;
+            continue;
+        }
+        let num_start = i;
+        let mut j = i + 1;
+        while j < n && b[j].is_ascii_digit() {
+            j += 1;
+        }
+        if j + 1 < n && (b[j] == b'.' || b[j] == b',') && b[j + 1].is_ascii_digit() {
+            j += 1;
+            while j < n && b[j].is_ascii_digit() {
+                j += 1;
+            }
+        }
+        let val: f64 = text[num_start..j].replace(',', ".").parse().unwrap_or(f64::NAN);
+        let mut k = j;
+        while k < n && b[k] == b' ' {
+            k += 1;
+        }
+        let (unit, uend) = match_unit(b, k, n);
+        let end = if unit.is_some() { uend } else { j };
+        out.push(NumTok {
+            val,
+            unit,
+            num_start,
+            end,
+        });
+        i = end;
+    }
+    out
+}
+
+/// True if the gap between two adjacent number tokens is an `x`/`×` separator and
+/// both sides carry a cm-or-unitless unit (so "6cm x 4m" is NOT an area pair).
+fn is_area_pair(text: &str, a: &NumTok, b: &NumTok) -> bool {
+    let unit_ok = |u: Option<Unit>| matches!(u, None | Some(Unit::Cm));
+    if !unit_ok(a.unit) || !unit_ok(b.unit) {
+        return false;
+    }
+    if a.end > b.num_start {
+        return false;
+    }
+    let sep = text[a.end..b.num_start].trim();
+    sep.eq_ignore_ascii_case("x") || sep == "×"
+}
+
+fn product_area_keys(text: &str) -> Vec<String> {
+    let toks = scan_nums(text);
+    let mut keys = Vec::new();
+    for w in toks.windows(2) {
+        if is_area_pair(text, &w[0], &w[1]) {
+            let (lo, hi) = (w[0].val.min(w[1].val), w[0].val.max(w[1].val));
+            keys.push(format!("{}x{}", canon_num(lo), canon_num(hi)));
+        }
+    }
+    keys
+}
+
+fn product_width_keys(text: &str) -> Vec<String> {
+    let toks = scan_nums(text);
+    let mut paired = vec![false; toks.len()];
+    for i in 0..toks.len().saturating_sub(1) {
+        if is_area_pair(text, &toks[i], &toks[i + 1]) {
+            paired[i] = true;
+            paired[i + 1] = true;
+        }
+    }
+    toks.iter()
+        .enumerate()
+        .filter(|(i, t)| !paired[*i] && t.unit == Some(Unit::Cm))
+        .map(|(_, t)| canon_num(t.val))
+        .collect()
+}
+
+fn product_volume_points(text: &str) -> Vec<f64> {
+    scan_nums(text)
+        .iter()
+        .filter(|t| t.unit == Some(Unit::Ml))
+        .map(|t| t.val)
+        .collect()
+}
+
+fn product_weight_keys(text: &str) -> Vec<String> {
+    scan_nums(text)
+        .iter()
+        .filter(|t| t.unit == Some(Unit::G))
+        .map(|t| canon_num(t.val))
+        .collect()
+}
+
+/// Parse a volume range from position text: "bis N ml" → (0,N); "ab N ml" →
+/// (N,+inf); "a-b ml" / "a bis b ml" → (a,b).
+fn parse_vrange(low: &str) -> Option<(f64, f64)> {
+    let toks = scan_nums(low);
+    for w in toks.windows(2) {
+        let (a, b) = (&w[0], &w[1]);
+        if b.unit == Some(Unit::Ml) && a.end <= b.num_start {
+            let sep = low[a.end..b.num_start].trim().to_lowercase();
+            if sep == "-" || sep == "–" || sep == "bis" {
+                return Some((a.val.min(b.val), a.val.max(b.val)));
+            }
+        }
+    }
+    if let Some(t) = toks.iter().find(|t| t.unit == Some(Unit::Ml)) {
+        let before = low[..t.num_start].trim_end();
+        if before.ends_with("bis") {
+            return Some((0.0, t.val));
+        }
+        if before.ends_with("ab") {
+            return Some((t.val, f64::INFINITY));
+        }
+    }
+    None
+}
+
+/// Bezeichnung with dimension tokens removed, for grouping siblings. Strips
+/// numbers, bare units, and pure-dimension labels (bis/ab/breite/länge/ø); keeps
+/// every other word so clinical variants stay in separate groups.
+fn strip_dim_head(bez: &str) -> String {
+    let low = bez.replace('\n', " ").to_lowercase();
+    low.split(|c: char| !c.is_alphanumeric())
+        .filter(|w| {
+            !w.is_empty()
+                && !w.chars().any(|c| c.is_ascii_digit())
+                && !matches!(
+                    *w,
+                    "bis" | "ab" | "breite" | "länge" | "laenge" | "ø" | "cm" | "mm" | "ml" | "m"
+                        | "l" | "g"
+                )
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Parse the full (multi-line) Bezeichnung into a dimension signature.
+fn compute_dims(bez: &str) -> Dims {
+    let low = bez.replace('\n', " ").to_lowercase();
+    Dims {
+        head: strip_dim_head(bez),
+        area: product_area_keys(&low),
+        width: product_width_keys(&low),
+        volume: product_volume_points(&low),
+        weight: product_weight_keys(&low),
+        vrange: parse_vrange(&low),
+    }
+}
+
+/// Parent prefix of a position number (drops the constant ".1" suffix and the
+/// varying leaf segment): "35.01.09.03.1" → "35.01.09".
+fn dim_parent(pos: &str) -> String {
+    let p = pos.strip_suffix(".1").unwrap_or(pos);
+    match p.rfind('.') {
+        Some(i) => p[..i].to_string(),
+        None => p.to_string(),
+    }
+}
+
+/// Per-axis member signatures as canonical strings, for axis detection.
+fn axis_keys(d: &Dims, axis: Axis) -> Vec<String> {
+    match axis {
+        Axis::Area => d.area.clone(),
+        Axis::Width => d.width.clone(),
+        Axis::Volume => d.volume.iter().map(|v| canon_num(*v)).collect(),
+        Axis::Weight => d.weight.clone(),
+        Axis::VolRange => vec![],
+    }
+}
+
+/// Does the sub-group vary on `axis` (>=2 members with a signature, >=2 distinct)?
+fn varies_on(idxs: &[usize], items: &[MigelItem], axis: Axis) -> bool {
+    use std::collections::BTreeSet;
+    let sets: Vec<BTreeSet<String>> = idxs
+        .iter()
+        .map(|&i| axis_keys(&items[i].dims, axis).into_iter().collect())
+        .collect();
+    let nonempty = sets.iter().filter(|s| !s.is_empty()).count();
+    let distinct: HashSet<&BTreeSet<String>> = sets.iter().collect();
+    nonempty >= 2 && distinct.len() >= 2
+}
+
+/// Detect the discriminating axis of a candidate sub-group, if any.
+fn detect_axis(idxs: &[usize], items: &[MigelItem]) -> Option<Axis> {
+    if idxs
+        .iter()
+        .filter(|&&i| items[i].dims.vrange.is_some())
+        .count()
+        >= 2
+    {
+        return Some(Axis::VolRange);
+    }
+    for axis in [Axis::Area, Axis::Volume, Axis::Weight, Axis::Width] {
+        if varies_on(idxs, items, axis) {
+            return Some(axis);
+        }
+    }
+    None
+}
+
+/// Build the routing sub-groups: bucket positions by (parent, dimension-stripped
+/// head), keep buckets of >=2 that vary on exactly one dimension axis.
+fn build_route_groups(items: &[MigelItem]) -> (Vec<RouteGroup>, HashMap<usize, usize>) {
+    let mut buckets: HashMap<(String, String), Vec<usize>> = HashMap::new();
+    for (i, it) in items.iter().enumerate() {
+        if it.dims.head.is_empty() {
+            continue;
+        }
+        buckets
+            .entry((dim_parent(&it.position_nr), it.dims.head.clone()))
+            .or_default()
+            .push(i);
+    }
+    let mut groups = Vec::new();
+    let mut item_group = HashMap::new();
+    // deterministic order (HashMap iteration is unordered)
+    let mut keys: Vec<_> = buckets.keys().cloned().collect();
+    keys.sort();
+    for key in keys {
+        let idxs = &buckets[&key];
+        if idxs.len() < 2 {
+            continue;
+        }
+        if let Some(axis) = detect_axis(idxs, items) {
+            let gid = groups.len();
+            for &i in idxs {
+                item_group.insert(i, gid);
+            }
+            groups.push(RouteGroup {
+                axis,
+                members: idxs.clone(),
+            });
+        }
+    }
+    (groups, item_group)
+}
+
+/// Refine the winning match to the correctly-sized sibling. Returns the winner
+/// unchanged unless the product states a dimension that uniquely selects one
+/// other member of the winner's routing group.
+fn route_dimension(
+    winner: usize,
+    text: &str,
+    items: &[MigelItem],
+    index: &MigelSearchIndex,
+) -> usize {
+    let gid = match index.item_group.get(&winner) {
+        Some(g) => *g,
+        None => return winner,
+    };
+    let group = &index.route_groups[gid];
+    let overlaps = |a: &[String], b: &[String]| a.iter().any(|x| b.contains(x));
+    let matched: HashSet<usize> = match group.axis {
+        Axis::Area => {
+            let k = product_area_keys(text);
+            group
+                .members
+                .iter()
+                .copied()
+                .filter(|&m| overlaps(&items[m].dims.area, &k))
+                .collect()
+        }
+        Axis::Width => {
+            let k = product_width_keys(text);
+            group
+                .members
+                .iter()
+                .copied()
+                .filter(|&m| overlaps(&items[m].dims.width, &k))
+                .collect()
+        }
+        Axis::Weight => {
+            let k = product_weight_keys(text);
+            group
+                .members
+                .iter()
+                .copied()
+                .filter(|&m| overlaps(&items[m].dims.weight, &k))
+                .collect()
+        }
+        Axis::Volume => {
+            let k = product_volume_points(text);
+            group
+                .members
+                .iter()
+                .copied()
+                .filter(|&m| {
+                    items[m]
+                        .dims
+                        .volume
+                        .iter()
+                        .any(|v| k.iter().any(|w| (v - w).abs() < 1e-9))
+                })
+                .collect()
+        }
+        Axis::VolRange => {
+            let vals = product_volume_points(text);
+            group
+                .members
+                .iter()
+                .copied()
+                .filter(|&m| match items[m].dims.vrange {
+                    Some((lo, hi)) => vals.iter().any(|&v| {
+                        if lo == 0.0 {
+                            v > 0.0 && v <= hi
+                        } else {
+                            v >= lo && v <= hi
+                        }
+                    }),
+                    None => false,
+                })
+                .collect()
+        }
+    };
+    if matched.len() == 1 {
+        matched.into_iter().next().unwrap()
+    } else {
+        winner
+    }
 }
 
 /// Find the best-matching MiGeL item for a product.
@@ -2173,8 +2620,14 @@ pub fn find_best_migel_match<'a>(
     // the metadata gate below (e.g. Omnipod 5 is CLASS_III yet genuine MiGeL).
     let raw_combined =
         normalize_german(&format!("{} {} {} {}", desc_de, desc_fr, desc_it, brand)).to_lowercase();
-    if let Some(item) = find_forced_match(&raw_combined, migel_items) {
-        return Some(item);
+    if let Some(idx) = find_forced_match(&raw_combined, migel_items) {
+        // Forced pins name a single position, but many dressing/plaster/bandage
+        // pins (pflasterspule, sparablanc, combifix, conviva) target a size
+        // family — refine the pin to the correctly-sized sibling when the raw
+        // text states a matching dimension (no-op when the target isn't a size
+        // family or no dimension is stated).
+        let routed = route_dimension(idx, &raw_combined, migel_items, search_index);
+        return Some(&migel_items[routed]);
     }
 
     // Step -0.5: hard metadata gate — IVD and Class III devices never reach
@@ -2357,8 +2810,12 @@ pub fn find_best_migel_match<'a>(
             )
     });
 
-    // Return the best-ranked candidate
-    passing.first().map(|&(idx, _, _, _)| &migel_items[idx])
+    // Return the best-ranked candidate, refined to the correctly-sized sibling
+    // when the product states a matching dimension (size-aware routing).
+    passing.first().map(|&(idx, _, _, _)| {
+        let routed = route_dimension(idx, &combined, migel_items, search_index);
+        &migel_items[routed]
+    })
 }
 
 #[cfg(test)]
@@ -2428,4 +2885,5 @@ mod tests {
             failures.join("\n")
         );
     }
+
 }
