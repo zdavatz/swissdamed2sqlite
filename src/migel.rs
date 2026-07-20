@@ -391,6 +391,24 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // "SAFIRA Syringe Luer" -> 03.07.10.01 "Spritze Luer/Luer-Lock bis 10 ml" on the
     // bare "syringe/luer" tokens. Whole catalogue (5 rows) is the SAFIRA system.
     "Medovate Limited",
+    // --- 20.07.2026 additions (17'329-row publication event) ---
+    // ChM sp. z o.o = 20 rows, entire catalogue "PŁYTKI SZYJNE" / "CERVICAL
+    // PLATES" — implanted anterior cervical fusion plates (CLASS_IIB). Matched
+    // 22.12.01 "Cervikalstütze" purely on the "cervical" token: an osteosynthesis
+    // plate screwed to the spine is the opposite of an external neck support.
+    "ChM sp. z o.o",
+    // Pall International Sàrl = 60 rows, entire catalogue is filtration media
+    // (Breathing/Gas, Syringe, IV, Lipipor, Cord Blood, Smoke, Vent filters).
+    // "SPRITZENFILTER"/"syringe filter" rode the bare Spritze tokens onto
+    // 03.07.10.04 "Spritzen lichtgeschützt" and the gas-line filter onto
+    // 03.07.01.01 "Infusionsschlauch mit ... Filter". Lab/clinical filtration
+    // consumables, no self-application position anywhere in MiGeL.
+    "Pall International Sàrl",
+    // S.L.P. Ltd. = 19 rows, entire catalogue "Pressure Sampling Cannulas and
+    // Transducer Protector" — invasive haemodynamic monitoring. Its "AC/DC
+    // Pressure Sensor" rows hit 21.07.02 "Sensoren", the known CGM magnet;
+    // only continuous glucose sensors are genuine there.
+    "S.L.P. Ltd.",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -2179,6 +2197,15 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // width (1.25cm→.01, 2.5cm→.03). "vliesheftpflaster" verified TZMO-exclusive
     // corpus-wide (2 rows, both genuine fixation plasters).
     (&["vliesheftpflaster"], &[], "35.01.09.03.1"),
+    // Ningbo Medsun "Blood Lancet for single use" / "Sicherheitslanzette" is
+    // verbatim 21.03.05.01 "Sicherheitslanzetten zur kapillaren Blutgewinnung",
+    // but it landed on 03.07.09.12 "Sicherheits-Port-Kanüle" — the shared
+    // "Sicherheits-" prefix plus the lancet/cannula piercing-device overlap
+    // outscored the correct position, and a port cannula (implanted-port access)
+    // is a different device entirely. Pin it. "lanzette"/"lancet" occur in
+    // exactly these 4 corpus rows (verified 20.07.2026), all genuine capillary
+    // blood-sampling lancets, so the pin cannot over-reach.
+    (&["sicherheitslanzette"], &[], "21.03.05.01.1"),
     // --- SIGVARIS Inc. MAK wraps (audit §2b): 17.06 Medizinisch adaptives
     // Kompressionssystem is literally this product type. All trigger tokens
     // verified SIGVARIS-Inc.-exclusive (245 rows) and absent from the GTIN
