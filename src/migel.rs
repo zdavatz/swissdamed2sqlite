@@ -409,6 +409,19 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // Pressure Sensor" rows hit 21.07.02 "Sensoren", the known CGM magnet;
     // only continuous glucose sensors are genuine there.
     "S.L.P. Ltd.",
+    // --- 22.07.2026 additions (daily-diff FP sweep) ---
+    // Shanghai MicroPort MedBot = 89 rows, entire catalogue is the Toumai
+    // endoscopic surgical-robot system (3D endoscopes, trocars, needle drivers,
+    // bipolar/Cadiere forceps, clip appliers, cold-light sources, sterile
+    // drapes). The "Needle Driver" instruments hit 03.07.09.12 "Sicherheits-
+    // Port-Kanüle" on the bare "needle" token — a robotic needle driver is not a
+    // diabetes port cannula. Hospital surgical robotics, no self-application pos.
+    "Shanghai MicroPort MedBot (Group) Co., Ltd.",
+    // Luciole Medical = 9 rows, entire catalogue is the Rheo* cerebral/tissue
+    // perfusion & oxygenation neuromonitoring platform (RheoPatch/RheoConnect/
+    // RheoControl/RheoLity/RheoSens). "RheoPatch" hit 21.07.02 "Sensoren", the
+    // known CGM magnet; only continuous glucose sensors are genuine there.
+    "Luciole Medical AG",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -870,7 +883,13 @@ pub fn enrich_with_german(text: &str) -> String {
     // maternity line off (TZMO's Absorgyn brand; "wöchnerin" is postpartum-
     // exclusive corpus-wide — 1 row). Genuine Seni incontinence Vorlagen are
     // unaffected (they carry no postpartum marker).
-    let postpartum = any_contains("wöchnerin") || any_contains("wochenbett");
+    // "absorgyn": TZMO's Matopat Absorgyn line is gynaecological pads /
+    // Wöchnerinnenvorlagen (postpartum). Most rows carry "wöchnerin", but the
+    // plain "Rechteckvorlagen" variant does not — key on the brand so the whole
+    // gynae line (6 rows, TZMO-exclusive) is fenced off 15.01 too.
+    let postpartum = any_contains("wöchnerin")
+        || any_contains("wochenbett")
+        || any_contains("absorgyn");
     if (has("incontinence")
         || any_contains("inkontinenz")
         || any_contains("windelhose")
@@ -2038,6 +2057,19 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // Orthobroker LSO spare front panels ≠ 05.14 Lumbal-Bandage. The 'lumbo'
     // AND-term protects Aspen's 9 correct "COLLAR FRONT PANEL" rows.
     &["front panel", "lumbo"],
+    // --- 22.07.2026 daily-diff FP sweep ---
+    // Everyway "Incontinence EMS with Probe Electrode" (PR-series) is a pelvic-
+    // floor electro-stimulation therapy device, not an absorbent aid; it hit
+    // 15.01.03 on the bare "incontinence" token. "incontinence ems" is Everyway-
+    // exclusive corpus-wide (9 rows). The surface KF-series ("Neurostimulation
+    // electrode", no "incontinence"/"ems") keeps its genuine 09.02.01.02 match.
+    &["incontinence ems"],
+    // Catheter fixation holders (GERWING "Beinkatheterhalter", ATMOS) are leg
+    // straps that secure a catheter, not the sterile Urin-Beinbeutel (15.14.05)
+    // they hit on the "Bein" fragment. No self-application MiGeL bag/holder
+    // position enumerates a bare catheter holder; "katheterhalter" corpus-wide
+    // is only these non-MiGeL accessories (GERWING 4 + ATMOS 2).
+    &["katheterhalter"],
 ];
 
 /// Check if a product is universally excluded from all MiGeL matching.
