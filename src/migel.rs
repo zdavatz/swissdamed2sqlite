@@ -422,6 +422,30 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // RheoControl/RheoLity/RheoSens). "RheoPatch" hit 21.07.02 "Sensoren", the
     // known CGM magnet; only continuous glucose sensors are genuine there.
     "Luciole Medical AG",
+    // --- 25.07.2026 additions (daily-diff FP sweep) ---
+    // JenaValve = 13 rows, entire catalogue is the Trilogy transcatheter aortic
+    // heart-valve system (Trilogy Heart Valve + Trilogy Delivery Catheter, all
+    // MDD/CLASS_III implants). "Trilogy" collides with the Respironics home-
+    // ventilator FORCED_MATCH pin (14.12.02) — which runs before the CLASS_III
+    // metadata gate — so these valves force-matched a home ventilator. The
+    // genuine Respironics/Philips "Trilogy" ventilators (104 rows each) keep
+    // their pin; only JenaValve is excluded. Implants, no self-application pos.
+    "JenaValve Technology Inc.",
+    // Major Prodotti Dentari = 2 rows, both "HIGH PRECISION ALGINATE" — DENTAL
+    // impression alginate, not the calcium-alginate WOUND dressings of MiGeL
+    // 35.05.06. Whole catalogue is dental. (Same class of FP as the earlier
+    // dental-alginate removals; dental ∉ MiGeL.)
+    "Major Prodotti Dentari S.p.A.",
+    // American Orthodontics = 2'356 rows, an orthodontics (dental braces/bands/
+    // wires) catalogue. "Ortho Wax Bite" hit 23.21.01 "Hand-Orthesen"; dental
+    // appliances are never MiGeL. Excluding the whole catalogue fences the other
+    // 2'355 dental rows against future orthese-code drift.
+    "American Orthodontics Corporation",
+    // DePuy Ireland (Synthes GmbH) = 6 rows, all ATTUNE/SIGMA/VELYS knee-implant
+    // surgical instruments (DRILL, Rasp, Impactor, Arrays). "knee"/"instrument"
+    // hit 23.04.01 "Knie-Orthesen". Orthopedic surgical instruments/implants,
+    // never self-applied MiGeL orthoses.
+    "DePuy Ireland UC",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -2070,6 +2094,21 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // position enumerates a bare catheter holder; "katheterhalter" corpus-wide
     // is only these non-MiGeL accessories (GERWING 4 + ATMOS 2).
     &["katheterhalter"],
+    // --- 25.07.2026 daily-diff FP sweep ---
+    // Intermittent (pneumatic) compression devices — ArjoHuntleigh/Arjo "Inter-
+    // mittent Pressure Compression Limb Garment" — are motor-driven DVT-
+    // prophylaxis pump sleeves, not the self-applied custom compression bandages
+    // of MiGeL 17.15. They hit 17.15.03 (Arm) on "compression"+"garment".
+    // "intermittent pressure compression" is Arjo-exclusive corpus-wide (15
+    // rows); the pneumatic variant is 0 today but is by definition a DVT pump.
+    &["intermittent pressure compression"],
+    &["intermittent pneumatic compression"],
+    // Scholl "Gel Toe/Finger Protector" (Gel Finger-/Zehenschutz) is an OTC gel
+    // comfort cap, not a MiGeL finger orthosis; it hit 23.20.01 "Finger-Orthesen"
+    // on "finger". "toe/finger protector" is corpus-unique (1 row). Scholl is NOT
+    // company-excluded (they sell MiGeL compression stockings in some markets),
+    // so this fences only the gel-protector class.
+    &["toe/finger protector"],
 ];
 
 /// Check if a product is universally excluded from all MiGeL matching.
