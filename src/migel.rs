@@ -446,6 +446,35 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // hit 23.04.01 "Knie-Orthesen". Orthopedic surgical instruments/implants,
     // never self-applied MiGeL orthoses.
     "DePuy Ireland UC",
+    // --- 29.07.2026 additions (daily-diff FP sweep) ---
+    // United Orthopedic = 235 rows, all "United Hip and Knee Non-sterile Reusable
+    // Instruments" (U2/UTF/U-Motion Hip Stems, knee instruments). Landed on
+    // 23.10.01 "Rumpf-Orthesen diverse" (233) + 22.15.01 (2) — the modal orthese
+    // fallback via the "Orthopedic" company token. Hip/knee implants + surgical
+    // instruments are never self-applied MiGeL orthoses. Whole catalogue is FP.
+    "United Orthopedic Corporation",
+    // Etac A/S (Molift) = 193 rows, all Molift patient-LIFT slings (EvoSling/
+    // RgoSling HighBack/MediumBack/LowBack Net Padded, modelName "Sling") + one
+    // "Transfer-Set". 192 hit 23.10.01 "Rumpf-Orthesen" on the sling/back text.
+    // Ceiling/mobile-hoist transfer slings are the sling analogue of the already-
+    // excluded Diacor transfer furniture — patient-handling aids, never MiGeL.
+    "Etac A/S (Molift)",
+    // Masimo = 19 rows, all RD SET / RD Rainbow SpO2/SpHb adhesive PULSE-OXIMETRY
+    // sensors (CLASS_IIB). Hit 21.07.02 "Sensoren" — the CGM-sensor magnet. Only
+    // continuous/flash GLUCOSE sensors are MiGeL 21.07.02; optical monitoring
+    // sensors are not. Joins the sleep-lab sensor exclusions (SOMNOmedics/Braebon/
+    // Itamar) as a same-class "Sensoren" magnet. Whole catalogue is monitoring.
+    "Masimo Corporation",
+    // Dymicron = 12 rows, all "Triadyme-C Cervical Total Disc Replacement" — an
+    // artificial cervical DISC IMPLANT (spinal arthroplasty), not a cervical
+    // collar. Hit 22.12.01 "Cervikalstütze" on "cervical". Whole catalogue is the
+    // Triadyme-C implant; implants are never MiGeL supports.
+    "Dymicron EU GmbH",
+    // Crystalvue = 2 rows, both "Non-contact Tonometer with pachymeter" (TonoVue-P,
+    // eye-pressure diagnostic instrument). Hit 35.05.08 "Wunddistanzgitter" via the
+    // "(non-)contact" token — a wound contact layer has nothing to do with a
+    // tonometer. Ophthalmic diagnostic instruments are never MiGeL wound care.
+    "Crystalvue Medical Corporation",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
