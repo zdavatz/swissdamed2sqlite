@@ -475,6 +475,12 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // "(non-)contact" token — a wound contact layer has nothing to do with a
     // tonometer. Ophthalmic diagnostic instruments are never MiGeL wound care.
     "Crystalvue Medical Corporation",
+    // --- 31.07.2026 additions (daily-diff FP sweep) ---
+    // Reintex = 3 rows, all "Einweg Patienten-Bettenset" (disposable patient bed
+    // set). Hit 03.06.02.01 "Infusionspumpe, einweg ≤ 100 ml" on the shared
+    // "einweg" (disposable) token — a disposable bedding kit is not a single-use
+    // infusion pump. Whole catalogue is the disposable bed set.
+    "Reintex GmbH",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1568,6 +1574,29 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // Temperature sensors (AFERETICA apheresis "Sensore Temperatura", et al.)
     // ≠ 21.07.02 CGM-Sensoren magnet. Substring covers temperature/temperatura.
     ("21.07.02", "temperatur"),
+    // Respironics CPAP/BiPAP mask assemblies name a "(Neb) Elbow" connector and
+    // hit 23.23.01 Ellenbogen-Orthesen on the bare "elbow" token (the mask model
+    // names A531/AF531/PerforMax/Wisp carry no ventilator FORCED_MATCH trigger, so
+    // they fall through to keyword scoring). A CPAP mask, its leak/exhalation valve
+    // and the Wisp pediatric mask are never limb orthoses. Genuine Shanae "Elbow
+    // orthoses" and Aspen/PRIM shoulder-elbow orthoses carry none of these tokens
+    // (verified corpus-wide: "leak"→16 rows all Respironics masks, "mask"→14 all
+    // Respironics, "wisp"→1). "accessor" is deliberately NOT used here — it would
+    // kill Aspen's CTLSO "expansion kit accessories" and PRIM's shoulder-elbow
+    // orthosis (31.07.2026). ---
+    ("22", "mask"),
+    ("23", "mask"),
+    ("22", "leak"),
+    ("23", "leak"),
+    // "wisp" vetoed in BOTH orthosis chapters: with only ch23 blocked the bare
+    // "elbow" token hops the Wisp mask accessory to 22.08.03 (ch22 elbow orthosis).
+    ("22", "wisp"),
+    ("23", "wisp"),
+    // Respironics "CoughAssist E70 Series Oximetry Interface Kit" hit 21.01.04
+    // Pulsoxymeter on the "oximetry" token — an interface kit (accessory) is not a
+    // pulse oximeter. No genuine 21.01 pulse oximeter is an "interface kit"
+    // (verified: 21.01 + "interface" → this row only, 31.07.2026). ---
+    ("21.01", "interface kit"),
 ];
 
 /// Normalize German umlauts so ALL-CAPS text (e.g. ABSAUGGERAETE) matches
@@ -2180,6 +2209,9 @@ const VENT_ACCESSORY_STOPS: &[&str] = &[
     "accessor",
     "filter",
     "mask",
+    "cover",
+    "interface", // "Trilogy Oximetry Interface Kit" ≠ rentable ventilator base unit
+    "travel kit",
 ];
 
 /// Accessory stop-list for the Respironics PAP (CPAP/BiPAP) forced matches.
@@ -2205,6 +2237,10 @@ const PAP_ACCESSORY_STOPS: &[&str] = &[
     "accessor",
     "filter",
     "mask",
+    "cover",     // "DreamStation Flow Generator Cover" ≠ rentable CPAP base unit
+    "interface", // symmetry with the ventilator list; interface kits are accessories
+    "travel kit", // "DreamStation Travel Kit, 65W P/S" (AU/IN/EU) ≠ base unit; bare
+    // "travel" avoided (the DreamStation Go travel CPAP is a genuine base unit)
 ];
 
 /// Curated recall rules: (all_of, none_of, position_nr).
