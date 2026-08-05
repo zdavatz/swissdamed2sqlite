@@ -481,6 +481,28 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // "einweg" (disposable) token — a disposable bedding kit is not a single-use
     // infusion pump. Whole catalogue is the disposable bed set.
     "Reintex GmbH",
+    // --- 05.08.2026 additions (daily-diff FP sweep) ---
+    // Medtronic Navigation = 12 rows, all "Spine Stabilization invasive/Non-invasive"
+    // (surgical spine-navigation / stabilization systems, incl. CLASS_IIA invasive).
+    // Hit 22.07.01 "Hand-Orthese zur Stabilisierung" on the "Stabilization" →
+    // "Stabilisierung" token — a spine surgical-navigation system is not a hand
+    // orthosis. Whole catalogue is surgical navigation, never MiGeL.
+    "Medtronic Navigation Inc.",
+    // SCHNELL Trainingsgeräte = 8 rows, gym/rehab training machines ("Bänke" =
+    // benches, "DIAGNOS 4back", "TARGET Line"). Hit shoulder/trunk orthosis +
+    // Leib-Rumpf-Bandage + Cervikalstütze codes on stray body-region tokens.
+    // Training equipment is not a patient-worn MiGeL aid. Whole catalogue.
+    "SCHNELL Trainingsgeräte GmbH",
+    // LimaCorporate = 4 rows, surgical instruments for shoulder/elbow implants
+    // ("ProMade … Trial Screw", "Drilling Guide"). Hit 23.25/23.23 shoulder/elbow
+    // orthoses on the "Shoulder"/"Elbow" token — trial screws and drilling guides
+    // are surgical instruments, never orthoses. Implant maker, whole catalogue.
+    "LimaCorporate S.p.A.",
+    // Bellman & Symfon = 3 rows, deaf/hard-of-hearing alerting accessories
+    // ("Magnetic Switch", "Contact Mat", "External Microphone"). Hit 21.07.02
+    // "Sensoren" (the CGM-glucose-sensor magnet) on the generic sensor/switch
+    // wording. Assistive-listening alerting devices are not MiGeL. Whole catalogue.
+    "Bellman & Symfon Group AB",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
