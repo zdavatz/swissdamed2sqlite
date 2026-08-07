@@ -503,6 +503,26 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // "Sensoren" (the CGM-glucose-sensor magnet) on the generic sensor/switch
     // wording. Assistive-listening alerting devices are not MiGeL. Whole catalogue.
     "Bellman & Symfon Group AB",
+    // --- 07.08.2026 additions (daily-diff FP sweep) ---
+    // Promedics = 3371 rows, ALL bare anatomical-category placeholders as deviceName
+    // ("HAND THERAPY", "LOWER LIMB & HIP", "ANKLE/FOOTWEAR", "SPINAL & CERVICAL",
+    // "UPPER LIMB") with zero product/trade names. 662 matched as keyword accidents
+    // on a category word: "SPINAL & CERVICAL"→22.12.01 Cervikalstütze (165) and
+    // "LOWER LIMB & HIP"→23.10.01 Rumpf-Orthese (497, a mis-route — lower limb is
+    // not the trunk). No specific MiGeL position is assignable from a category
+    // label, and only 2 of 5 categories matched (inconsistent). Precision-preserving
+    // exclusion; revisit if Promedics ever registers product-level data.
+    "Promedics Orthopaedics Ltd.",
+    // SCHMITZ medical = 10 rows, all operating tables ("DIAMOND - operating table",
+    // "OPX mobilis RC", "Extension Device"). Hit Transfer-Set / Aufziehkanüle /
+    // Ellenbogen-Orthese / Rumpf-Orthese / Infusions-Set on stray tokens. OR tables
+    // are hospital furniture, never MiGeL. Whole catalogue is operating tables.
+    "SCHMITZ medical GmbH",
+    // Edwards Lifesciences = 1 row, "HEMOSPHERE ADVANCED MONITOR PLATFORM" (ICU
+    // hemodynamic monitoring platform) hit 21.01.04 Pulsoxymeter. A critical-care
+    // hemodynamic monitor is not a MiGeL home pulse oximeter; Edwards is cardiac /
+    // ICU only, never MiGeL. Whole catalogue.
+    "Edwards Lifesciences Sàrl",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1514,6 +1534,7 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("21.07.02", "respiratory effort"), // Pro-Tech/Respironics PSG sensors ≠ CGM sensor
     ("21.07.02", "piezo"),   // piezo respiratory-effort sensor ≠ CGM sensor
     ("21.07.02", "emg"),     // Edan EMG/stimulation monitor sensor ≠ CGM sensor
+    ("21.07.02", "eeg"),     // Medker/NEUROLITE EEG electrode ≠ CGM sensor
     ("21.07.02", "nmt"),     // Edan neuromuscular-transmission sensor ≠ CGM sensor
     ("21.07.02", "stimulation"), // Edan EMG/stimulation sensor ≠ CGM sensor
     ("23", "oximeter"),      // Edan finger/pulse oximeter ≠ finger orthosis (ch.23)
