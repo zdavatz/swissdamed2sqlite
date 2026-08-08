@@ -285,20 +285,23 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         .color(&TITLE_COLOR)
         .pos(Pos::new(HPos::Center, VPos::Center));
     let donut_cx = 1820.0_f64;
-    let donut_cy = 620.0_f64;
-    let r_outer = 300.0_f64;
-    let r_inner = 170.0_f64;
+    let donut_cy = 560.0_f64;
+    let r_outer = 280.0_f64;
+    let r_inner = 158.0_f64;
     root.draw_text(
         "Matches by Company",
         &donut_title_style,
         (donut_cx as i32, 220),
     )?;
 
+    // Cap the named wedges so every wedge keeps a unique palette color and
+    // the legend never outgrows its box (reserve one color for "Other").
     let threshold = stats.total_matched as f64 * 0.015;
+    let max_named = COMPANY_COLORS.len() - 1;
     let mut wedge_data: Vec<(String, i64)> = Vec::new();
     let mut other_total: i64 = 0;
     for (name, cnt) in &stats.company_breakdown {
-        if (*cnt as f64) >= threshold {
+        if (*cnt as f64) >= threshold && wedge_data.len() < max_named {
             wedge_data.push((name.clone(), *cnt));
         } else {
             other_total += *cnt;
@@ -353,29 +356,39 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         (donut_cx as i32, donut_cy as i32 + 44),
     )?;
 
-    // Legend below donut, two columns within the right-hand block
+    // Legend below donut, two columns within the right-hand block.
+    // Rows and font shrink to fit between the donut and the categories
+    // title (y=1320) no matter how many entries the threshold produces.
     let legend_top = (donut_cy + r_outer + 60.0) as i32;
+    let legend_bottom = 1290_i32;
     let legend_left = 1320_i32;
     let legend_right = (W as i32) - 60;
     let col_width = (legend_right - legend_left) / 2;
-    let row_height = 80_i32;
-    let legend_text = TextStyle::from(("sans-serif", 48).into_font().style(FontStyle::Bold))
+    let rows = (wedge_data.len() as i32 + 1) / 2;
+    let row_height = ((legend_bottom - legend_top) / rows.max(1)).min(76);
+    let font_px = (row_height * 5 / 8).clamp(30, 48);
+    let legend_font = ("sans-serif", font_px).into_font().style(FontStyle::Bold);
+    let legend_text = TextStyle::from(legend_font.clone())
         .color(&TEXT_COLOR)
         .pos(Pos::new(HPos::Left, VPos::Center));
+    let swatch_w = 48_i32;
+    let swatch_half = (font_px * 9 / 20).max(16);
+    let text_x_off = swatch_w + 22;
+    let max_text_w = (col_width - text_x_off - 16) as u32;
 
     for (idx, (name, cnt)) in wedge_data.iter().enumerate() {
         let col = idx % 2;
         let row = idx / 2;
         let x0 = legend_left + col as i32 * col_width;
-        let y = legend_top + row as i32 * row_height;
+        let y = legend_top + row as i32 * row_height + row_height / 2;
         let color = COMPANY_COLORS[idx % COMPANY_COLORS.len()];
         root.draw(&Rectangle::new(
-            [(x0, y - 22), (x0 + 54, y + 22)],
+            [(x0, y - swatch_half), (x0 + swatch_w, y + swatch_half)],
             color.filled(),
         ))?;
-        let truncated = truncate(name, 14);
-        let entry = format!("{}  ({})", truncated, ch_fmt(*cnt));
-        root.draw_text(&entry, &legend_text, (x0 + 74, y))?;
+        let suffix = format!("  ({})", ch_fmt(*cnt));
+        let entry = fit_text(&legend_font, name, &suffix, max_text_w);
+        root.draw_text(&entry, &legend_text, (x0 + text_x_off, y))?;
     }
 
     // ----- Bottom: Top MiGeL categories bar chart -----
@@ -399,7 +412,8 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     let plot_max = (max_val as f64 * 1.15).max(1.0);
     let bar_x_max = (bar_area_right - bar_area_left - 80) as f64;
 
-    let cat_label_style = TextStyle::from(("sans-serif", 60).into_font().style(FontStyle::Bold))
+    let cat_font = ("sans-serif", 60).into_font().style(FontStyle::Bold);
+    let cat_label_style = TextStyle::from(cat_font.clone())
         .color(&TEXT_COLOR)
         .pos(Pos::new(HPos::Left, VPos::Center));
     let bar_inside_style = TextStyle::from(("sans-serif", 56).into_font().style(FontStyle::Bold))
@@ -416,9 +430,9 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
         let bar_y_bot = slot_mid + bar_height / 2;
         let width_px = ((*cnt as f64 / plot_max) * bar_x_max).round() as i32;
 
-        // Category name above the bar
+        // Category name above the bar — use the full chart width
         root.draw_text(
-            &truncate(bez, 60),
+            &fit_text(&cat_font, bez, "", (bar_area_right - bar_area_left) as u32),
             &cat_label_style,
             (bar_area_left, bar_y_top - 38),
         )?;
@@ -454,14 +468,32 @@ pub fn render(stats: &Stats, out_path: &Path) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn truncate(s: &str, max: usize) -> String {
-    let count = s.chars().count();
-    if count <= max {
-        s.to_string()
-    } else {
-        let cutoff: String = s.chars().take(max.saturating_sub(1)).collect();
-        format!("{}…", cutoff)
+/// Measured pixel width of `s` in `font`, with a rough fallback if the
+/// backend cannot measure (never happens with the bundled ttf feature).
+fn text_width(font: &FontDesc, s: &str) -> u32 {
+    font.box_size(s)
+        .map(|(w, _)| w)
+        .unwrap_or_else(|_| s.chars().count() as u32 * (font.get_size() as u32 * 3 / 5))
+}
+
+/// Fit `name` + `suffix` into `max_width` pixels of `font`. The suffix
+/// (e.g. the match count) is always kept intact; the name is shortened
+/// with an ellipsis only as far as actually needed.
+fn fit_text(font: &FontDesc, name: &str, suffix: &str, max_width: u32) -> String {
+    let full = format!("{}{}", name, suffix);
+    if text_width(font, &full) <= max_width {
+        return full;
     }
+    let mut chars: Vec<char> = name.chars().collect();
+    while !chars.is_empty() {
+        chars.pop();
+        let head: String = chars.iter().collect();
+        let candidate = format!("{}…{}", head.trim_end(), suffix);
+        if text_width(font, &candidate) <= max_width {
+            return candidate;
+        }
+    }
+    format!("…{}", suffix)
 }
 
 fn update_readme(rel_path: &str) -> Result<(), Box<dyn Error>> {
@@ -560,6 +592,80 @@ pub fn generate(
     }
 
     Ok(out_path)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Worst-case layout: more companies over the wedge threshold than the
+    /// palette has colors (08.08.2026 real distribution), plus category
+    /// names far longer than the chart width. Renders to a temp file (or
+    /// $MIGEL_STATS_TEST_PNG for visual inspection); must not error.
+    #[test]
+    fn render_worst_case_layout() {
+        let mut company_breakdown: Vec<(String, i64)> = vec![
+            ("SIGVARIS AG".into(), 8076),
+            ("Macom Malhas de Compressao S.A.".into(), 1021),
+            ("GCE s.r.o.".into(), 509),
+            ("Künzli SwissSchuh AG".into(), 464),
+            ("Aspen Medical Products, LLC".into(), 463),
+            ("Respironics Inc.".into(), 379),
+            ("Span Link International".into(), 377),
+            ("PRIM, S.A.".into(), 350),
+            ("TZMO S.A.".into(), 258),
+            ("SIGVARIS Inc.".into(), 245),
+            ("REBOTEC Rehabilitationsmittel GmbH".into(), 216),
+            ("ESSITY HYGIENE AND HEALTH AB".into(), 211),
+        ];
+        for i in 0..70 {
+            company_breakdown.push((format!("Small Company {}", i), 21));
+        }
+        let total_matched: i64 = company_breakdown.iter().map(|(_, c)| *c).sum();
+
+        let long = "Medizinischer Kompressionsschenkelstrumpf (A-G), Kompressionsklasse 2, Serienanfertigung, Paar, inklusive Zubehör";
+        let top_categories = vec![
+            (long.to_string(), 3948, vec![]),
+            (
+                "Med. Kompressionswadenstrumpf (A-D), Kompressionsklasse 2".into(),
+                1617,
+                vec![],
+            ),
+            (
+                "Med. Kompressionsstrumpfhosen (A-T), Kompressionsklasse 2, Serienanfertigung"
+                    .into(),
+                1032,
+                vec![],
+            ),
+            (
+                "Leib-/Rumpf-Bandage nicht geschlechtsspezifisch, Serienanfertigung".into(),
+                839,
+                vec![],
+            ),
+            (
+                "Med. Kompressionsstrumpfhosen (A-TU Maternity), Kompressionsklasse 2".into(),
+                768,
+                vec![],
+            ),
+            ("Druckminderer, Miete".into(), 509, vec![]),
+        ];
+
+        let stats = Stats {
+            total_products: 138_178,
+            total_matched,
+            num_migel_codes: 109,
+            num_companies: 82,
+            company_breakdown,
+            top_categories,
+            override_matched: 7908,
+            override_skipped: 7646,
+        };
+
+        let out = std::env::var("MIGEL_STATS_TEST_PNG")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| std::env::temp_dir().join("swissdamed_migel_stats_test.png"));
+        render(&stats, &out).expect("render should succeed");
+    }
 }
 
 /// Find the MiGeL match DB (fixed `swissdamed_migel.db`, or a legacy dated
