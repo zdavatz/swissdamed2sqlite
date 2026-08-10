@@ -523,6 +523,16 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // hemodynamic monitor is not a MiGeL home pulse oximeter; Edwards is cardiac /
     // ICU only, never MiGeL. Whole catalogue.
     "Edwards Lifesciences Sàrl",
+    // --- 10.08.2026 additions (daily-diff FP sweep) ---
+    // Case Medical, Inc. = 6 rows, ALL the "GPS" (Guidance Positioning System)
+    // computer-assisted-surgery line: "GPS Knee - TKA Pro", "GPS Shoulder -
+    // Navigation"/"- Planning", "GPS Ankle - Navigation"/"- Case Manager",
+    // "GPS Sterile Batteries". 5 matched as body-part keyword accidents
+    // (knee/shoulder/ankle → 23.04/23.25/23.02 Orthesen). These are CLASS_IIA
+    // surgical navigation/planning tools, not orthoses — same pattern as the
+    // already-excluded Medtronic Navigation Inc. Whole catalogue is the GPS
+    // surgical system; none are MiGeL. Precision-preserving exclusion.
+    "Case Medical, Inc.",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
