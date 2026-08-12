@@ -12,6 +12,8 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history + tags so release notes can be derived
 
       - name: Create config.toml from sample
         run: cp config.sample.toml config.toml
@@ -215,6 +217,53 @@ jobs:
               --apiKey "$APPLE_API_KEY_ID" \
               --apiIssuer "$APPLE_API_ISSUER_ID" || echo "WARNING: App Store upload failed"
           fi
+
+      # Uploading the .pkg above only ADDS a build to App Store Connect — it does
+      # not create the version, attach the build, choose a release type, or
+      # submit for review, so every prior release uploaded a build that sat
+      # unreleased. This step creates the MAC_OS version with releaseType
+      # AFTER_APPROVAL (auto-release after approval), waits for the build to
+      # finish processing, attaches it and submits for review. Non-fatal; needs
+      # the MACOS_APP_ID secret (self-skips if absent). Mirrors parados_rust.
+      - name: Create App Store version + submit for review (auto-release)
+        if: env.APPLE_API_KEY_P8 != ''
+        env:
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          MACOS_APP_ID: ${{ secrets.MACOS_APP_ID }}
+        run: |
+          VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          # The .pkg step exits early when there is no App Store signing
+          # identity; creating a version with no build to attach would just park
+          # it in PREPARE_FOR_SUBMISSION and burn the 30-minute poll window.
+          if [ ! -f "swissdamed2sqlite-${VERSION}-macos-appstore.pkg" ]; then
+            echo "no App Store .pkg produced — skipping version/submit"
+            exit 0
+          fi
+          if [ -z "$MACOS_APP_ID" ]; then
+            echo "MACOS_APP_ID secret not set — skipping version/submit"
+            exit 0
+          fi
+          # "What's New" from the commit log since the previous tag (fetch-depth:0
+          # above makes tags + history available), with a generic fallback.
+          PREV=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)
+          NOTES=""
+          if [ -n "$PREV" ]; then
+            NOTES=$(git log --no-merges --pretty='- %s' "${PREV}..${GITHUB_REF_NAME}" \
+              | grep -viE '^- (Bump version|Merge |Point README|ci:|chore:)' \
+              | head -15 || true)
+          fi
+          [ -z "$NOTES" ] && NOTES="swissdamed2sqlite ${VERSION} — updated Swiss medical-device data pipeline and MiGeL matching."
+          python3 .github/scripts/appstore_metadata.py \
+            --app-id    "$MACOS_APP_ID" \
+            --version   "$VERSION" \
+            --key-id    "$APPLE_API_KEY_ID" \
+            --issuer-id "$APPLE_API_ISSUER_ID" \
+            --key-file  "$HOME/.private_keys/AuthKey_${APPLE_API_KEY_ID}.p8" \
+            --whats-new "$NOTES" \
+            --submit \
+            || echo "WARNING: App Store version/metadata/submit failed (non-fatal)"
 
       - name: Upload App Store pkg artifact
         if: always()
@@ -511,35 +560,76 @@ jobs:
             notesForCertification = "Desktop utility for downloading Swiss medical device data from swissdamed.ch and exporting as CSV/SQLite. Requires internet access. No login required. Contact: zdavatz@ywesee.com"
           } | ConvertTo-Json -Depth 10 -Compress
 
+          # Create the submission with NO body. Microsoft's "Create an app
+          # submission" endpoint takes no request body: it CLONES the last
+          # published submission (its listings AND its packages). The previous
+          # code POSTed $createBody with `applicationPackages = @()`, and the API
+          # validated that empty package set against the published submission and
+          # rejected the CREATE itself with "...packages are missing in your
+          # update: <id>" — which is why v0.1.7 and v0.1.9 both failed here and
+          # the package-handling below never ran. Cloning keeps the published
+          # package; the PUT below marks it PendingDelete and adds the new MSIX.
+          # ($createBody above is intentionally left unused — the cloned listings
+          # already published successfully, so they are valid.)
           $subResp = Invoke-RestMethod -Method Post `
             -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$appId/submissions" `
-            -Headers $headers `
-            -Body $createBody `
-            -ContentType "application/json; charset=utf-8"
+            -Headers $headers
           $subId = $subResp.id
-          $uploadUrl = $subResp.fileUploadUrl
           Write-Host "Submission created: $subId"
 
-          # Update submission: add package, set publish mode
-          $submission = $subResp
+          # Re-GET the freshly-created submission. The POST create response does
+          # NOT include the applicationPackages cloned from the last *published*
+          # submission, so the PendingDelete loop would have nothing to mark and
+          # the PUT would drop the existing package — tripping the same "packages
+          # missing in your update: <id>" rejection. The GET returns the full
+          # cloned state, including those packages.
+          $submission = Invoke-RestMethod -Method Get `
+            -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$appId/submissions/$subId" `
+            -Headers $headers
+          $uploadUrl = $submission.fileUploadUrl
+
           $submission.targetPublishMode = "Immediate"
           $submission.targetPublishDate = ""
           $submission.visibility = "Public"
 
-          if ($submission.applicationPackages) {
-            foreach ($pkg in $submission.applicationPackages) {
-              $pkg.fileStatus = "PendingDelete"
-            }
-          } else {
-            $submission.applicationPackages = @()
+          # Key existing packages by their UNIQUE id, NOT by fileName (two
+          # distinct packages can share a fileName; a fileName-keyed map silently
+          # collapses them, dropping an id out of the PUT, which Microsoft
+          # rejects). Gather from the cloned submission AND the last published
+          # submission, dedupe by id, mark all PendingDelete.
+          $byId = [ordered]@{}
+          foreach ($p in @($submission.applicationPackages)) {
+            $key = if ($p.id) { [string]$p.id } else { [string]$p.fileName }
+            if ($key) { $byId[$key] = $p }
           }
+          $pubId = $appResp.lastPublishedApplicationSubmission.id
+          if ($pubId) {
+            $pubSub = Invoke-RestMethod -Method Get `
+              -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$appId/submissions/$pubId" `
+              -Headers $headers
+            foreach ($p in @($pubSub.applicationPackages)) {
+              $key = if ($p.id) { [string]$p.id } else { [string]$p.fileName }
+              if ($key -and -not $byId.Contains($key)) { $byId[$key] = $p }
+            }
+          }
+          $pkgList = @()
+          foreach ($p in $byId.Values) {
+            $p.fileStatus = "PendingDelete"
+            $pkgList += $p
+          }
+          Write-Host "Carrying forward $($pkgList.Count) existing package(s) as PendingDelete: $(@($byId.Keys) -join ', ')"
 
-          $submission.applicationPackages += @{
+          # New MSIX. Explicit targetDeviceFamilies (matching the manifest's
+          # Windows.Desktop MinVersion=10.0.17763.0) so the metadata PUT validates
+          # even if Microsoft's manifest parser hasn't run yet.
+          $pkgList += @{
             fileName = $msixFileName
             fileStatus = "PendingUpload"
             minimumDirectXVersion = "None"
             minimumSystemRam = "None"
+            targetDeviceFamilies = @("Windows.Desktop min version 10.0.17763.0")
           }
+          $submission.applicationPackages = $pkgList
 
           $updateBody = $submission | ConvertTo-Json -Depth 20 -Compress
           Invoke-RestMethod -Method Put `
