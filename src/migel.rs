@@ -533,6 +533,30 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // already-excluded Medtronic Navigation Inc. Whole catalogue is the GPS
     // surgical system; none are MiGeL. Precision-preserving exclusion.
     "Case Medical, Inc.",
+    // --- 12.08.2026 additions (daily-diff FP sweep) ---
+    // Blue Ortho SAS = 8 rows, ALL the "GPS" computer-assisted-surgery line
+    // (GPS Ankle / Knee - TKA Pro / Shoulder / Sterile batteries / Station v2+v3
+    // User Kit) — matched as body-part keyword accidents onto 23.02/23.04/23.25
+    // Orthesen (batteries & station kits even landed on 23.21 Hand-Orthese).
+    // Same pattern as the already-excluded Case Medical / Medtronic Navigation:
+    // surgical navigation, never MiGeL. Whole catalogue is the GPS system.
+    "Blue Ortho SAS",
+    // Shenzhen Denco Medical Co. = 4 matched of 50, ALL "Dental Root Canal
+    // Instruments Spreaders" (tradeName "S.S Finger Spreaders") → 23.20.01
+    // Finger-Orthese on the bare "finger" token. Endodontic root-canal
+    // instruments (files/reamers/broaches/spreaders) — pure dental, never MiGeL.
+    "Shenzhen Denco Medical Co.",
+    // Zimmer Inc = 2 rows, "HP EXODUS BLADES" / "QUICK CONNECT HANDLE" (Exodus
+    // Revision Hip System) → 23.10.01 Rumpf-Orthese. Orthopedic hip-arthroplasty
+    // surgical instruments — categorically non-MiGeL like the excluded Aesculap.
+    // (US implant entity; other Zimmer Biomet entities matched by exact string.)
+    "Zimmer Inc",
+    // Cerdak (Pty) Ltd = 6 rows, ALL "Cerdak Ceramic Wound Dressing" (Basic /
+    // Cavity / Cath / Aerocloth / Trachy) → 35.07.01 "Wundverband mit med. Honig".
+    // Ceramic granule dressing carries NO honey; matched on generic "wound
+    // dressing" and drifted to the honey position by IDF. No MiGeL position for
+    // ceramic dressings exists, so the honey code is an unfixable wrong-code FP.
+    "Cerdak (Pty) Ltd",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1650,6 +1674,27 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // pulse oximeter. No genuine 21.01 pulse oximeter is an "interface kit"
     // (verified: 21.01 + "interface" → this row only, 31.07.2026). ---
     ("21.01", "interface kit"),
+    // --- 12.08.2026 daily-diff FP sweep ---
+    // A "rollator" / knee-walker / standing-rollator is a wheeled walking aid,
+    // never an orthosis. Improving Mobility's "Knie-Rollator (Knee Walker)" and
+    // "Unterarm-Rollator (Stehrollator)" rode the German body-part compounds
+    // (knie-/unterarm-) into 23.04/23.22 Orthesen. The company keeps genuine
+    // rows (Walker Boot → 22.02.04, compression-donning aid → 17.12.01) so it
+    // can't be company-excluded; fence the rollators off across chapter 23.
+    // (Verified corpus-wide: only these 2 ch23 rows carry "rollator".)
+    ("23", "rollator"),
+    // Medtronic "VitalFlow Flow and Bubble Sensor" (perfusion flow/bubble sensor)
+    // hit the 21.07.02 "Sensoren" CGM magnet on the bare "sensor" token. Only
+    // glucose (CGM) sensors are genuine there; a bubble detector is not. "bubble"
+    // never appears on a real CGM sensor (verified: 21.07.02 + "bubble" → this
+    // row only). Medtronic Inc. has genuine MiGeL rows, so keyword not exclusion.
+    ("21.07.02", "bubble"),
+    // Orkla Wound Care "PP 501 Procedure Packs_Reusable" hit 35.05.03 Hydropolymere.
+    // A procedure pack is a multi-item kit, never a single MiGeL dressing position;
+    // block chapter-wide (hop-proof) so it can't drift to another ch35 dressing.
+    // Orkla makes genuine dressings/plasters, so keyword not company exclusion.
+    // (Verified: ch35 + "procedure pack" → this row only.)
+    ("35", "procedure pack"),
 ];
 
 /// Normalize German umlauts so ALL-CAPS text (e.g. ABSAUGGERAETE) matches
