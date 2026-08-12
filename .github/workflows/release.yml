@@ -453,6 +453,8 @@ jobs:
     if: vars.MSSTORE_ENABLED == 'true'
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history + tags so release notes can be derived
 
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
@@ -629,6 +631,31 @@ jobs:
             targetDeviceFamilies = @("Windows.Desktop min version 10.0.17763.0")
           }
           $submission.applicationPackages = $pkgList
+
+          # Refresh the Store release notes from the commit log since the previous
+          # tag (fetch-depth:0 on this job makes tags + history available) so the
+          # listing reflects what changed this release instead of carrying the
+          # previous version's notes forward with the clone.
+          $tag = $env:GITHUB_REF_NAME
+          $ver = $tag -replace '^v',''
+          $prev = (git describe --tags --abbrev=0 "$tag^" 2>$null)
+          $notes = ""
+          if ($prev) {
+            $notes = (git log --no-merges --pretty="- %s" "$prev..$tag" |
+              Where-Object { $_ -notmatch '^- (Bump version|Merge |Point README|ci:|chore:)' } |
+              Select-Object -First 15) -join "`n"
+          }
+          if ([string]::IsNullOrWhiteSpace($notes)) {
+            $notes = "swissdamed2sqlite $ver - updated Swiss medical-device data pipeline and MiGeL matching."
+          }
+          if ($submission.listings) {
+            foreach ($listing in $submission.listings.PSObject.Properties) {
+              if ($listing.Value.baseListing) {
+                $listing.Value.baseListing.releaseNotes = $notes
+              }
+            }
+            Write-Host "Set release notes on $((@($submission.listings.PSObject.Properties)).Count) listing(s) from the commit log."
+          }
 
           $updateBody = $submission | ConvertTo-Json -Depth 20 -Compress
           Invoke-RestMethod -Method Put `
