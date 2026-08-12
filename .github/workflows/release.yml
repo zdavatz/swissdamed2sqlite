@@ -241,10 +241,6 @@ jobs:
             echo "no App Store .pkg produced — skipping version/submit"
             exit 0
           fi
-          if [ -z "$MACOS_APP_ID" ]; then
-            echo "MACOS_APP_ID secret not set — skipping version/submit"
-            exit 0
-          fi
           # "What's New" from the commit log since the previous tag (fetch-depth:0
           # above makes tags + history available), with a generic fallback.
           PREV=$(git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)
@@ -255,8 +251,11 @@ jobs:
               | head -15 || true)
           fi
           [ -z "$NOTES" ] && NOTES="swissdamed2sqlite ${VERSION} — updated Swiss medical-device data pipeline and MiGeL matching."
+          # --app-id is optional: the App ID is resolved from --bundle-id when the
+          # MACOS_APP_ID secret is not set, so no extra repo secret is required.
           python3 .github/scripts/appstore_metadata.py \
             --app-id    "$MACOS_APP_ID" \
+            --bundle-id "com.ywesee.swissdamed2sqlite" \
             --version   "$VERSION" \
             --key-id    "$APPLE_API_KEY_ID" \
             --issuer-id "$APPLE_API_ISSUER_ID" \

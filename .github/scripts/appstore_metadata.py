@@ -198,9 +198,20 @@ def submit_for_review(token: str, app_id: str, version_id: str) -> None:
     print(f"  + submitted for review — state: {state}", file=sys.stderr)
 
 
+def resolve_app_id(token: str, bundle_id: str) -> str | None:
+    r = api(token, "GET", f"/apps?filter[bundleId]={bundle_id}&limit=1")
+    data = r.get("data", [])
+    return data[0]["id"] if data else None
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--app-id", required=True, help="App Store Connect numeric App ID")
+    p.add_argument("--app-id", default="",
+                   help="App Store Connect numeric App ID. Optional — resolved "
+                        "from --bundle-id when omitted.")
+    p.add_argument("--bundle-id", default="",
+                   help="Bundle id, e.g. com.ywesee.swissdamed2sqlite. Used to "
+                        "resolve the App ID when --app-id is not given.")
     p.add_argument("--version", required=True, help="Version string, e.g. 0.1.9")
     p.add_argument("--key-id", required=True)
     p.add_argument("--issuer-id", required=True)
@@ -217,12 +228,22 @@ def main() -> int:
     if not args.key_file.is_file():
         print(f"error: key file not found: {args.key_file}", file=sys.stderr)
         return 1
+    if not args.app_id and not args.bundle_id:
+        print("error: one of --app-id or --bundle-id is required", file=sys.stderr)
+        return 1
 
     whats_new = args.whats_new.strip()
     if len(whats_new) > 4000:  # Apple rejects whatsNew over 4000 chars
         whats_new = whats_new[:3960].rstrip() + "\n- ...and more."
 
     token = jwt_token(args.key_id, args.issuer_id, args.key_file)
+
+    app_id = args.app_id or resolve_app_id(token, args.bundle_id)
+    if not app_id:
+        print(f"error: could not resolve App ID for bundle {args.bundle_id!r}",
+              file=sys.stderr)
+        return 1
+    args.app_id = app_id
 
     # 1. Find — or CREATE — the macOS App Store version for this build.
     versions = api(token, "GET",
