@@ -2265,6 +2265,39 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // company-excluded (they sell MiGeL compression stockings in some markets),
     // so this fences only the gel-protector class.
     &["toe/finger protector"],
+    // --- 13.08.2026 daily-diff FP sweep (Mediroyal Nordic AB, +2016 rows) ---
+    // Shoe insoles (Mediroyal "Thin Insole", "LOW/MOW Orthotic Wedge Insoles")
+    // are not a MiGeL Pflichtleistung — orthopaedic Schuheinlagen are excluded
+    // from MiGeL. They rode the insole->schuheinlage/einlage enrichment onto
+    // 26.01.04 (Spezialschuhe) and the "orthotic" token onto 23.21 Hand-Orthesen.
+    // "insole" is Mediroyal-exclusive in the matched corpus (19 rows); genuine
+    // special shoes (Künzli) and German "Einlage" rows carry no English "insole".
+    &["insole"],
+    // Sport/thermal compression legwear ("Sport Compression Pants", "SRX Thermal
+    // & Compression Pants") is not Pflichtleistung and, being legwear, hit the
+    // ARM code 17.15.03 on the bare "compression" enrichment. "compression pants"
+    // is Mediroyal-exclusive corpus-wide (10 rows); medical leg compression uses
+    // German "nach Mass"/"garment" wording, never the English "compression pants".
+    &["compression pants"],
+    // Plantar-fasciitis compression socks ("Active/PF8 Plantar Fascia Compression
+    // Sock") have no MiGeL position and rode "compression" onto 17.15.03 (Arm).
+    // "plantar"+"fascia" is Mediroyal-exclusive corpus-wide (6 rows).
+    &["plantar", "fascia"],
+    // Finger edema (lymphoedema) compression sleeves ("Finger Sleeves for Edema")
+    // are not finger ORTHOSES; they hit 23.20.01 on the "finger" token. No finger-
+    // lymphoedema MiGeL path exists today (would be ch.17.15) — LIFT this if one is
+    // added. "finger"+"edema" is Mediroyal-exclusive corpus-wide (8 rows).
+    &["finger", "edema"],
+    // Cold-therapy wrap ("SRX Ice Wrap") is not an elbow orthosis; it hit 23.23.01
+    // on "wrap". The existing hot/cold gel-compress rule needs both "hot"+"cold";
+    // an ice wrap carries neither. "ice wrap" is corpus-unique (1 row). LIFT with
+    // the hot/cold rule if a ch.16 recall path is added.
+    &["ice wrap"],
+    // Disposable shoe covers / overshoes (Hubei Yazhi "Disposable shoe cover")
+    // are hygiene PPE booties, not orthopaedic Spezialschuhe; they rode "shoe"
+    // onto 26.01.04.01.1 (Spezialschuhe für Orthesen). "shoe cover" is corpus-
+    // unique (2 rows); genuine special shoes (Künzli "Ortho Rehab") never use it.
+    &["shoe cover"],
 ];
 
 /// Check if a product is universally excluded from all MiGeL matching.
