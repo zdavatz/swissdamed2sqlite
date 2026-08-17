@@ -557,6 +557,17 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // dressing" and drifted to the honey position by IDF. No MiGeL position for
     // ceramic dressings exists, so the honey code is an unfixable wrong-code FP.
     "Cerdak (Pty) Ltd",
+    // --- 16.08.2026 additions (daily-diff FP sweep) ---
+    // Conmed Corporation = surgical/electrosurgery/arthroscopy maker (418 new rows
+    // published 14.08.2026). 8 matched, ALL FPs: 6 "Orthopedic, Non-active,
+    // Stabilization, Arm/Knee/Ankle/Hand" (the ASSISTARM surgical LIMB-POSITIONER
+    // for arthroscopy) → 22.07.01 "Hand-Orthese zur Stabilisierung" on the
+    // "Stabilization"→"Stabilisierung" token (same failure as Medtronic Navigation);
+    // 1 "Orthopaedic Surgery Trocar" + 1 "Powered Surgical Instruments" (the HIP
+    // PRESERVATION SYSTEM) → 23.10.01 "Rumpf-Orthesen diverse" modal fallback (same
+    // as United Orthopedic). Surgical tools/positioners, never self-applied MiGeL
+    // orthoses. Whole matched catalogue is FP; excluding fences the 418-row batch.
+    "Conmed Corporation",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
