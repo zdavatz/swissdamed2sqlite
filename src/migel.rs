@@ -568,6 +568,36 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // as United Orthopedic). Surgical tools/positioners, never self-applied MiGeL
     // orthoses. Whole matched catalogue is FP; excluding fences the 418-row batch.
     "Conmed Corporation",
+    // --- 18.08.2026 additions (daily-diff FP sweep) ---
+    // Tornier SAS = shoulder-arthroplasty implant maker (44 rows, 13 matched, ALL
+    // FP). Whole catalogue is "AEQUALIS REVERSED II INSTRUMENTATION" + "PYROCARBON
+    // HUMERAL HEAD INSTRUMENTATION" — reusable non-sterile surgical tools (cutting
+    // guides, reaming/drilling/impact instruments, forceps, K-wires) → 23.25.01
+    // "Schulter-Orthesen diverse" modal fallback on "humeral"/"shoulder". Surgical
+    // instrumentation, never a self-applied MiGeL shoulder orthosis.
+    "Tornier SAS",
+    // Howmedica Osteonics Corp. = Stryker's hip/knee implant division (6 rows, all
+    // matched, ALL FP). "TF-025 - Hip - Neck Trial / Proximal Stems" are hip-
+    // arthroplasty implant trial components and stems → 23.10.01 "Rumpf-Orthesen
+    // diverse" modal fallback (same failure as United Orthopedic). Implants, not
+    // orthoses.
+    "Howmedica Osteonics Corp.",
+    // Scanatron AG = OR surgical-lighting maker (18 rows, 4 matched, ALL FP). The
+    // catalogue is "Operationsleuchte SOL" surgical lights + "Sterilhandgriff" —
+    // the sterilizable HANDLE for those OR lamps → 15.13.06 "Handgriff für Katheter"
+    // (Limitation: only for tetraplegia) on the bare "Handgriff" token. An OR-lamp
+    // handle is not a catheter handle for tetraplegic self-catheterization.
+    "Scanatron AG",
+    // Jolife AB = maker of the LUCAS mechanical CPR machine (Stryker; 1 row, matched,
+    // FP). "LUCAS 3 Chest Compression System" → 17.15.03 "Arm-Kompressionsbandage
+    // nach Mass" on the bare "compression" token. An automated chest-compression CPR
+    // device is not a self-applied arm compression bandage.
+    "Jolife AB",
+    // Advanced Vascular Dynamics = vascular-hemostasis maker (1 row, matched, FP).
+    // "Zephyr Vascular Compression Device" is a post-catheterization puncture-site
+    // compression clamp → 17.15.03 "Arm-Kompressionsbandage" on "compression". A
+    // procedural hemostasis device is not a MiGeL compression garment.
+    "Advanced Vascular Dynamics",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -2309,6 +2339,16 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // onto 26.01.04.01.1 (Spezialschuhe für Orthesen). "shoe cover" is corpus-
     // unique (2 rows); genuine special shoes (Künzli "Ortho Rehab") never use it.
     &["shoe cover"],
+    // --- 18.08.2026 daily-diff FP sweep ---
+    // Pharmaplast "Compression and support bandages" (Vendapress®) is a generic
+    // cohesive/short-stretch elastic bandage carrying NO body region; it hit
+    // 17.15.03 "Arm-Kompressionsbandage nach Mass, flachgestrickt" on the bare
+    // "compression"+"bandage" tokens. Generic support bandages are not the custom
+    // flat-knit arm-compression position. "compression and support" is Pharmaplast-
+    // exclusive corpus-wide (3 rows); the maker's genuine "Absorbent pad" (Vilowond®
+    // → 35.05.05 Superabsorber) is untouched, so the company is NOT fully excluded.
+    // Genuine arm garments (Macom) say "garment", never "compression and support".
+    &["compression and support"],
 ];
 
 /// Check if a product is universally excluded from all MiGeL matching.
