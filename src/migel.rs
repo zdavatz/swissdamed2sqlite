@@ -598,6 +598,22 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // compression clamp → 17.15.03 "Arm-Kompressionsbandage" on "compression". A
     // procedural hemostasis device is not a MiGeL compression garment.
     "Advanced Vascular Dynamics",
+    // --- 19.08.2026 additions (daily-diff FP sweep) ---
+    // estetic ceram ag = dental-ceramics maker (1,782 rows published 19.08, all
+    // "Dentalkeramik"; 8 matched, ALL FP). Shade names "DC 12.5 Cervical Transpa
+    // Yellow/Orange/Khaki/Salmon" hit 22.12.01 "Cervikalstütze" on the token
+    // "Cervical" — but here "Cervical" denotes the cervical THIRD OF A TOOTH (the
+    // gumline region of a crown), not a neck collar. Dental restorative ceramic is
+    // never a MiGeL orthosis. Joins the dental-maker exclusions (Thommen, Huanghua,
+    // Sunstar, Alpha-Bio, Dr. Jean Bausch).
+    "estetic ceram ag",
+    // Microaire Surgical Instruments LLC = surgical-instrument maker (liposuction /
+    // aspiration / carpal-tunnel; 123 rows published 19.08, 1 matched, FP).
+    // "SYRINGE ADAPTER TOOMEY TO LUER" (large-bore irrigation/aspiration adapter) hit
+    // 03.07.10.01 "Spritze Luer/Luer-Lock bis 10 ml" — the DIABETES insulin-syringe
+    // position (ch. 03.07). A surgical Toomey-to-Luer adapter is not a diabetes
+    // syringe. Whole-catalogue surgical maker → joins Aesculap / MANI / Oertli.
+    "Microaire Surgical Instruments LLC",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
