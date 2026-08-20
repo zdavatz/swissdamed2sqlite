@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 pub mod data;
+pub mod details;
 pub mod diff;
 pub mod download;
 mod error_report;
@@ -216,6 +217,20 @@ pub struct Args {
     /// (no download/match) and exits.
     #[arg(long, value_name = "URN_OR_URL")]
     pub linkedin_delete: Option<String>,
+
+    /// Fetch per-device detail records (EMDN nomenclature = "Zweckbestimmung",
+    /// additional description, and MDR/IVD yes/no characteristics) via the
+    /// /public/udi/udi-dis/{id}/details endpoint and write them to SQLite.
+    #[arg(long)]
+    pub details: bool,
+
+    /// Max number of udiDi detail records to fetch for --details (0 = all).
+    #[arg(long, default_value_t = 500)]
+    pub details_limit: u32,
+
+    /// Number of parallel worker threads for --details fetching.
+    #[arg(long, default_value_t = 32)]
+    pub details_threads: u32,
 }
 
 // --- Main ---
@@ -272,6 +287,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --sigvaris-shop mode (scrape shop.sigvaris.com, build override DB)
     if args.sigvaris_shop {
         return sigvaris_shop::run();
+    }
+
+    // Handle --details mode (per-device detail enrichment → SQLite)
+    if args.details {
+        return details::run(&args);
     }
 
     // Handle --linkedin-delete mode (delete a post, no download/render)

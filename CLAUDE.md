@@ -49,6 +49,8 @@ cargo run -- --sigvaris-shop         # scrape shop.sigvaris.com → GTIN→MiGeL
 cargo run -- --lookup-chrn CHRN-AR-20000807  # find all SRNs for a given CHRN
 cargo run -- --company-ranking               # rank companies by product count
 cargo run -- --unique-srns                   # export all unique SRNs with manufacturer + mandate holder
+cargo run -- --details --details-limit 500   # per-device detail enrichment (POC: 500 devices)
+cargo run -- --details --details-limit 0 --details-threads 32  # full detail run (all ~193k udiDis)
 cargo run -- --csv --gdrive --gdrive-sub user@domain.com  # upload CSV to Google Drive
 cargo run -- --company-ranking --mailto "a@gs1.ch,b@gs1.ch" --mail-subject "Subject" --gdrive-sub user@domain.com  # email CSV
 ```
@@ -61,6 +63,7 @@ Modular Rust binary. `src/main.rs` holds CLI parsing (`Args`), `app_data_dir()`,
 
 - `src/data.rs` — JSON → header/row flattening (`collect_headers`, `build_rows`, `collect_flat_headers`, `build_flat_rows`).
 - `src/download.rs` — paginated POSTs to the swissdamed.ch API (`download_all_pages*`, `load_json_file`).
+- `src/details.rs` — `--details` mode: per-device detail enrichment. The slim list endpoint (`POST /public/udi/basic-udis`) carries no intended-purpose/EMDN/characteristic data; the full regulated attribute set lives behind `GET /public/udi/udi-dis/{udiDiId}/details` where `{udiDiId}` is the nested `udiDis[].id` UUID (NOT the `udiDiCode`/GTIN). Public but behind a load-balancer sticky-session cookie (`sm-cookie-be`): first request `302`+Set-Cookie → same URL → `200`; the shared cookie-store client follows it transparently. Pages the list to collect udiDi refs (`--details-limit N`, 0 = all ~193k; ratio ~7.5 udiDis/basic-UDI), then fetches details in parallel via a rayon pool (`--details-threads`, default 32, `map_init` gives each worker its own client/cookie affinity, 3 retries). API tolerates parallelism well (~188 req/s measured, no 429; full run ~20 min). Writes `db/udi_details_DD.MM.YYYY.db` table `udi_details` (31 TEXT cols): identity + intended-purpose (`emdnCode`/`emdnTerm` = EMDN nomenclature ≈ Zweckbestimmung, ~100% coverage; `additionalDescription`; `eudamedBasicUdiUri`) + MDR/IVD yes/no characteristics (implantable/reusable/sterile/measuringFunction/… ; selfTesting/nearPatientTesting/professionalTesting/companionDiagnostics/reagent/instrument/kit/…) + **`rawJson`** = the complete verbatim detail response (verified deep-equal, lossless catch-all: 104 of 133 key-paths — criticalWarnings, storageHandlingConditions, cmrSubstances, clinicalSizes, packages, ownerInfo AR/MF, modelName, referenceNumber, … — live only here, queryable via SQLite `json_extract`).
 - `src/export.rs` — `write_csv` (UTF-8 BOM), `write_sqlite[_table]` (identifier-quoted SQL), `output_csv`/`output_db` path helpers.
 - `src/diff.rs` — `diff_csv_files` (compares two CSVs by `udiDiCode`).
 - `src/gdrive.rs` — JWT-signed Google Drive upload + Gmail send (RFC 2047 subject encoding).
