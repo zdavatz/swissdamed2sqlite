@@ -377,6 +377,16 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    // Daily hook: incrementally refresh the per-device details DB from the same
+    // UDI download (new/changed udiDis only). Non-fatal — a details failure must
+    // not fail the MiGeL run. Opt out with --skip-details.
+    if !args.skip_details {
+        eprintln!("[migel] Updating udi_details (incremental) ...");
+        if let Err(e) = crate::details::update_details(&values, args.details_threads) {
+            eprintln!("[migel] details update failed (non-fatal): {}", e);
+        }
+    }
+
     Ok(())
 }
 

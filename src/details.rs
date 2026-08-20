@@ -36,6 +36,42 @@ struct UdiRef {
     device_type: String,
     risk_class: String,
     market_status: String,
+    /// `udiDis[].lastModifiedAt` — the change key for incremental updates.
+    last_modified_at: String,
+}
+
+/// Flatten already-downloaded basic-UDI list values into one [`UdiRef`] per
+/// `udiDis[]` entry. Used by the `--migel` daily hook, which reuses the UDI
+/// download instead of paging the list a second time.
+fn refs_from_values(values: &[Value]) -> Vec<UdiRef> {
+    let mut refs = Vec::new();
+    for rec in values {
+        let basic_udi_di_code = s(rec, "basicUdiDiCode");
+        let company_name = s(rec, "companyName");
+        let device_name = s(rec, "deviceName");
+        let device_type = s(rec, "deviceType");
+        let risk_class = s(rec, "riskClass");
+        if let Some(udis) = rec.get("udiDis").and_then(|v| v.as_array()) {
+            for u in udis {
+                let id = s(u, "id");
+                if id.is_empty() {
+                    continue;
+                }
+                refs.push(UdiRef {
+                    udi_di_id: id,
+                    udi_di_code: s(u, "udiDiCode"),
+                    basic_udi_di_code: basic_udi_di_code.clone(),
+                    company_name: company_name.clone(),
+                    device_name: device_name.clone(),
+                    device_type: device_type.clone(),
+                    risk_class: risk_class.clone(),
+                    market_status: s(u, "marketStatus"),
+                    last_modified_at: s(u, "lastModifiedAt"),
+                });
+            }
+        }
+    }
+    refs
 }
 
 fn s(v: &Value, key: &str) -> String {
@@ -103,6 +139,7 @@ fn collect_udi_refs(
                         device_type: device_type.clone(),
                         risk_class: risk_class.clone(),
                         market_status: s(u, "marketStatus"),
+                        last_modified_at: s(u, "lastModifiedAt"),
                     });
                     if limit != 0 && refs.len() as u32 >= limit {
                         eprintln!("[details] Collected {} udiDi refs (limit reached).", refs.len());
@@ -134,6 +171,7 @@ const HEADERS: &[&str] = &[
     "deviceType",
     "riskClass",
     "marketStatus",
+    "lastModifiedAt",
     // intended-purpose signal (from /details)
     "emdnCode",
     "emdnTerm",
@@ -230,6 +268,14 @@ fn build_row(r: &UdiRef, detail: &Value) -> Vec<String> {
         r.device_type.clone(),
         r.risk_class.clone(),
         market_status,
+        {
+            let d = s(&udi_di, "lastModifiedAt");
+            if d.is_empty() {
+                r.last_modified_at.clone()
+            } else {
+                d
+            }
+        },
         emdn_code,
         emdn_term,
         additional_description(&udi_di),
@@ -299,30 +345,18 @@ fn fetch_one(client: &reqwest::blocking::Client, r: &UdiRef) -> Option<Vec<Strin
     None
 }
 
-/// Entry point for `--details`.
-pub fn run(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
+/// Fetch `refs` in parallel via a rayon pool. Each worker gets its own reqwest
+/// client (own cookie store / `sm-cookie-be` backend affinity), reused across
+/// the devices it processes. Failed fetches are dropped (logged in `fetch_one`).
+fn fetch_rows(refs: &[&UdiRef], threads: usize) -> Vec<Vec<String>> {
     use rayon::prelude::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
-    let client = http_client()?;
-
-    let refs = collect_udi_refs(&client, args.page_size, args.details_limit)?;
     let total = refs.len();
-    if total == 0 {
-        return Err("No udiDi references collected".into());
-    }
-    let threads = args.details_threads.max(1) as usize;
-    eprintln!(
-        "[details] Fetching {} detail records with {} threads ...",
-        total, threads
-    );
-
-    // Parallel fetch: each rayon worker gets its own reqwest client (own cookie
-    // store / backend affinity), reused across the devices it processes.
     let done = AtomicUsize::new(0);
     let ok_count = AtomicUsize::new(0);
     let pool = rayon::ThreadPoolBuilder::new()
-        .num_threads(threads)
+        .num_threads(threads.max(1))
         .build()
         .ok();
     let work = || {
@@ -349,15 +383,32 @@ pub fn run(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
             .flatten()
             .collect::<Vec<Vec<String>>>()
     };
-    let rows: Vec<Vec<String>> = match &pool {
+    match &pool {
         Some(p) => p.install(work),
         None => work(),
-    };
+    }
+}
+
+/// Entry point for `--details` (full/limited rebuild — overwrites the DB).
+pub fn run(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
+    let client = http_client()?;
+    let refs = collect_udi_refs(&client, args.page_size, args.details_limit)?;
+    let total = refs.len();
+    if total == 0 {
+        return Err("No udiDi references collected".into());
+    }
+    let threads = args.details_threads.max(1) as usize;
+    eprintln!(
+        "[details] Fetching {} detail records with {} threads ...",
+        total, threads
+    );
+
+    let refptrs: Vec<&UdiRef> = refs.iter().collect();
+    let rows = fetch_rows(&refptrs, threads);
     let ok = rows.len();
     let failed = total - ok;
 
     let headers: Vec<String> = HEADERS.iter().map(|h| h.to_string()).collect();
-
     let db_path = export::output_db("udi_details")?;
     export::write_sqlite_table(&headers, &rows, &db_path, "udi_details")?;
     eprintln!("[details] SQLite written: {} ({} rows)", db_path, rows.len());
@@ -376,4 +427,194 @@ pub fn run(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
         total
     );
     Ok(())
+}
+
+/// Find the newest `udi_details_*.db` in the db dir (by mtime).
+pub fn find_latest_db(db_dir: &std::path::Path) -> Option<std::path::PathBuf> {
+    let mut best: Option<(std::time::SystemTime, std::path::PathBuf)> = None;
+    for entry in std::fs::read_dir(db_dir).ok()?.flatten() {
+        let p = entry.path();
+        let name = p.file_name()?.to_string_lossy().to_string();
+        if name.starts_with("udi_details_") && name.ends_with(".db") {
+            if let Some(mt) = entry.metadata().ok().and_then(|m| m.modified().ok()) {
+                if best.as_ref().map(|(t, _)| mt > *t).unwrap_or(true) {
+                    best = Some((mt, p));
+                }
+            }
+        }
+    }
+    best.map(|(_, p)| p)
+}
+
+/// Ensure the `udi_details` table exists and has every column in `HEADERS`
+/// (migrates older DBs via `ALTER TABLE ADD COLUMN`).
+fn ensure_schema(conn: &rusqlite::Connection) -> Result<(), Box<dyn std::error::Error>> {
+    let quote = |s: &str| format!("\"{}\"", s.replace('"', "\"\""));
+    let table_exists: bool = conn
+        .query_row(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='udi_details'",
+            [],
+            |_| Ok(true),
+        )
+        .unwrap_or(false);
+    if !table_exists {
+        let cols: Vec<String> = HEADERS.iter().map(|h| format!("{} TEXT", quote(h))).collect();
+        conn.execute(
+            &format!("CREATE TABLE udi_details ({})", cols.join(", ")),
+            [],
+        )?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_udiDiCode ON udi_details(\"udiDiCode\")",
+            [],
+        )?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_udiDiId ON udi_details(\"udiDiId\")",
+            [],
+        )?;
+        return Ok(());
+    }
+    let existing: std::collections::HashSet<String> = conn
+        .prepare("PRAGMA table_info(udi_details)")?
+        .query_map([], |r| r.get::<_, String>(1))?
+        .filter_map(|r| r.ok())
+        .collect();
+    for h in HEADERS {
+        if !existing.contains(*h) {
+            conn.execute(
+                &format!("ALTER TABLE udi_details ADD COLUMN {} TEXT", quote(h)),
+                [],
+            )?;
+        }
+    }
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_udiDiId ON udi_details(\"udiDiId\")",
+        [],
+    )?;
+    Ok(())
+}
+
+/// Incrementally update the `udi_details` DB from an already-downloaded basic-UDI
+/// list. Fetches details only for NEW or CHANGED udiDis (change key:
+/// `lastModifiedAt`), replaces changed rows, and removes delisted ones. Carries
+/// the latest existing DB forward into today's date-stamped file. Reuses the
+/// caller's UDI download (no extra list request).
+pub fn update_details(
+    values: &[Value],
+    threads: u32,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use std::collections::{HashMap, HashSet};
+
+    let db_dir = crate::app_data_dir().join("db");
+    std::fs::create_dir_all(&db_dir)?;
+    let today_path = export::output_db("udi_details")?;
+
+    // Carry the latest existing DB forward into today's file (unless it IS today's).
+    if let Some(src) = find_latest_db(&db_dir) {
+        if src.to_string_lossy() != today_path {
+            std::fs::copy(&src, &today_path)?;
+            eprintln!(
+                "[details] Carried {} -> {} for incremental update",
+                src.display(),
+                today_path
+            );
+        }
+    }
+
+    let refs = refs_from_values(values);
+    eprintln!("[details] {} udiDi refs in current list", refs.len());
+
+    let mut conn = rusqlite::Connection::open(&today_path)?;
+    ensure_schema(&conn)?;
+
+    // One-time backfill: fill lastModifiedAt for legacy rows from rawJson so
+    // change-detection works for the whole corpus, not just newly-added rows.
+    let backfilled = conn.execute(
+        "UPDATE udi_details SET lastModifiedAt = json_extract(rawJson, '$.udiDi.lastModifiedAt') \
+         WHERE (lastModifiedAt IS NULL OR lastModifiedAt = '') AND rawJson IS NOT NULL",
+        [],
+    )?;
+    if backfilled > 0 {
+        eprintln!("[details] backfilled lastModifiedAt for {} legacy rows", backfilled);
+    }
+
+    // Existing state: udiDiId -> lastModifiedAt.
+    let existing: HashMap<String, String> = {
+        let mut stmt = conn.prepare("SELECT udiDiId, IFNULL(lastModifiedAt,'') FROM udi_details")?;
+        let it = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?;
+        it.filter_map(|r| r.ok()).collect()
+    };
+    let current_ids: HashSet<&str> = refs.iter().map(|r| r.udi_di_id.as_str()).collect();
+
+    // New = unknown id; Changed = known id whose stored lastModifiedAt differs
+    // (only when we actually have a stored timestamp).
+    let to_fetch: Vec<&UdiRef> = refs
+        .iter()
+        .filter(|r| match existing.get(&r.udi_di_id) {
+            None => true,
+            Some(lmt) => !lmt.is_empty() && *lmt != r.last_modified_at,
+        })
+        .collect();
+    let delisted: Vec<String> = existing
+        .keys()
+        .filter(|id| !current_ids.contains(id.as_str()))
+        .cloned()
+        .collect();
+
+    eprintln!(
+        "[details] incremental: {} to fetch (new/changed), {} delisted, {} unchanged",
+        to_fetch.len(),
+        delisted.len(),
+        existing.len() - (to_fetch.len().min(existing.len()))
+    );
+
+    // Fetch the delta.
+    let rows = if to_fetch.is_empty() {
+        Vec::new()
+    } else {
+        fetch_rows(&to_fetch, threads.max(1) as usize)
+    };
+    // udiDiId is column index 1 in HEADERS order.
+    let fetched_ids: HashSet<String> = rows.iter().map(|r| r[1].clone()).collect();
+
+    // Apply: delete rows we can replace (successfully fetched) + delisted, then insert.
+    let quote = |s: &str| format!("\"{}\"", s.replace('"', "\"\""));
+    let cols_sql = HEADERS.iter().map(|h| quote(h)).collect::<Vec<_>>().join(", ");
+    let ph = vec!["?"; HEADERS.len()].join(", ");
+    let insert_sql = format!("INSERT INTO udi_details ({}) VALUES ({})", cols_sql, ph);
+
+    let tx = conn.transaction()?;
+    {
+        let mut del = tx.prepare("DELETE FROM udi_details WHERE udiDiId = ?")?;
+        for id in fetched_ids.iter().chain(delisted.iter()) {
+            del.execute([id])?;
+        }
+        let mut ins = tx.prepare(&insert_sql)?;
+        for row in &rows {
+            let params: Vec<&dyn rusqlite::types::ToSql> =
+                row.iter().map(|s| s as &dyn rusqlite::types::ToSql).collect();
+            ins.execute(params.as_slice())?;
+        }
+    }
+    tx.commit()?;
+
+    let final_count: i64 =
+        conn.query_row("SELECT COUNT(*) FROM udi_details", [], |r| r.get(0))?;
+    eprintln!(
+        "[details] update done: +{} inserted, -{} delisted → {} rows in {}",
+        rows.len(),
+        delisted.len(),
+        final_count,
+        today_path
+    );
+    Ok(())
+}
+
+/// Standalone `--details-update`: download the list and run an incremental update.
+pub fn run_update(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
+    let values = if let Some(ref path) = args.file {
+        crate::download::load_json_file(path)?
+    } else {
+        crate::download::download_all_pages(args.page_size)?
+    };
+    update_details(&values, args.details_threads)
 }

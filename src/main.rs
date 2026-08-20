@@ -237,6 +237,15 @@ pub struct Args {
     /// (triage — decision-support only, NOT a compliance determination). No download.
     #[arg(long)]
     pub triage: bool,
+
+    /// Incrementally update the udi_details DB: fetch details only for new/changed
+    /// udiDis (downloads the list, appends to the latest DB).
+    #[arg(long)]
+    pub details_update: bool,
+
+    /// Skip the incremental details update that --migel runs by default.
+    #[arg(long)]
+    pub skip_details: bool,
 }
 
 // --- Main ---
@@ -303,6 +312,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --triage mode (classify public vs professional in latest details DB)
     if args.triage {
         return triage::run();
+    }
+
+    // Handle --details-update mode (incremental details update)
+    if args.details_update {
+        return details::run_update(&args);
     }
 
     // Handle --linkedin-delete mode (delete a post, no download/render)
