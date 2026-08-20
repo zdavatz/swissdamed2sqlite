@@ -161,6 +161,10 @@ const HEADERS: &[&str] = &[
     "microbialSubstances",
     // full raw detail response — catch-all so no field is ever lost
     "rawJson",
+    // triage classification (public vs professional) — decision-support only
+    "intendedUser",
+    "iuConfidence",
+    "iuReason",
 ];
 
 /// Join a `nomenclatureCodes` array into (codes, terms) with ";" separators.
@@ -199,6 +203,7 @@ fn additional_description(udi_di: &Value) -> String {
 
 /// Build one output row from a list ref + its fetched detail record.
 fn build_row(r: &UdiRef, detail: &Value) -> Vec<String> {
+    let (iu, iu_conf, iu_reason) = crate::triage::classify(detail);
     let basic = detail.get("basicUdi").cloned().unwrap_or(Value::Null);
     let udi_di = detail.get("udiDi").cloned().unwrap_or(Value::Null);
     let (emdn_code, emdn_term) = emdn(&udi_di);
@@ -248,6 +253,9 @@ fn build_row(r: &UdiRef, detail: &Value) -> Vec<String> {
         b(&basic, "kit"),
         b(&basic, "microbialSubstances"),
         serde_json::to_string(detail).unwrap_or_default(),
+        iu,
+        iu_conf,
+        iu_reason,
     ]
 }
 

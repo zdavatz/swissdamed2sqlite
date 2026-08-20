@@ -13,6 +13,7 @@ pub mod migel;
 mod migel_stats;
 pub mod reports;
 pub mod sigvaris_shop;
+pub mod triage;
 pub mod twitter;
 
 use clap::Parser;
@@ -231,6 +232,11 @@ pub struct Args {
     /// Number of parallel worker threads for --details fetching.
     #[arg(long, default_value_t = 32)]
     pub details_threads: u32,
+
+    /// Classify products in the latest udi_details DB as public vs professional
+    /// (triage — decision-support only, NOT a compliance determination). No download.
+    #[arg(long)]
+    pub triage: bool,
 }
 
 // --- Main ---
@@ -292,6 +298,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --details mode (per-device detail enrichment → SQLite)
     if args.details {
         return details::run(&args);
+    }
+
+    // Handle --triage mode (classify public vs professional in latest details DB)
+    if args.triage {
+        return triage::run();
     }
 
     // Handle --linkedin-delete mode (delete a post, no download/render)
