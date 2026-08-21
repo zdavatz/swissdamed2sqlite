@@ -206,7 +206,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 
 ### MiGeL Matching Results
 
-![MiGeL Matching Stats](png/swissdamed_migel_stats_17h02.20.08.2026.png)
+![MiGeL Matching Stats](png/swissdamed_migel_stats_17h39.21.08.2026.png)
 
 ### Triage Status Sheet
 

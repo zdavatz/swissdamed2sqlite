@@ -269,7 +269,8 @@ fn build(d: &Dist, dbname: &str) -> Result<genpdf::Document, Box<dyn Error>> {
     bullet(&mut doc, "swissdamed / EUDAMED führen KEIN Intended-User-Feld für MDR oder IVD (das EUDAMED-Feld medicalPurpose ist nur bei System-/Prozedurpacks befüllt) — durch Regulatory-Review bestätigt. Das einzige strukturierte Signal ist die IVD-Trias Selbst-/patientennahe/Profi-Testung, die die Testmodalität beschreibt, nicht den Anwender.");
     bullet(&mut doc, "Freitext-Laienphrasen (laien, selbstanwendung, home use, …) treffen unter 100 des gesamten Korpus — Text-Mining ist für diese Frage eine Sackgasse.");
     bullet(&mut doc, "MiGeL (KLV Art. 20) ist das stärkste ableitbare Laienanwendungs-Signal, aber eine Vergütungsliste ist schmaler als «an Konsumenten verkäuflich»: die offizielle BAG-MiGeL per 01.01.2026 (884 Positionen) enthält null Matratzen-Positionen — Konsumgüter wie Antidekubitus-Matratzen brauchen daher die kuratierte Liste, nicht MiGeL.");
-    bullet(&mut doc, "Wie der Review-Anteil von 58 % auf 15.3 % fiel: drei positive Signale ordnen Geräte aus «review» neu als «public» ein — MiGeL-/KLV-Art.-20-Listung (Laienanwendung), die kuratierte Konsum-EMDN-Liste (Antidekubitus) und die MepV-Abgabevermutung für risikoarme Klasse-I/IIa-Geräte; im «review» bleibt nur der höher-riskante Rest.");
+    bullet(&mut doc, &format!("Wie der Review-Anteil von {} auf {} fiel: ohne die drei positiven Signale lägen all diese Geräte in «review» — MiGeL-/KLV-Art.-20-Listung (Laienanwendung), die kuratierte Konsum-EMDN-Liste (Antidekubitus) und die MepV-Abgabevermutung für risikoarme Klasse-I/IIa-Geräte ordnen sie neu als «public» ein; im «review» bleibt nur der höher-riskante Rest.",
+        pct(d.rev + d.pm + d.pl, total), pct(d.rev, total)));
 
     // --- Page 2: nomenclature legend ---
     doc.push(PageBreak::new());
