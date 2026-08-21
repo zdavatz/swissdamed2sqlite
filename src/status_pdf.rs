@@ -18,7 +18,7 @@ use genpdf::style::{Color, Style};
 use genpdf::{Alignment, Element};
 use rusqlite::Connection;
 use std::error::Error;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 // Palette (matches the chrome2linkedin report house style).
 const INK: Color = Color::Rgb(0x1b, 0x1b, 0x1d);
@@ -136,11 +136,17 @@ fn meta(doc: &mut genpdf::Document, text: &str) {
     push_lines(doc, text, Style::new().with_color(MUTED).with_font_size(9), Alignment::Left);
 }
 
-/// One metric line: bold gold label + bold ink value, then a muted basis sub-line.
-fn metric(doc: &mut genpdf::Document, label: &str, value: &str, basis: &str) {
+/// One metric line: bold gold label + bold ink value, an optional small
+/// muted delta run (≈50 % of the value size), then a muted basis sub-line.
+fn metric(doc: &mut genpdf::Document, label: &str, value: &str, delta: &str, basis: &str) {
     let mut p = Paragraph::default();
     p.push_styled(format!("{label}    "), Style::new().with_color(GOLD).with_font_size(10).bold());
     p.push_styled(value.to_string(), Style::new().with_color(INK).with_font_size(10).bold());
+    if !delta.is_empty() {
+        // 7 pt ≈ 50 % larger than the previous 5 pt; deliberately NOT 8 pt,
+        // which is the LINK_FONT_SIZE sentinel add_links() keys on.
+        p.push_styled(format!("  {delta}"), Style::new().with_color(MUTED).with_font_size(7));
+    }
     doc.push(p);
     if !basis.is_empty() {
         let s = Style::new().with_color(MUTED).with_font_size(9);
@@ -200,6 +206,63 @@ struct Dist {
     rev: i64,
 }
 
+impl Dist {
+    fn total(&self) -> i64 {
+        self.prof + self.ph + self.pm + self.pl + self.rev
+    }
+}
+
+/// Signed percentage-point delta of a share vs. a previous distribution,
+/// e.g. "  (+0.1 Pp.)". Empty string when there is no previous distribution
+/// (so a first-ever run still renders cleanly).
+fn delta_pp(n: i64, total: i64, prev_n: Option<i64>, prev_total: i64) -> String {
+    let Some(pn) = prev_n else { return String::new() };
+    if total == 0 || prev_total == 0 {
+        return String::new();
+    }
+    let cur = 100.0 * n as f64 / total as f64;
+    let prev = 100.0 * pn as f64 / prev_total as f64;
+    let rounded = ((cur - prev) * 10.0).round() / 10.0;
+    // Typographic minus (U+2212) to match the surrounding DejaVu text; ± when
+    // the change rounds to zero so we never print a bare "−0.0".
+    let sign = if rounded > 0.0 {
+        "+"
+    } else if rounded < 0.0 {
+        "\u{2212}"
+    } else {
+        "±"
+    };
+    format!("({}{:.1} Pp.)", sign, rounded.abs())
+}
+
+/// Find the udi_details DB immediately preceding `latest` by the DD.MM.YYYY
+/// date embedded in the filename (robust against carry-forward mtimes).
+fn find_prev_db(db_dir: &Path, latest: &Path) -> Option<PathBuf> {
+    let key = |name: &str| -> Option<u32> {
+        let stem = name.strip_prefix("udi_details_")?.strip_suffix(".db")?;
+        let mut it = stem.split('.');
+        let d: u32 = it.next()?.parse().ok()?;
+        let m: u32 = it.next()?.parse().ok()?;
+        let y: u32 = it.next()?.parse().ok()?;
+        Some(y * 10000 + m * 100 + d)
+    };
+    let latest_key = key(&latest.file_name()?.to_string_lossy())?;
+    let mut best: Option<(u32, PathBuf)> = None;
+    for entry in std::fs::read_dir(db_dir).ok()?.flatten() {
+        let p = entry.path();
+        let name = p.file_name()?.to_string_lossy().to_string();
+        if !name.starts_with("udi_details_") || !name.ends_with(".db") {
+            continue;
+        }
+        if let Some(k) = key(&name) {
+            if k < latest_key && best.as_ref().map(|(bk, _)| k > *bk).unwrap_or(true) {
+                best = Some((k, p));
+            }
+        }
+    }
+    best.map(|(_, p)| p)
+}
+
 fn read_dist(db_path: &Path) -> Result<Dist, Box<dyn Error>> {
     let conn = Connection::open(db_path)?;
     let mut stmt =
@@ -222,9 +285,10 @@ fn read_dist(db_path: &Path) -> Result<Dist, Box<dyn Error>> {
     Ok(d)
 }
 
-fn build(d: &Dist, dbname: &str) -> Result<genpdf::Document, Box<dyn Error>> {
+fn build(d: &Dist, prev: Option<&Dist>, dbname: &str) -> Result<genpdf::Document, Box<dyn Error>> {
     let ptot = d.ph + d.pm + d.pl;
     let total = d.prof + ptot + d.rev;
+    let pt = prev.map(|p| p.total()).unwrap_or(0);
 
     let mut doc = genpdf::Document::new(font_family()?);
     doc.set_title("swissdamed Triage — Status");
@@ -248,16 +312,32 @@ fn build(d: &Dist, dbname: &str) -> Result<genpdf::Document, Box<dyn Error>> {
     );
 
     h2(&mut doc, "Verteilung");
-    metric(&mut doc, "Professional", &format!("{}   ({})", sep(d.prof), pct(d.prof, total)),
+    if prev.is_some() {
+        meta(&mut doc, "(±X Pp.) = Veränderung der Quote in Prozentpunkten gegenüber dem vorherigen Stand.");
+    }
+    metric(&mut doc, "Professional",
+        &format!("{}   ({})", sep(d.prof), pct(d.prof, total)),
+        &delta_pp(d.prof, total, prev.map(|p| p.prof), pt),
         "Implantat / Klasse III · IVD-Profitesting · chirurgische EMDN L/K/C/G/H/J/S/B/D/P");
-    metric(&mut doc, "Public — hoch", &format!("{}   ({})", sep(d.ph), pct(d.ph, total)),
+    metric(&mut doc, "Public — hoch",
+        &format!("{}   ({})", sep(d.ph), pct(d.ph, total)),
+        &delta_pp(d.ph, total, prev.map(|p| p.ph), pt),
         "IVD-Selbsttestung (strukturiertes Feld, echtes Intended-User-Signal)");
-    metric(&mut doc, "Public — mittel", &format!("{}   ({})", sep(d.pm), pct(d.pm, total)),
+    metric(&mut doc, "Public — mittel",
+        &format!("{}   ({})", sep(d.pm), pct(d.pm, total)),
+        &delta_pp(d.pm, total, prev.map(|p| p.pm), pt),
         "MiGeL-Listung / KLV Art. 20 Selbstanwendung (Laienanwendung)");
-    metric(&mut doc, "Public — tief", &format!("{}   ({})", sep(d.pl), pct(d.pl, total)),
+    metric(&mut doc, "Public — tief",
+        &format!("{}   ({})", sep(d.pl), pct(d.pl, total)),
+        &delta_pp(d.pl, total, prev.map(|p| p.pl), pt),
         "MepV-Abgabevermutung: Klasse I / IIa, keine Abgabebeschränkung gefunden — IFU prüfen");
-    metric(&mut doc, "Public — total", &format!("{}   ({})", sep(ptot), pct(ptot, total)), "");
-    metric(&mut doc, "Review", &format!("{}   ({})", sep(d.rev), pct(d.rev, total)),
+    metric(&mut doc, "Public — total",
+        &format!("{}   ({})", sep(ptot), pct(ptot, total)),
+        &delta_pp(ptot, total, prev.map(|p| p.ph + p.pm + p.pl), pt),
+        "");
+    metric(&mut doc, "Review",
+        &format!("{}   ({})", sep(d.rev), pct(d.rev, total)),
+        &delta_pp(d.rev, total, prev.map(|p| p.rev), pt),
         "Höheres Risiko: IIa ausserhalb Konsum-EMDN, IIb, IVD, System-/Prozedurpacks");
 
     h2(&mut doc, "Methode — zwei Fragen, getrennt nach Konfidenz");
@@ -395,7 +475,11 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     eprintln!("[status-pdf] Reading distribution from {}", db_path.display());
 
     let d = read_dist(&db_path)?;
-    let doc = build(&d, &dbname)?;
+    let prev = find_prev_db(&db_dir, &db_path).and_then(|p| {
+        eprintln!("[status-pdf] Δ baseline: {}", p.display());
+        read_dist(&p).ok()
+    });
+    let doc = build(&d, prev.as_ref(), &dbname)?;
     let out = crate::export::output_pdf("swissdamed_triage_status")?;
     doc.render_to_file(&out)
         .map_err(|e| format!("PDF render {}: {}", out, e))?;
