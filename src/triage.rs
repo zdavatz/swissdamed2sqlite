@@ -2,14 +2,21 @@
 //! "für Fachanwender" (professional user).
 //!
 //! swissdamed/EUDAMED expose NO structured intended-user field for MDR/MDD (95%
-//! of the corpus); the only structured signal is the IVD `selfTesting` /
-//! `nearPatientTesting` / `professionalTesting` triad. This classifier is
+//! of the corpus) — nor for IVD (verified: the EUDAMED Basic UDI-DI `medicalPurpose`
+//! field is populated for System/Procedure Packs only, empty for normal devices).
+//! The only structured signal is the IVD `selfTesting` / `nearPatientTesting` /
+//! `professionalTesting` triad — and per regulatory review (Maik, 21.08.2026) even
+//! that describes the *testing modality / regulatory risk*, not a supply-chain
+//! intended-user designation. A true consumer-vs-professional flag
+//! (`isTradeItemAConsumerUnit` / professional-use) is a GS1 GDSN supply-chain
+//! attribute, which EUDAMED does not carry for MD or IVD. This classifier is
 //! therefore **decision-support / triage, not a compliance determination**: it
 //! is deliberately asymmetric — it only ever labels `public` from a structured
-//! signal (or an explicit manufacturer lay-use statement), because a false
-//! `public` (selling a professional-only device) is a compliance breach, whereas
-//! a false `professional` is only a lost sale. Everything without a reliable
-//! signal is left as `review` and MUST be verified against the manufacturer's
+//! signal (IVD self-testing), MiGeL membership (KLV Art. 20 lay-use), or an
+//! explicit manufacturer lay-use statement, because a false `public` (selling a
+//! professional-only device) is a compliance breach, whereas a false
+//! `professional` is only a lost sale. Everything without a reliable signal is
+//! left as `review` and MUST be verified against the manufacturer's
 //! IFU/Zweckbestimmung and the Swiss MepV Abgabe rules before listing.
 //!
 //! Output columns (added to the `udi_details` table):
@@ -46,9 +53,14 @@ const PROF_PHRASES: &[&str] = &[
 /// this list is recommended before operational use.
 ///   L surgical instruments · K minimally-invasive/electrosurgery ·
 ///   C cardiocirculatory (electrophysiology) · G GI endoscopy · H sutures ·
-///   J cardiac leads/programmers · S sterilisation equipment.
+///   J cardiac leads/programmers · S sterilisation equipment ·
+///   B hemotransfusion/hematology (blood bags, apheresis) ·
+///   D disinfectants/detergents for reprocessing medical devices ·
+///   P implantable prosthetics & osteosynthesis (surgical implants — most also
+///     caught by the high-risk gate; P sweeps prosthetic accessories/instruments).
+/// Verified single-sided in the corpus (0% MiGeL lay-match for B/D/P/L/K/S).
 /// Deliberately EXCLUDES F (dialysis — home peritoneal dialysis is patient-run).
-const EMDN_PROFESSIONAL_CATS: &[char] = &['L', 'K', 'C', 'G', 'H', 'J', 'S'];
+const EMDN_PROFESSIONAL_CATS: &[char] = &['L', 'K', 'C', 'G', 'H', 'J', 'S', 'B', 'D', 'P'];
 
 /// EMDN categories that lean public but are NOT auto-classified (orthoses are
 /// often professionally fitted/prescribed; TENS spans both). Left as `review`
@@ -109,29 +121,49 @@ fn emdn_first(udi: &Value) -> (String, String) {
 
 /// Classify one detail record. Returns (intendedUser, confidence, reason).
 ///
+/// `migel_code` is this device's matched MiGeL position (`None`/empty when the
+/// MiGeL matcher found none). A genuine MiGeL match is a legally-anchored lay-use
+/// signal: KLV Art. 20 restricts MiGeL to items for *Selbstanwendung* (use by the
+/// insured person or a non-professionally-involved helper).
+///
 /// Rule order matters — first match wins, most-reliable first. The `public`
-/// branch is reached only via structured IVD self-testing or an explicit lay
-/// statement (never inferred from risk class / EMDN, which the data proves do
-/// NOT identify public devices).
-pub fn classify(detail: &Value) -> (String, String, String) {
+/// branch is reached only via structured IVD self-testing, MiGeL membership, or
+/// an explicit lay statement — never inferred from risk class / EMDN alone, which
+/// the data proves do NOT identify public devices.
+pub fn classify(detail: &Value, migel_code: Option<&str>) -> (String, String, String) {
     let basic = detail.get("basicUdi").cloned().unwrap_or(Value::Null);
     let udi = detail.get("udiDi").cloned().unwrap_or(Value::Null);
     let dtype = sstr(detail, "deviceType");
     let risk = sstr(&basic, "riskClass");
     let is_ivd = dtype.starts_with("IVD");
+    let migel = migel_code.unwrap_or("");
+    let has_migel = !migel.is_empty();
 
     let prof = |c: &str, r: String| ("professional".to_string(), c.to_string(), r);
     let public = |c: &str, r: String| ("public".to_string(), c.to_string(), r);
+    let review = |c: &str, r: String| ("review".to_string(), c.to_string(), r);
 
     // TIER 1 — structured, high-confidence professional (never sold to public).
-    if dtype == "AIMDD" {
-        return prof("high", "active implantable device".into());
-    }
-    if is_true(&basic, "implantable") {
-        return prof("high", "implantable".into());
-    }
-    if risk == "CLASS_III" || risk == "CLASS_D" {
-        return prof("high", format!("high-risk {}", risk));
+    // A MiGeL match on a high-risk device is a genuine conflict (e.g. Omnipod 5:
+    // CLASS_III yet a legitimate MiGeL home device) — don't pick a side, route to
+    // manual review.
+    let high_risk_why = if dtype == "AIMDD" {
+        Some("active implantable device".to_string())
+    } else if is_true(&basic, "implantable") {
+        Some("implantable".to_string())
+    } else if risk == "CLASS_III" || risk == "CLASS_D" {
+        Some(format!("high-risk {}", risk))
+    } else {
+        None
+    };
+    if let Some(why) = high_risk_why {
+        if has_migel {
+            return review(
+                "low",
+                format!("MiGeL-listed {} but {} — verify IFU/Abgabe", migel, why),
+            );
+        }
+        return prof("high", why);
     }
 
     // TIER 2 — structured, high-confidence public (IVD self-testing).
@@ -142,7 +174,8 @@ pub fn classify(detail: &Value) -> (String, String, String) {
         return public("high", "IVD self-testing risk class".into());
     }
 
-    // TIER 3 — structured IVD professional signal (medium).
+    // TIER 3 — structured IVD professional signal (medium). A structured
+    // professional-testing field outranks the MiGeL lay-use lean below.
     if is_ivd && is_true(&basic, "professionalTesting") {
         return prof("medium", "IVD professionalTesting flag".into());
     }
@@ -150,7 +183,18 @@ pub fn classify(detail: &Value) -> (String, String, String) {
         return prof("medium", "IVD nearPatientTesting flag".into());
     }
 
-    // TIER 4 — explicit manufacturer text statements (medium).
+    // TIER 4 — MiGeL membership → lay-use lean (medium). MiGeL (KLV Art. 20) lists
+    // only items for Selbstanwendung: a legally-anchored lay-use signal that
+    // outweighs the noisy free-text phrases below. Still a lean, not proof —
+    // verify against the IFU before listing.
+    if has_migel {
+        return public(
+            "medium",
+            format!("MiGeL-listed {} → KLV Art. 20 Selbstanwendung (lay-use)", migel),
+        );
+    }
+
+    // TIER 5 — explicit manufacturer text statements (medium).
     let blob = text_blob(&basic, &udi);
     for p in PROF_PHRASES {
         if blob.contains(p) {
@@ -163,7 +207,7 @@ pub fn classify(detail: &Value) -> (String, String, String) {
         }
     }
 
-    // TIER 5 — EMDN clearly-professional category (surgical/interventional).
+    // TIER 6 — EMDN clearly-professional category (surgical/interventional).
     // Exclusion direction only, low confidence.
     let (ecode, eterm) = emdn_first(&udi);
     let ecat = ecode.chars().next().unwrap_or(' ');
@@ -188,6 +232,64 @@ pub fn classify(detail: &Value) -> (String, String, String) {
 
 /// The three triage column names, in output order.
 pub const COLUMNS: &[&str] = &["intendedUser", "iuConfidence", "iuReason"];
+
+/// Load `udiDiCode → migel_code` for every MiGeL-matched device from the MiGeL DB
+/// (fixed `swissdamed_migel.db`, else the newest legacy `swissdamed_migel_*.db`).
+/// Best-effort: returns an empty map if the DB/table is absent or unreadable, so
+/// the classifier degrades gracefully to its structured/text signals only.
+pub fn load_migel_matches(db_dir: &std::path::Path) -> std::collections::HashMap<String, String> {
+    let mut map = std::collections::HashMap::new();
+    let path = {
+        let fixed = db_dir.join("swissdamed_migel.db");
+        if fixed.exists() {
+            Some(fixed)
+        } else {
+            let mut best: Option<(std::time::SystemTime, PathBuf)> = None;
+            if let Ok(rd) = std::fs::read_dir(db_dir) {
+                for e in rd.flatten() {
+                    let p = e.path();
+                    let n = p
+                        .file_name()
+                        .map(|s| s.to_string_lossy().to_string())
+                        .unwrap_or_default();
+                    if n.starts_with("swissdamed_migel_") && n.ends_with(".db") {
+                        if let Some(mt) = e.metadata().ok().and_then(|m| m.modified().ok()) {
+                            if best.as_ref().map(|(t, _)| mt > *t).unwrap_or(true) {
+                                best = Some((mt, p));
+                            }
+                        }
+                    }
+                }
+            }
+            best.map(|(_, p)| p)
+        }
+    };
+    let path = match path {
+        Some(p) => p,
+        None => return map,
+    };
+    let conn = match Connection::open(&path) {
+        Ok(c) => c,
+        Err(_) => return map,
+    };
+    let mut stmt = match conn.prepare(
+        "SELECT udiDiCode, migel_code FROM swissdamed \
+         WHERE migel_code IS NOT NULL AND migel_code != ''",
+    ) {
+        Ok(s) => s,
+        Err(_) => return map,
+    };
+    if let Ok(it) = stmt.query_map([], |r| {
+        Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+    }) {
+        for (code, migel) in it.flatten() {
+            if !code.is_empty() {
+                map.insert(code, migel);
+            }
+        }
+    }
+    map
+}
 
 /// Find the newest `udi_details_*.db` in the app-data db dir (by mtime).
 fn find_latest_details_db(db_dir: &std::path::Path) -> Option<PathBuf> {
@@ -219,6 +321,9 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
     })?;
     eprintln!("[triage] Classifying {}", db_path.display());
 
+    let migel = load_migel_matches(&db_dir);
+    eprintln!("[triage] {} MiGeL-matched udiDiCodes loaded (KLV Art. 20 lay-use signal)", migel.len());
+
     let mut conn = Connection::open(&db_path)?;
 
     // Add columns if absent (idempotent — a fresh --details run already has them).
@@ -236,10 +341,12 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    // Load (rowid, rawJson), classify, batch-update.
-    let rows: Vec<(i64, String)> = {
-        let mut stmt = conn.prepare("SELECT rowid, rawJson FROM udi_details")?;
-        let it = stmt.query_map([], |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?)))?;
+    // Load (rowid, udiDiCode, rawJson), classify, batch-update.
+    let rows: Vec<(i64, String, String)> = {
+        let mut stmt = conn.prepare("SELECT rowid, udiDiCode, rawJson FROM udi_details")?;
+        let it = stmt.query_map([], |r| {
+            Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, String>(2)?))
+        })?;
         it.filter_map(|r| r.ok()).collect()
     };
     let total = rows.len();
@@ -251,9 +358,9 @@ pub fn run() -> Result<(), Box<dyn std::error::Error>> {
         let mut up = tx.prepare(
             "UPDATE udi_details SET intendedUser=?, iuConfidence=?, iuReason=? WHERE rowid=?",
         )?;
-        for (rowid, raw) in &rows {
+        for (rowid, udi_di_code, raw) in &rows {
             let (user, conf, reason) = match serde_json::from_str::<Value>(raw) {
-                Ok(v) => classify(&v),
+                Ok(v) => classify(&v, migel.get(udi_di_code).map(|s| s.as_str())),
                 Err(_) => (
                     "review".to_string(),
                     "low".to_string(),

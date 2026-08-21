@@ -239,9 +239,15 @@ fn additional_description(udi_di: &Value) -> String {
     arr.first().map(|e| s(e, "textValue")).unwrap_or_default()
 }
 
-/// Build one output row from a list ref + its fetched detail record.
-fn build_row(r: &UdiRef, detail: &Value) -> Vec<String> {
-    let (iu, iu_conf, iu_reason) = crate::triage::classify(detail);
+/// Build one output row from a list ref + its fetched detail record. `migel` maps
+/// `udiDiCode → migel_code`; a hit is a KLV Art. 20 lay-use signal for the triage.
+fn build_row(
+    r: &UdiRef,
+    detail: &Value,
+    migel: &std::collections::HashMap<String, String>,
+) -> Vec<String> {
+    let (iu, iu_conf, iu_reason) =
+        crate::triage::classify(detail, migel.get(&r.udi_di_code).map(|s| s.as_str()));
     let basic = detail.get("basicUdi").cloned().unwrap_or(Value::Null);
     let udi_di = detail.get("udiDi").cloned().unwrap_or(Value::Null);
     let (emdn_code, emdn_term) = emdn(&udi_di);
@@ -311,7 +317,11 @@ fn build_row(r: &UdiRef, detail: &Value) -> Vec<String> {
 /// The `client` is per-worker-thread (see `map_init` below): its cookie store
 /// keeps this thread's `sm-cookie-be` backend affinity and reuses the connection
 /// across the many devices that thread handles.
-fn fetch_one(client: &reqwest::blocking::Client, r: &UdiRef) -> Option<Vec<String>> {
+fn fetch_one(
+    client: &reqwest::blocking::Client,
+    r: &UdiRef,
+    migel: &std::collections::HashMap<String, String>,
+) -> Option<Vec<String>> {
     let url = format!(
         "https://swissdamed.ch/public/udi/udi-dis/{}/details",
         r.udi_di_id
@@ -323,7 +333,7 @@ fn fetch_one(client: &reqwest::blocking::Client, r: &UdiRef) -> Option<Vec<Strin
             .send();
         match outcome {
             Ok(resp) if resp.status().is_success() => match resp.json::<Value>() {
-                Ok(detail) => return Some(build_row(r, &detail)),
+                Ok(detail) => return Some(build_row(r, &detail, migel)),
                 Err(_) if attempt < 3 => {}
                 Err(e) => {
                     eprintln!("[details]   parse error for {}: {}", r.udi_di_id, e);
@@ -348,7 +358,11 @@ fn fetch_one(client: &reqwest::blocking::Client, r: &UdiRef) -> Option<Vec<Strin
 /// Fetch `refs` in parallel via a rayon pool. Each worker gets its own reqwest
 /// client (own cookie store / `sm-cookie-be` backend affinity), reused across
 /// the devices it processes. Failed fetches are dropped (logged in `fetch_one`).
-fn fetch_rows(refs: &[&UdiRef], threads: usize) -> Vec<Vec<String>> {
+fn fetch_rows(
+    refs: &[&UdiRef],
+    threads: usize,
+    migel: &std::collections::HashMap<String, String>,
+) -> Vec<Vec<String>> {
     use rayon::prelude::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -364,7 +378,7 @@ fn fetch_rows(refs: &[&UdiRef], threads: usize) -> Vec<Vec<String>> {
             .map_init(
                 || http_client().expect("failed to build worker http client"),
                 |worker_client, r| {
-                    let row = fetch_one(worker_client, r);
+                    let row = fetch_one(worker_client, r, migel);
                     if row.is_some() {
                         ok_count.fetch_add(1, Ordering::Relaxed);
                     }
@@ -398,13 +412,17 @@ pub fn run(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
         return Err("No udiDi references collected".into());
     }
     let threads = args.details_threads.max(1) as usize;
+    let db_dir = crate::app_data_dir().join("db");
+    let migel = crate::triage::load_migel_matches(&db_dir);
     eprintln!(
-        "[details] Fetching {} detail records with {} threads ...",
-        total, threads
+        "[details] Fetching {} detail records with {} threads ({} MiGeL lay-use matches loaded) ...",
+        total,
+        threads,
+        migel.len()
     );
 
     let refptrs: Vec<&UdiRef> = refs.iter().collect();
-    let rows = fetch_rows(&refptrs, threads);
+    let rows = fetch_rows(&refptrs, threads, &migel);
     let ok = rows.len();
     let failed = total - ok;
 
@@ -567,11 +585,13 @@ pub fn update_details(
         existing.len() - (to_fetch.len().min(existing.len()))
     );
 
-    // Fetch the delta.
+    // Fetch the delta. MiGeL matches (KLV Art. 20 lay-use) feed the triage; the
+    // daily --migel hook has already written today's MiGeL DB by this point.
+    let migel = crate::triage::load_migel_matches(&db_dir);
     let rows = if to_fetch.is_empty() {
         Vec::new()
     } else {
-        fetch_rows(&to_fetch, threads.max(1) as usize)
+        fetch_rows(&to_fetch, threads.max(1) as usize, &migel)
     };
     // udiDiId is column index 1 in HEADERS order.
     let fetched_ids: HashSet<String> = rows.iter().map(|r| r[1].clone()).collect();
