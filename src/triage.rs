@@ -79,6 +79,17 @@ const EMDN_PUBLIC_LEAN_CATS: &[char] = &['Y', 'N'];
 ///   V0811 heel/elbow/knee anti-decubitus protection aids.
 const PUBLIC_EMDN_CODES: &[&str] = &["V0807", "V08030102", "V0811"];
 
+/// EMDN top-level categories whose devices are of a consumer-usable *type*
+/// (dressings, aids for the disabled, incontinence protection, ostomy/self-care,
+/// TENS). Combined with a low risk class and no professional signal, these feed
+/// the MepV "sellable-to-consumer unless restricted" presumption (TIER 7). This
+/// is a **shop-sellability** presumption (may it be sold to the public), NOT an
+/// intended-user determination — kept separate from the professional-equipment
+/// categories (Z/Q/W/R/V) which stay `review`.
+///   M dressings · Y aids for disabled (orthoses) · T incontinence protection ·
+///   A administration/collection (ostomy, self-cath) · N neuro (TENS).
+const EMDN_CONSUMER_LEAN_CATS: &[char] = &['M', 'Y', 'T', 'A', 'N'];
+
 /// Explicit lay/consumer-use phrases.
 const LAY_PHRASES: &[&str] = &[
     "for home use",
@@ -239,6 +250,38 @@ pub fn classify(detail: &Value, migel_code: Option<&str>) -> (String, String, St
     // Exclusion direction only, low confidence.
     if EMDN_PROFESSIONAL_CATS.contains(&ecat) {
         return prof("low", format!("EMDN professional category {} ({})", ecat, eterm));
+    }
+
+    // TIER 7 — presumptive consumer (MepV shop-sellability default). A device that
+    // survived EVERY professional gate above (not implant/high-risk, not IVD-prof,
+    // not surgical/interventional EMDN, no prof text) and is low-risk MDR/MDD may
+    // be sold to the public under MepV — no Abgabe restriction found. This answers
+    // "may it be sold to a consumer", NOT "who is it intended for": public/low, a
+    // restriction-not-found presumption, verify IFU before listing.
+    //   - CLASS_I: broad — the lowest MDR risk; the professional Class I devices
+    //     (reusable surgical instruments) are already excluded via EMDN L/K above.
+    //   - CLASS_IIA: only for consumer-type EMDN categories (dressings/aids/…),
+    //     since IIa carries more genuinely professional devices; the rest stay
+    //     `review`.
+    if matches!(dtype.as_str(), "MDR" | "MDD") {
+        if risk == "CLASS_I" {
+            return public(
+                "low",
+                format!(
+                    "presumptively consumer: Class I low-risk, no professional restriction — sellable under MepV, verify IFU (EMDN: {})",
+                    if eterm.is_empty() { "n/a" } else { &eterm }
+                ),
+            );
+        }
+        if risk == "CLASS_IIA" && EMDN_CONSUMER_LEAN_CATS.contains(&ecat) {
+            return public(
+                "low",
+                format!(
+                    "presumptively consumer: Class IIa + consumer-type EMDN ({}), no professional restriction — sellable under MepV, verify IFU",
+                    eterm
+                ),
+            );
+        }
     }
 
     // Default — no reliable signal: manual IFU/Abgabe check required. Surface an
