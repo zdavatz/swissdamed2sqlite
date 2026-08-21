@@ -68,6 +68,17 @@ const EMDN_PROFESSIONAL_CATS: &[char] = &['L', 'K', 'C', 'G', 'H', 'J', 'S', 'B'
 ///   Y technical aids for disabled persons (orthoses) · N neuro (TENS).
 const EMDN_PUBLIC_LEAN_CATS: &[char] = &['Y', 'N'];
 
+/// Maintainer-curated EMDN **leaf-code prefixes** for devices verified to be
+/// consumer products that fall OUTSIDE MiGeL — freely sellable to the public with
+/// no MepV Abgabe restriction, but not a reimbursement item (so KLV Art. 20 does
+/// not reach them). This is a documented human determination, NOT a structured or
+/// legal-list signal → classified `public/low`. Use specific leaf codes only
+/// (never a bare category letter), so a false `public` stays near-impossible.
+///   V0807 anti-decubitus mattresses (active + non-active, Class I/IIa) ·
+///   V08030102 non-active anti-decubitus cushions ·
+///   V0811 heel/elbow/knee anti-decubitus protection aids.
+const PUBLIC_EMDN_CODES: &[&str] = &["V0807", "V08030102", "V0811"];
+
 /// Explicit lay/consumer-use phrases.
 const LAY_PHRASES: &[&str] = &[
     "for home use",
@@ -138,6 +149,8 @@ pub fn classify(detail: &Value, migel_code: Option<&str>) -> (String, String, St
     let is_ivd = dtype.starts_with("IVD");
     let migel = migel_code.unwrap_or("");
     let has_migel = !migel.is_empty();
+    let (ecode, eterm) = emdn_first(&udi);
+    let ecat = ecode.chars().next().unwrap_or(' ');
 
     let prof = |c: &str, r: String| ("professional".to_string(), c.to_string(), r);
     let public = |c: &str, r: String| ("public".to_string(), c.to_string(), r);
@@ -194,6 +207,21 @@ pub fn classify(detail: &Value, migel_code: Option<&str>) -> (String, String, St
         );
     }
 
+    // TIER 4b — maintainer-curated consumer EMDN leaf codes: verified consumer
+    // products that fall OUTSIDE MiGeL (e.g. anti-decubitus mattresses — Class I,
+    // freely sellable, no MepV Abgabe restriction, but not a reimbursement item so
+    // KLV Art. 20 never reaches them). A documented human determination, not a
+    // structured/legal-list signal → public/low.
+    if PUBLIC_EMDN_CODES.iter().any(|p| ecode.starts_with(p)) {
+        return public(
+            "low",
+            format!(
+                "maintainer-verified consumer product, no MepV Abgabe restriction (EMDN {})",
+                ecode
+            ),
+        );
+    }
+
     // TIER 5 — explicit manufacturer text statements (medium).
     let blob = text_blob(&basic, &udi);
     for p in PROF_PHRASES {
@@ -209,8 +237,6 @@ pub fn classify(detail: &Value, migel_code: Option<&str>) -> (String, String, St
 
     // TIER 6 — EMDN clearly-professional category (surgical/interventional).
     // Exclusion direction only, low confidence.
-    let (ecode, eterm) = emdn_first(&udi);
-    let ecat = ecode.chars().next().unwrap_or(' ');
     if EMDN_PROFESSIONAL_CATS.contains(&ecat) {
         return prof("low", format!("EMDN professional category {} ({})", ecat, eterm));
     }
