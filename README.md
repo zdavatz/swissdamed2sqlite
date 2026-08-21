@@ -139,6 +139,16 @@ swissdamed2sqlite --migel-stats --linkedin --twitter
 SWISSDAMED_CAPTION_EXTRA="+81 today, +3 MiGeL matches: embecta pen needles" \
   swissdamed2sqlite --migel-stats --linkedin --twitter
 
+# Enrich devices with per-device details (EMDN, MDR/IVD characteristics) → db/udi_details_*.db
+swissdamed2sqlite --details --details-limit 0 --details-threads 32   # full rebuild
+swissdamed2sqlite --details-update                                    # incremental (new/changed only)
+
+# Classify each device public vs professional (triage — decision-support, no download)
+swissdamed2sqlite --triage
+
+# Render a one-page A4 status PDF (+ nomenclature legend with clickable source links)
+swissdamed2sqlite --status-pdf
+
 # Scrape shop.sigvaris.com → build GTIN→MiGeL override DB (consumed by --migel)
 swissdamed2sqlite --sigvaris-shop
 
@@ -191,10 +201,16 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
   2. **Heuristic Aho-Corasick** matcher for remaining manufacturers — curated **forced-match pins** for brand/category-exclusive tokens (O2 regulators, crutches, contact lenses, home ventilators, CPAP, spirometers, insulin patch pumps), a **hard metadata gate** (IVD and Class III devices never reach text matching), IDF-weighted multi-language scoring with deterministic tie-breaking, English-to-German medical term translation (~85 terms with context-aware combinations like "ortho"+"rehab"→"spezialschuhe"), German compound-word decomposition (e.g. `Ellenbogenschiene`→Ellenbogen-Orthese), and region-gated enrichment for compression garments, ostomy, urinary drainage, incontinence, diabetes supplies and wound dressings. Precision is enforced by per-code negative keywords, universal exclusions, generic-token stop-words, and a pure-non-MiGeL **company exclusion** list (e.g. radiation-therapy, dental, sleep-lab and surgical-instrument makers whose entire output would otherwise be false positives). Adds ~4,600 matches.
   Output: `db/swissdamed_migel.db` (fixed name, overwritten each run — no longer one dated file per day). Auto-generates a stats PNG (rendered natively in Rust via [plotters](https://crates.io/crates/plotters)) after each run; use `--migel-stats` to re-render from existing DBs without downloading. A golden-set regression test (`cargo test`, ~280 curated rows against a pinned MiGeL XLSX) guards every matcher rule change.
 - **SIGVARIS shop scrape** — fetches all variants of all products from `shop.sigvaris.com` (Shopify endpoints), derives MiGeL codes from `product_type` + Kompressionsklasse, writes to `db/sigvaris_shop_DD.MM.YYYY.db` (table `sigvaris_shop_variants`). Used as override source by `--migel`. Run periodically (~7 min, ~12-18k variants).
+- **Details / Triage** — `--details` (full) / `--details-update` (incremental) enrich each device with EMDN nomenclature (a structured "Zweckbestimmung" proxy), the additional description, and the MDR/IVD yes-no characteristics (table `udi_details`, incl. verbatim `rawJson`). `--triage` then classifies each device as **public / professional / review** — a decision-support triage answering both "who is it intended for" (strict, from IVD self-testing, MiGeL/KLV Art. 20 lay-use, or explicit lay text) and "may it be sold to a consumer" (MepV default: yes unless restricted). NOT a compliance determination — verify each product's IFU + MepV Abgabe rules before listing.
+- **Status PDF** — `--status-pdf` renders a one-page A4 triage status sheet plus a nomenclature-legend page (EMDN / MDR / IVDR / MiGeL / KLV Art. 20 / MepV, with clickable source links), natively in Rust via [genpdf](https://crates.io/crates/genpdf) (DejaVu Sans embedded, single-binary preserved). Reads the live distribution from the latest `db/udi_details_*.db` and writes `pdf/swissdamed_triage_status_DD.MM.YYYY.pdf`. No download.
 
 ### MiGeL Matching Results
 
 ![MiGeL Matching Stats](png/swissdamed_migel_stats_17h02.20.08.2026.png)
+
+### Triage Status Sheet
+
+Public-vs-professional / shop-sellability status of the swissdamed corpus — see the latest sheet: [**swissdamed_triage_status_21.08.2026.pdf**](pdf/swissdamed_triage_status_21.08.2026.pdf) (`--status-pdf`, two pages: status + nomenclature legend with source links).
 
 ## Dependencies
 

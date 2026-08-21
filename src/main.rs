@@ -13,6 +13,7 @@ pub mod migel;
 mod migel_stats;
 pub mod reports;
 pub mod sigvaris_shop;
+pub mod status_pdf;
 pub mod triage;
 pub mod twitter;
 
@@ -246,6 +247,11 @@ pub struct Args {
     /// Skip the incremental details update that --migel runs by default.
     #[arg(long)]
     pub skip_details: bool,
+
+    /// Render a one-page A4 status PDF (+ nomenclature legend with source links)
+    /// from the latest udi_details DB. No download.
+    #[arg(long)]
+    pub status_pdf: bool,
 }
 
 // --- Main ---
@@ -317,6 +323,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --details-update mode (incremental details update)
     if args.details_update {
         return details::run_update(&args);
+    }
+
+    // Handle --status-pdf mode (render one-page status PDF from latest details DB)
+    if args.status_pdf {
+        return status_pdf::run();
     }
 
     // Handle --linkedin-delete mode (delete a post, no download/render)

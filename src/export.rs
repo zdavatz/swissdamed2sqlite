@@ -38,6 +38,16 @@ pub fn output_db_fixed(name: &str) -> Result<String, Box<dyn std::error::Error>>
         .to_string())
 }
 
+/// Date-stamped output path under the `pdf/` subdir (e.g. the triage status sheet).
+pub fn output_pdf(name: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let dir = app_data_dir().join("pdf");
+    fs::create_dir_all(&dir)?;
+    Ok(dir
+        .join(format!("{}_{}.pdf", name, date_stamp()))
+        .to_string_lossy()
+        .to_string())
+}
+
 pub fn write_csv(
     headers: &[String],
     rows: &[Vec<String>],
