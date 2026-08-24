@@ -210,7 +210,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 
 ### Triage Status Sheet
 
-Public-vs-professional / shop-sellability status of the swissdamed corpus — see the latest sheet: [**swissdamed_triage_status_24.08.2026.pdf**](pdf/swissdamed_triage_status_24.08.2026.pdf) (`--status-pdf`, two pages: status + nomenclature legend with source links). All figures are pulled live from the newest `udi_details_*.db`; each distribution share also shows its change in percentage points (`±X Pp.`, rendered smaller) versus the previous day's DB.
+Public-vs-professional / shop-sellability status of the swissdamed corpus — see the latest sheet: [**swissdamed_triage_status_24.08.2026.pdf**](pdf/swissdamed_triage_status_24.08.2026.pdf) (`--status-pdf`, two pages: status + nomenclature legend with source links). All figures are pulled live from the newest `udi_details_*.db`; each distribution share also shows its change in percentage points (`±X.XX Pp.`, two decimals, rendered smaller) versus the previous day's DB.
 
 ## Dependencies
 

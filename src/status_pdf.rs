@@ -213,8 +213,9 @@ impl Dist {
 }
 
 /// Signed percentage-point delta of a share vs. a previous distribution,
-/// e.g. "  (+0.1 Pp.)". Empty string when there is no previous distribution
-/// (so a first-ever run still renders cleanly).
+/// e.g. "  (+0.02 Pp.)". Empty string when there is no previous distribution
+/// (so a first-ever run still renders cleanly). Two decimals so sub-0.1-Pp.
+/// daily moves in a growing corpus stay visible instead of collapsing to ±0.0.
 fn delta_pp(n: i64, total: i64, prev_n: Option<i64>, prev_total: i64) -> String {
     let Some(pn) = prev_n else { return String::new() };
     if total == 0 || prev_total == 0 {
@@ -222,7 +223,7 @@ fn delta_pp(n: i64, total: i64, prev_n: Option<i64>, prev_total: i64) -> String 
     }
     let cur = 100.0 * n as f64 / total as f64;
     let prev = 100.0 * pn as f64 / prev_total as f64;
-    let rounded = ((cur - prev) * 10.0).round() / 10.0;
+    let rounded = ((cur - prev) * 100.0).round() / 100.0;
     // Typographic minus (U+2212) to match the surrounding DejaVu text; ± when
     // the change rounds to zero so we never print a bare "−0.0".
     let sign = if rounded > 0.0 {
@@ -232,7 +233,7 @@ fn delta_pp(n: i64, total: i64, prev_n: Option<i64>, prev_total: i64) -> String 
     } else {
         "±"
     };
-    format!("({}{:.1} Pp.)", sign, rounded.abs())
+    format!("({}{:.2} Pp.)", sign, rounded.abs())
 }
 
 /// Find the udi_details DB immediately preceding `latest` by the DD.MM.YYYY
