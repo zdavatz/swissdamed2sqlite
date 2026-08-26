@@ -177,6 +177,11 @@ swissdamed2sqlite --csv --gdrive --gdrive-sub user@domain.com
 swissdamed2sqlite --lookup-chrn CHRN-AR-20000807 --mailto recipient@example.com --gdrive-sub user@domain.com
 swissdamed2sqlite --company-ranking --mailto "a@example.com,b@example.com" --mail-subject "Custom Subject" --gdrive-sub user@domain.com
 
+# Read from Google Drive / Gmail (service account; --gdrive-sub for a Workspace mailbox)
+swissdamed2sqlite --gmail-search 'from:partner@example.com has:attachment' --gdrive-sub user@domain.com
+swissdamed2sqlite --gmail-attachments 19a2f4fad057d4f0 --out ./inbox --gdrive-sub user@domain.com
+swissdamed2sqlite --gdrive-download 1AbC...xyz --out partner_list.xlsx
+
 # Combine: lookup + upload to Drive + email
 swissdamed2sqlite --lookup-chrn CHRN-AR-20000807 --gdrive --mailto recipient@example.com --gdrive-sub user@domain.com
 ```

@@ -253,6 +253,26 @@ pub struct Args {
     /// from the latest udi_details DB. No download.
     #[arg(long)]
     pub status_pdf: bool,
+
+    /// Download a file from Google Drive by its file ID (raw bytes; native
+    /// Google Docs/Sheets have none and are rejected with an explanation).
+    /// Writes to --out or the file's own name in the current directory.
+    #[arg(long, value_name = "FILE_ID")]
+    pub gdrive_download: Option<String>,
+
+    /// Search the mailbox named by --gdrive-sub with a Gmail query,
+    /// e.g. 'from:someone@example.com has:attachment'.
+    #[arg(long, value_name = "QUERY")]
+    pub gmail_search: Option<String>,
+
+    /// Save every attachment of one Gmail message (id from --gmail-search)
+    /// into --out or the current directory.
+    #[arg(long, value_name = "MESSAGE_ID")]
+    pub gmail_attachments: Option<String>,
+
+    /// Output path (--gdrive-download) or directory (--gmail-attachments).
+    #[arg(long, value_name = "PATH")]
+    pub out: Option<PathBuf>,
 }
 
 // --- Main ---
@@ -329,6 +349,34 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --status-pdf mode (render one-page status PDF from latest details DB)
     if args.status_pdf {
         return status_pdf::run();
+    }
+
+    // Google Drive / Gmail read modes. Standalone: no swissdamed download,
+    // no report — they exist to pull a partner's file or mail into the pipeline.
+    if let Some(ref file_id) = args.gdrive_download {
+        let out = args
+            .out
+            .clone()
+            .unwrap_or_else(|| PathBuf::from(format!("{file_id}.download")));
+        gdrive::drive_download(&args, file_id, &out)?;
+        return Ok(());
+    }
+
+    if let Some(ref query) = args.gmail_search {
+        let hits = gdrive::gmail_search(&args, query, 25)?;
+        if hits.is_empty() {
+            eprintln!("[gmail] no messages match {query:?}");
+        }
+        for m in hits {
+            println!("{}  {}  | {} | {}", m.id, m.date, m.from, m.subject);
+        }
+        return Ok(());
+    }
+
+    if let Some(ref msg_id) = args.gmail_attachments {
+        let dir = args.out.clone().unwrap_or_else(|| PathBuf::from("."));
+        gdrive::gmail_attachments(&args, msg_id, &dir)?;
+        return Ok(());
     }
 
     // Handle --linkedin-delete mode (delete a post, no download/render)
