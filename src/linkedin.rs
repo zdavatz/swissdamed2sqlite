@@ -1,7 +1,8 @@
 //! LinkedIn image publishing (Images API + Posts API).
 //!
 //! Reuses the same `linkedin_credentials.json` / `linkedin_token.json`
-//! files as `li_push_rs` (lookup order: cwd, then $HOME).
+//! files as `li_push_rs`. See `crate::credentials` for the lookup order — the
+//! protected `~/.config/swissdamed2sqlite` is preferred over cwd/$HOME.
 //!
 //! Token refresh follows the same flow as li_push_rs: if the saved token
 //! has a `refresh_token`, swap it for a fresh `access_token` before posting
@@ -33,31 +34,27 @@ struct Token {
 }
 
 fn find_file(name: &str) -> Option<PathBuf> {
-    let cwd = PathBuf::from(name);
-    if cwd.exists() {
-        return Some(cwd);
-    }
-    if let Some(home) = std::env::var_os("HOME") {
-        let p = PathBuf::from(home).join(name);
-        if p.exists() {
-            return Some(p);
-        }
-    }
-    None
+    crate::credentials::find(name)
 }
 
 fn load_credentials() -> Result<(PathBuf, Credentials), Box<dyn Error>> {
     let path = find_file("linkedin_credentials.json")
-        .ok_or("linkedin_credentials.json not found (looked in cwd and $HOME)")?;
+        .ok_or_else(|| format!(
+            "linkedin_credentials.json not found (looked in: {})",
+            crate::credentials::searched_locations()
+        ))?;
     let data = fs::read_to_string(&path)?;
     let creds = serde_json::from_str(&data)?;
     Ok((path, creds))
 }
 
 fn load_token() -> Result<(PathBuf, Token), Box<dyn Error>> {
-    let path = find_file("linkedin_token.json").ok_or(
-        "linkedin_token.json not found (looked in cwd and $HOME). Run li_push --auth first.",
-    )?;
+    let path = find_file("linkedin_token.json").ok_or_else(|| {
+        format!(
+            "linkedin_token.json not found (looked in: {}). Run li_push --auth first.",
+            crate::credentials::searched_locations()
+        )
+    })?;
     let data = fs::read_to_string(&path)?;
     let token: Token = serde_json::from_str(&data)?;
     Ok((path, token))

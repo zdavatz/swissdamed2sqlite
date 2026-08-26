@@ -68,6 +68,21 @@ gdrive_email = "my-sa@my-project.iam.gserviceaccount.com"
 
 CLI arguments always take precedence over `config.toml` values. If a required setting is absent from both, the app will show an error dialog and exit.
 
+### Where credentials live
+
+Credential files belong in **`~/.config/swissdamed2sqlite/`** (create it with `chmod 700`, and `chmod 600` each file):
+
+| File | Used by |
+|------|---------|
+| `linkedin_credentials.json` | `--linkedin` |
+| `linkedin_token.json` | `--linkedin` (refreshed and written back automatically) |
+| `twitter_credentials.json` | `--twitter` |
+| `*.p12` service-account key | `--gdrive`, `--mailto` (point `gdrive_key` at it) |
+
+The lookup order is `$SWISSDAMED_CREDENTIALS_DIR` → `~/.config/swissdamed2sqlite` → current directory → `$HOME` (see `src/credentials.rs`). The last two are legacy fallbacks so setups that share the LinkedIn files with `li_push_rs` keep working; new installs should use the protected directory. Set `SWISSDAMED_CREDENTIALS_DIR` to override the location in CI, a container, or a mounted vault.
+
+These files are plaintext — the restrictive permissions keep them out of sight, they are not encryption.
+
 ## CLI Usage
 
 ```bash
@@ -206,7 +221,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 
 ### MiGeL Matching Results
 
-![MiGeL Matching Stats](png/swissdamed_migel_stats_21h44.25.08.2026.png)
+![MiGeL Matching Stats](png/swissdamed_migel_stats_21h50.25.08.2026.png)
 
 ### Triage Status Sheet
 

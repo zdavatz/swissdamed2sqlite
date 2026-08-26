@@ -18,10 +18,16 @@ Icon
 .com.apple.timemachine.donotpresent
 
 ### Config (contains credentials)
+# These now live in ~/.config/swissdamed2sqlite (see src/credentials.rs); the
+# patterns stay so a stray copy in the working tree can never be committed.
 config.toml
 linkedin_credentials.json
 linkedin_token.json
 twitter_credentials.json
+# Google service-account private keys — never in the repo.
+*.p12
+*.pem
+*-key.json
 
 ### Rust
 # Cargo build output

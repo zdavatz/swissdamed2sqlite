@@ -4,7 +4,8 @@
 //! `/2/media/upload` endpoint with OAuth 1.0a; the tweet itself is created via
 //! the v2 `/2/tweets` endpoint, also OAuth 1.0a-signed.
 //!
-//! Credentials are read from `twitter_credentials.json` (cwd, then $HOME):
+//! Credentials are read from `twitter_credentials.json` (see `crate::credentials`
+//! for the lookup order; `~/.config/swissdamed2sqlite` is preferred):
 //!   {"consumer_key":"...","consumer_secret":"...","token":"...","secret":"..."}
 //! If absent, falls back to the first profile in `~/.twurlrc` (the `twurl` CLI
 //! config), reusing the same OAuth 1.0a key set.
@@ -29,13 +30,7 @@ pub struct Creds {
 }
 
 fn find_file(name: &str) -> Option<PathBuf> {
-    let cwd = PathBuf::from(name);
-    if cwd.exists() {
-        return Some(cwd);
-    }
-    std::env::var_os("HOME")
-        .map(|h| PathBuf::from(h).join(name))
-        .filter(|p| p.exists())
+    crate::credentials::find(name)
 }
 
 fn parse_twurlrc(text: &str) -> Option<Creds> {
