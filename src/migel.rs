@@ -614,6 +614,21 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // position (ch. 03.07). A surgical Toomey-to-Luer adapter is not a diabetes
     // syringe. Whole-catalogue surgical maker → joins Aesculap / MANI / Oertli.
     "Microaire Surgical Instruments LLC",
+    // --- 25.08.2026 daily-diff FP sweep (all four match ONLY false positives) ---
+    // ALTER ECO SANTE + Rolko = PATIENT-transfer aids, not the diabetes/infusion
+    // "Transfer-Set" (03.07.09.20). "TRANSFERT ACTIF ASSIS DEBOUT" is a sit-to-stand
+    // lift; Rolko's "EasyTransfer" is a Rutschbrett (slide board) for wheelchair
+    // transfers. Same FP class as the already-excluded Diacor transfer furniture.
+    "ALTER \u{c9}CO SANT\u{c9} SAS",
+    "Rolko Kohlgr\u{fc}ber GmbH",
+    // BANO Healthcare = dental/silver applicator sticks (EMDN Q0302 = dental).
+    // "SILVERIN(R) STICKS 50% 115mm elastisch" rode the bare word "elastisch" onto
+    // 05.20.04 "Tape elastisch". 4/4 rows FP.
+    "BANO Healthcare GmbH",
+    // Maquet (Suzhou) = the Chinese Maquet entity; the German/Swedish Maquet
+    // entities are already excluded (ICU/ECMO hardware). "Infusion Transfer System"
+    // (M-SHIFT, EMDN Z129007 = OR/ICU equipment) hit 99.30.06.02 "Infusions-Set".
+    "Maquet (Suzhou) Co., Ltd",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1288,6 +1303,30 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // orthosis. "buckle kit" occurs in exactly 1 corpus row (17.07.2026 audit).
     ("22", "buckle kit"),
     ("23", "buckle kit"),
+    // --- 25.08.2026 daily-diff FP sweep ---
+    // 03.05.03 = "Pen zur Injektion von Insulin, OHNE Kanuele". A product that IS an
+    // injection cannula can never be that pen: UROMED's "UROject Injection Cannula"
+    // (urological) rode the bare word "injection" onto it. 03.05.03 held exactly this
+    // one match corpus-wide, so the guard costs no recall. Pen NEEDLES live in
+    // 03.07.09 (Penkanuelen), a different position, so genuine pen supplies are safe.
+    ("03.05.03", "cannula"),
+    ("03.05.03", "kanuele"),
+    ("03.05.03", "canule"),
+    // 35.07.01 = "Wundverband mit med. Honig (Honiganteil > 60%)". A DACC/Sorbact
+    // dressing (Abigo/Cutimed) binds bacteria hydrophobically and contains NO honey.
+    // Blocking the honey position lets these rows fall to a truthful dressing code
+    // (or stay unmatched) instead of claiming a >60%-honey composition.
+    ("35.07.01", "sorbact"),
+    ("35.07.01", "dacc"),
+    ("35.07.01", "fungi binding"),
+    // 03.07.09 (Penkanuelen / Transfer-Set) must not absorb PATIENT-transfer aids:
+    // slide boards, sit-to-stand lifts and turning discs are mobility equipment.
+    // Defensive tokens beyond the company exclusions above, for future publishers.
+    ("03.07.09", "rutschbrett"),
+    ("03.07.09", "assis debout"),
+    ("03.07.09", "umsetzhilfe"),
+    ("03.07.09", "transferbrett"),
+    ("03.07.09", "gleitmatte"),
     // --- Orthesis body-part exclusions ---
     // Hand-Orthesen (23.21) should NOT match other body parts
     ("23.21", "patella"),
