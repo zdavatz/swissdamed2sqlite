@@ -8,6 +8,7 @@ pub mod download;
 mod error_report;
 pub mod export;
 pub mod gdrive;
+pub mod gtin_report;
 mod gui;
 pub mod linkedin;
 pub mod migel;
@@ -270,7 +271,25 @@ pub struct Args {
     #[arg(long, value_name = "MESSAGE_ID")]
     pub gmail_attachments: Option<String>,
 
-    /// Output path (--gdrive-download) or directory (--gmail-attachments).
+    /// Join a partner's GTIN list (xlsx, GTIN in column A) against every source
+    /// we hold and write one spreadsheet. Sources default to the newest local
+    /// DBs; override any of them with the --*-db / --*-csv flags below.
+    #[arg(long, value_name = "XLSX")]
+    pub gtin_report: Option<PathBuf>,
+
+    /// EUDAMED mirror DB for --gtin-report (from `eudamed2firstbase mirror`).
+    #[arg(long, value_name = "DB")]
+    pub eudamed_db: Option<PathBuf>,
+
+    /// GS1 Switzerland firstbase.csv for --gtin-report.
+    #[arg(long, value_name = "CSV")]
+    pub firstbase_csv: Option<PathBuf>,
+
+    /// GS1 GDSN Trustbox export (xlsx) for --gtin-report.
+    #[arg(long, value_name = "XLSX")]
+    pub trustbox_xlsx: Option<PathBuf>,
+
+    /// Output path (--gdrive-download, --gtin-report) or directory (--gmail-attachments).
     #[arg(long, value_name = "PATH")]
     pub out: Option<PathBuf>,
 }
@@ -349,6 +368,29 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --status-pdf mode (render one-page status PDF from latest details DB)
     if args.status_pdf {
         return status_pdf::run();
+    }
+
+    // Join a partner's GTIN list against our sources. Standalone: reads local
+    // DBs only, no download.
+    if let Some(ref list) = args.gtin_report {
+        let db_dir = app_data_dir().join("db");
+        let out = args.out.clone().unwrap_or_else(|| {
+            app_data_dir()
+                .join("csv")
+                .join("gtin_report.xlsx")
+        });
+        if let Some(parent) = out.parent() {
+            fs::create_dir_all(parent).ok();
+        }
+        let sources = gtin_report::Sources {
+            swissdamed_db: details::find_latest_db(&db_dir),
+            migel_db: Some(db_dir.join("swissdamed_migel.db")).filter(|p| p.exists()),
+            eudamed_db: args.eudamed_db.clone().filter(|p| p.exists()),
+            firstbase_csv: args.firstbase_csv.clone().filter(|p| p.exists()),
+            trustbox_xlsx: args.trustbox_xlsx.clone().filter(|p| p.exists()),
+        };
+        gtin_report::run(list, &out, &sources)?;
+        return Ok(());
     }
 
     // Google Drive / Gmail read modes. Standalone: no swissdamed download,

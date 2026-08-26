@@ -27,6 +27,7 @@ toml = "1.1.2"
 plotters = "0.3"
 genpdf = "0.2"
 lopdf = "0.34"
+rust_xlsxwriter = "0.99.0"
 
 [build-dependencies]
 winresource = { version = "0.1", optional = true }

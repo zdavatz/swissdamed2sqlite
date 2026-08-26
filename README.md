@@ -177,6 +177,12 @@ swissdamed2sqlite --csv --gdrive --gdrive-sub user@domain.com
 swissdamed2sqlite --lookup-chrn CHRN-AR-20000807 --mailto recipient@example.com --gdrive-sub user@domain.com
 swissdamed2sqlite --company-ranking --mailto "a@example.com,b@example.com" --mail-subject "Custom Subject" --gdrive-sub user@domain.com
 
+# Join a partner's GTIN list against every source we hold → one spreadsheet
+swissdamed2sqlite --gtin-report partner_list.xlsx --out report.xlsx \
+  --eudamed-db ~/.software/eudamed/csv/eudamed_25.08.2026.db \
+  --firstbase-csv ~/rust2xml/downloads/firstbase.csv \
+  --trustbox-xlsx trustbox.xlsx
+
 # Read from Google Drive / Gmail (service account; --gdrive-sub for a Workspace mailbox)
 swissdamed2sqlite --gmail-search 'from:partner@example.com has:attachment' --gdrive-sub user@domain.com
 swissdamed2sqlite --gmail-attachments 19a2f4fad057d4f0 --out ./inbox --gdrive-sub user@domain.com
@@ -185,6 +191,22 @@ swissdamed2sqlite --gdrive-download 1AbC...xyz --out partner_list.xlsx
 # Combine: lookup + upload to Drive + email
 swissdamed2sqlite --lookup-chrn CHRN-AR-20000807 --gdrive --mailto recipient@example.com --gdrive-sub user@domain.com
 ```
+
+### GTIN report (`--gtin-report`)
+
+Answers the question a distributor asks: *here are our GTINs — which do you know, and what can you tell us?*
+
+Takes an `.xlsx` with GTINs in column A (an optional partner product-id in column B) and joins it against swissdamed, MiGeL, the EUDAMED mirror, GS1 Firstbase and GS1 Trustbox. swissdamed is preferred over EUDAMED for shared fields (it is the Swiss-market record); the GS1 catalogues fill gaps the registries do not cover. GTINs are normalised so EAN-13 and GTIN-14 spellings of one article match.
+
+swissdamed and MiGeL are picked up automatically from the newest local DBs; the other three are optional — a missing source narrows the report rather than failing it.
+
+The output has three sheets and **opens on the hits**: only a small share of a retail catalogue is a registered medical device, so the full list starts on mostly-empty rows and reads as "nothing was done". Partner columns are grey in the header, ours green.
+
+| Sheet | Content |
+|-------|---------|
+| `Treffer (N)` | only GTINs we found something for — start here |
+| `Info ywesee` | what was added, which sources were used, why rows are empty |
+| `GTIN Liste` | every GTIN of the input, in the original order |
 
 Output files are date-stamped and organized into subdirectories:
 - UDI: `csv/swissdamed_25.02.2026.csv` / `db/swissdamed_25.02.2026.db`
