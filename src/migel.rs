@@ -629,6 +629,39 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // entities are already excluded (ICU/ECMO hardware). "Infusion Transfer System"
     // (M-SHIFT, EMDN Z129007 = OR/ICU equipment) hit 99.30.06.02 "Infusions-Set".
     "Maquet (Suzhou) Co., Ltd",
+    // --- 26.08.2026 daily-diff FP sweep: the two "Set" codes 99.30.06.02
+    // ("Infusions-Set, steril") and 03.07.09.20 ("Transfer-Set") held 57 rows
+    // between them and *every one* was a false positive — both codes are the
+    // diabetes/home-infusion positions of ch. 03.07, and what they had caught was
+    // hospital and laboratory administration hardware riding the bare "set" /
+    // "infusion" / "transfer" tokens. The five makers below are whole-catalogue
+    // clinical suppliers with nothing on MiGeL (EMDN terms verified per company),
+    // so company scope is the right fence — same precedent as Becton Dickinson
+    // Infusion Therapy and Harsoria. ---
+    // Greiner Bio One = 247 rows, vacuum-blood-collection catalogue (VACUETTE /
+    // EVOPROTECT SAFETY needles, holders, tourniquets, sample tubes). Its 21
+    // matches were all "SAFETY Blood Collection/Infusion Set" — venipuncture for
+    // the lab, not a home infusion set.
+    "Greiner Bio One",
+    // Anaesthetic Medical Systems = 20 rows, entire catalogue "INFUSION TUBING
+    // ADAPTERS AND CONNECTORS" = anaesthesia breathing/infusion circuits. All 20
+    // matched, on the bare product codes "A2-Set"/"A3L-Set"/"A22BL-Set" — the
+    // names carry no distinguishing token, so only company scope can fence them.
+    "Anaesthetic Medical Systems Ltd.",
+    // Bayer Medical Care = 97 rows, the MEDRAD radiology line (contrast-media
+    // injector syringes, heating systems, low-pressure extension lines). Its 8
+    // matches split across both codes: "MEDRAD Intego PET Infusion System" (a
+    // radiopharmaceutical injector) -> 99.30.06.02, "MR Transfer Set" / "Dual
+    // Check Valve Transfer Set" -> 03.07.09.20. Cath-lab/MRI hardware.
+    "Bayer Medical Care Inc.",
+    // PROMECON = 17 rows, mechanical-infusion-pump accessories + equipment covers.
+    // Its 3 matches were "Carrier Bag for Single-use Infusion Pumps" — a bag.
+    "PROMECON GmbH",
+    // CODAN Medizinische Geräte = 189 rows, hospital IV administration hardware
+    // (extension lines, stopcocks, ramps, 0.2 µm withdrawal filters, infusion
+    // controllers). Its 2 matches were "STERITEX(R) TRANSFER SET" — a pharmacy
+    // compounding transfer spike, not the insulin-pump Transfer-Set of 03.07.09.20.
+    "CODAN Medizinische Geräte GmbH",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1439,6 +1472,17 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("99.30.06", "infusomat"),
     ("99.30.06", "agar"),
     ("99.30.06", "sabouraud"),
+    // ...nor laboratory venipuncture, pump bags or drip trays (26.08.2026). The
+    // five makers behind these rows are company-excluded above; these keywords are
+    // the defence-in-depth layer, so the next lab-consumables catalogue to appear
+    // doesn't have to be found by hand first. Each token was checked corpus-wide:
+    // "blood collection" occurs only in lab/venipuncture catalogues (Greiner,
+    // Harsoria, BD, QIAGEN, PreAnalytiX — none MiGeL), "carrier bag" only in
+    // PROMECON's pump bags, "drip tray" only in Linye's cushion row and two
+    // already-excluded makers. None of the three can reach a genuine 99.30.06 row.
+    ("99.30.06", "blood collection"),
+    ("99.30.06", "carrier bag"),
+    ("99.30.06", "drip tray"),
     // --- Schlauchverbände (35.01.08) should NOT match other dressing types ---
     ("35.01.08", "folienverband"),
     ("35.01.08", "schaumverband"),
@@ -2543,6 +2587,14 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // Insulet Omnipod patch pumps → 03.02.01 Insulinpumpen-System (Bezeichnung
     // explicitly anticipates patch pumps; PodPals overlays never carry the token).
     (&["omnipod"], &[], "03.02.01.00.2"),
+    // Ypsomed YpsoPump Orbit infusion sets → the same 03.02.01 pump flat rate
+    // (26.08.2026). MiGeL has no standalone position for a pump infusion set;
+    // 03.02.01.00.2 explicitly reads "inkl. ... Zubehör und Verbrauchsmaterial",
+    // so the consumable is covered by the pump lump sum. Without the pin these
+    // rows drifted to 99.30.06.02 "Infusions-Set, steril" — the generic hospital
+    // position — which is a wrong code rather than a false positive, hence a pin
+    // and not an exclusion. "ypsopump" is Ypsomed-exclusive corpus-wide (2 rows).
+    (&["ypsopump"], &[], "03.02.01.00.2"),
     // SIGVARIS Doff'N Donner donning aid → 17.12.01.01.1 Rollmanschetten.
     (&["doff"], &[], "17.12.01.01.1"),
     // --- IVF Hartmann DermaPlast retail line (audit §2b; all trigger tokens
