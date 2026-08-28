@@ -58,9 +58,55 @@ const PROF_PHRASES: &[&str] = &[
 ///   D disinfectants/detergents for reprocessing medical devices ·
 ///   P implantable prosthetics & osteosynthesis (surgical implants — most also
 ///     caught by the high-risk gate; P sweeps prosthetic accessories/instruments).
+///   Z healthcare equipment & accessories (OR/ICU/imaging hardware: scialytic
+///     lamps, operating tables, electrosurgery, endoscopy stacks, linear
+///     accelerators, multi-parameter monitors) — added 27.08.2026.
 /// Verified single-sided in the corpus (0% MiGeL lay-match for B/D/P/L/K/S).
 /// Deliberately EXCLUDES F (dialysis — home peritoneal dialysis is patient-run).
-const EMDN_PROFESSIONAL_CATS: &[char] = &['L', 'K', 'C', 'G', 'H', 'J', 'S', 'B', 'D', 'P'];
+///
+/// **Z is the one category that is NOT single-sided** and therefore the only one
+/// carrying an exemption list: 999 of its 18,425 rows (5.4%) hold a MiGeL match,
+/// because EMDN files home respiratory therapy, insulin pumps and blood-glucose
+/// meters as "equipment" alongside the operating theatre. Those rows are already
+/// safe (TIER 4 MiGeL outranks TIER 6), but their *unmatched* siblings — the same
+/// CPAP or home ventilator from a maker the matcher misses — would be asserted
+/// professional here. Hence `EMDN_PROFESSIONAL_EXEMPT_CODES` below.
+const EMDN_PROFESSIONAL_CATS: &[char] =
+    &['L', 'K', 'C', 'G', 'H', 'J', 'S', 'B', 'D', 'P', 'Z'];
+
+/// Leaf codes inside an otherwise-professional EMDN category that are proven
+/// home/lay-capable, so TIER 6 must NOT fire on them. They fall through to
+/// TIER 7 / `review` instead — never straight to `public`, so this list can only
+/// ever weaken a professional assertion, never manufacture a public one.
+///
+/// Derived from evidence, not judgement: every prefix here is a leaf where the
+/// corpus actually holds a MiGeL match (27.08.2026), i.e. the position is
+/// reimbursable for self-application under KLV Art. 20. Sibling leaves without
+/// such evidence (clinical spirometers, body plethysmographs, dermatoscopes,
+/// blood flow meters) are deliberately NOT exempt, which is why this is a list of
+/// specific leaves and not the parent prefixes `Z1215` / `Z120401`.
+const EMDN_PROFESSIONAL_EXEMPT_CODES: &[&str] = &[
+    // Respiratory therapy at home — the largest genuine cluster in Z.
+    "Z12030102",    // continuous positive pressure equipment (CPAP)
+    "Z12030103",    // pulmonary ventilators for non-hospital use
+    "Z12030104",    // portable pulmonary ventilators
+    "Z1203010502",  // adult pulmonary ventilators
+    "Z120309",      // medical gas pipeline systems + accessories (O2 regulators)
+    "Z12159002",    // aerosol equipment
+    "Z12159004",    // oxygen concentrators
+    "Z12159099",    // various pneumology / respiratory physiopathology
+    "Z12150102",    // peak flow spirometers (NOT Z12150101 clinical spirometers)
+    "Z12040210",    // ultrasonic nebulisers
+    // Diabetes self-management.
+    "Z12040115",    // blood sugar monitoring systems (invasive + non-invasive)
+    "Z12040216",    // portable microinfusors (insulin pumps) + consumables
+    // Point-of-care vitals a patient owns.
+    "Z1203020408",  // pulse oximeters
+    "Z1203020501",  // non-invasive oscillometric blood pressure gauges
+    // Misc verified home positions.
+    "Z12080303",    // breast pumps
+    "Z12019003",    // wound treatment equipment (NPWT is issued for home use too)
+];
 
 /// EMDN categories that lean public but are NOT auto-classified (orthoses are
 /// often professionally fitted/prescribed; TENS spans both). Left as `review`
@@ -85,7 +131,7 @@ const PUBLIC_EMDN_CODES: &[&str] = &["V0807", "V08030102", "V0811"];
 /// the MepV "sellable-to-consumer unless restricted" presumption (TIER 7). This
 /// is a **shop-sellability** presumption (may it be sold to the public), NOT an
 /// intended-user determination — kept separate from the professional-equipment
-/// categories (Z/Q/W/R/V) which stay `review`.
+/// categories (Q/W/R/V, and Z since 27.08.2026) which do not.
 ///   M dressings · Y aids for disabled (orthoses) · T incontinence protection ·
 ///   A administration/collection (ostomy, self-cath) · N neuro (TENS).
 const EMDN_CONSUMER_LEAN_CATS: &[char] = &['M', 'Y', 'T', 'A', 'N'];
@@ -248,7 +294,11 @@ pub fn classify(detail: &Value, migel_code: Option<&str>) -> (String, String, St
 
     // TIER 6 — EMDN clearly-professional category (surgical/interventional).
     // Exclusion direction only, low confidence.
-    if EMDN_PROFESSIONAL_CATS.contains(&ecat) {
+    if EMDN_PROFESSIONAL_CATS.contains(&ecat)
+        && !EMDN_PROFESSIONAL_EXEMPT_CODES
+            .iter()
+            .any(|p| ecode.starts_with(p))
+    {
         return prof("low", format!("EMDN professional category {} ({})", ecat, eterm));
     }
 
