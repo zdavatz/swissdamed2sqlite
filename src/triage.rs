@@ -61,23 +61,32 @@ const PROF_PHRASES: &[&str] = &[
 ///   Z healthcare equipment & accessories (OR/ICU/imaging hardware: scialytic
 ///     lamps, operating tables, electrosurgery, endoscopy stacks, linear
 ///     accelerators, multi-parameter monitors) — added 27.08.2026.
-/// Verified single-sided in the corpus (0% MiGeL lay-match for B/D/P/L/K/S).
+///   A administration, withdrawal & collection (clinical infusion hardware:
+///     extension lines, flow regulators, stopcocks, infusion/irrigation kits,
+///     biopsy and venipuncture needles, surgical drainage, suction containers)
+///     — added 28.08.2026.
+/// B/D/P/L/K/S are verified single-sided in the corpus (0% MiGeL lay-match).
 /// Deliberately EXCLUDES F (dialysis — home peritoneal dialysis is patient-run).
 ///
-/// **Z is the one category that is NOT single-sided** and therefore the only one
-/// carrying an exemption list: 999 of its 18,425 rows (5.4%) hold a MiGeL match,
-/// because EMDN files home respiratory therapy, insulin pumps and blood-glucose
-/// meters as "equipment" alongside the operating theatre. Those rows are already
-/// safe (TIER 4 MiGeL outranks TIER 6), but their *unmatched* siblings — the same
-/// CPAP or home ventilator from a maker the matcher misses — would be asserted
-/// professional here. Hence `EMDN_PROFESSIONAL_EXEMPT_CODES` below.
+/// **Z and A are NOT single-sided** and are the reason
+/// `EMDN_PROFESSIONAL_EXEMPT_CODES` exists. EMDN files home respiratory therapy,
+/// insulin pumps and glucose meters under Z as "equipment" alongside the
+/// operating theatre (999 of 18,425 Z rows hold a MiGeL match), and files the
+/// entire ostomy / urine-bag / pen-needle business under A next to hospital IV
+/// hardware (652 of 4,003 A rows hold a MiGeL match). Those matched rows are
+/// already safe (TIER 4 outranks TIER 6), but their *unmatched* siblings — the
+/// same CPAP or the same colostomy bag from a maker the matcher misses — would be
+/// asserted professional here without the exemption list below.
 const EMDN_PROFESSIONAL_CATS: &[char] =
-    &['L', 'K', 'C', 'G', 'H', 'J', 'S', 'B', 'D', 'P', 'Z'];
+    &['L', 'K', 'C', 'G', 'H', 'J', 'S', 'B', 'D', 'P', 'Z', 'A'];
 
 /// Leaf codes inside an otherwise-professional EMDN category that are proven
-/// home/lay-capable, so TIER 6 must NOT fire on them. They fall through to
-/// TIER 7 / `review` instead — never straight to `public`, so this list can only
-/// ever weaken a professional assertion, never manufacture a public one.
+/// home/lay-capable, so TIER 6 must NOT fire on them. An exempt row is simply
+/// handed on to TIER 7 and judged by the ordinary MepV presumption there — TIER 6
+/// itself never emits `public`, so this list can only ever *withhold* a
+/// professional assertion, never manufacture a public one. (Where it lands then
+/// depends on the category: an exempt Z row reaches `review`, an exempt A row
+/// reaches `public/low`, because A is also in `EMDN_CONSUMER_LEAN_CATS`.)
 ///
 /// Derived from evidence, not judgement: every prefix here is a leaf where the
 /// corpus actually holds a MiGeL match (27.08.2026), i.e. the position is
@@ -85,6 +94,11 @@ const EMDN_PROFESSIONAL_CATS: &[char] =
 /// such evidence (clinical spirometers, body plethysmographs, dermatoscopes,
 /// blood flow meters) are deliberately NOT exempt, which is why this is a list of
 /// specific leaves and not the parent prefixes `Z1215` / `Z120401`.
+///
+/// The A entries additionally cover home enteral nutrition, which carries no
+/// MiGeL evidence (tube feed is reimbursed as Spezialnahrung, not as a MiGeL
+/// position) but is unambiguously patient-run — a documented maintainer call,
+/// safe because it only withholds a professional assertion.
 const EMDN_PROFESSIONAL_EXEMPT_CODES: &[&str] = &[
     // Respiratory therapy at home — the largest genuine cluster in Z.
     "Z12030102",    // continuous positive pressure equipment (CPAP)
@@ -106,6 +120,24 @@ const EMDN_PROFESSIONAL_EXEMPT_CODES: &[&str] = &[
     // Misc verified home positions.
     "Z12080303",    // breast pumps
     "Z12019003",    // wound treatment equipment (NPWT is issued for home use too)
+    // --- Category A: the lay business filed next to hospital IV hardware. ---
+    // Abdominal ostomy, whole branch (bags, plates, peristomal skin care) —
+    // core MiGeL ch. 29.01. Only 28 of these rows carry a MiGeL match today, so
+    // without the exemption the other ~250 would be asserted professional.
+    "A10",
+    // Urinary drainage — MiGeL ch. 15.14 / 15.15.
+    "A06030301",    // urine collection bags (350 MiGeL matches)
+    "A06030399",    // urine collection systems - other
+    "A0680",        // drainage/collection accessories (leg-bag straps, holders)
+    // Diabetes self-injection — MiGeL 03.07.09.
+    "A0101010201",  // hypodermic pen needles, with safety systems
+    "A0101010202",  // hypodermic pen needles, w/o safety systems
+    // Disposable syringes a patient buys — MiGeL 03.07.10.10.
+    "A020102",      // infusion and irrigation syringes (all cone/piece variants)
+    // Home enteral nutrition (patient- or carer-run; no MiGeL position exists).
+    "A030403",      // enteral nutrition kits, incl. via pump
+    "A03010302",    // enteral feeding pump controllers
+    "A080101",      // enteral feeding bags and containers
 ];
 
 /// EMDN categories that lean public but are NOT auto-classified (orthoses are
@@ -134,6 +166,10 @@ const PUBLIC_EMDN_CODES: &[&str] = &["V0807", "V08030102", "V0811"];
 /// categories (Q/W/R/V, and Z since 27.08.2026) which do not.
 ///   M dressings · Y aids for disabled (orthoses) · T incontinence protection ·
 ///   A administration/collection (ostomy, self-cath) · N neuro (TENS).
+/// Note A is deliberately in BOTH this list and `EMDN_PROFESSIONAL_CATS`: TIER 6
+/// removes the clinical bulk of A, and what survives via
+/// `EMDN_PROFESSIONAL_EXEMPT_CODES` is exactly the ostomy / urine-bag / needle
+/// business this presumption is meant to catch.
 const EMDN_CONSUMER_LEAN_CATS: &[char] = &['M', 'Y', 'T', 'A', 'N'];
 
 /// Explicit lay/consumer-use phrases.
