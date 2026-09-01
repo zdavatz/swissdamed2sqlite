@@ -447,21 +447,15 @@ pub fn run(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// Find the newest `udi_details_*.db` in the db dir (by mtime).
+/// Find the newest `udi_details_DD.MM.YYYY.db` in the db dir, by the date in
+/// the filename (mtime only breaks ties).
+///
+/// Not by mtime alone: this DB is carried forward from the previous day and
+/// gets copied and restored, so a fresher mtime does not mean a later day —
+/// and lexical order is worse still, `udi_details_01.09.2026.db` sorting
+/// *before* `udi_details_28.08.2026.db`.
 pub fn find_latest_db(db_dir: &std::path::Path) -> Option<std::path::PathBuf> {
-    let mut best: Option<(std::time::SystemTime, std::path::PathBuf)> = None;
-    for entry in std::fs::read_dir(db_dir).ok()?.flatten() {
-        let p = entry.path();
-        let name = p.file_name()?.to_string_lossy().to_string();
-        if name.starts_with("udi_details_") && name.ends_with(".db") {
-            if let Some(mt) = entry.metadata().ok().and_then(|m| m.modified().ok()) {
-                if best.as_ref().map(|(t, _)| mt > *t).unwrap_or(true) {
-                    best = Some((mt, p));
-                }
-            }
-        }
-    }
-    best.map(|(_, p)| p)
+    crate::export::find_latest_dated_db(db_dir, "udi_details_")
 }
 
 /// Ensure the `udi_details` table exists and has every column in `HEADERS`
@@ -578,11 +572,24 @@ pub fn update_details(
         .cloned()
         .collect();
 
+    // `existing` holds only ids we already have, so the NEW ones must not be
+    // subtracted from it (they were never in there) while the delisted ones
+    // must be — subtracting `to_fetch` wholesale did both wrong.
+    let changed = to_fetch
+        .iter()
+        .filter(|r| existing.contains_key(&r.udi_di_id))
+        .count();
+    let unchanged = existing
+        .len()
+        .saturating_sub(delisted.len())
+        .saturating_sub(changed);
     eprintln!(
-        "[details] incremental: {} to fetch (new/changed), {} delisted, {} unchanged",
+        "[details] incremental: {} to fetch ({} new, {} changed), {} delisted, {} unchanged",
         to_fetch.len(),
+        to_fetch.len() - changed,
+        changed,
         delisted.len(),
-        existing.len() - (to_fetch.len().min(existing.len()))
+        unchanged
     );
 
     // Fetch the delta. MiGeL matches (KLV Art. 20 lay-use) feed the triage; the

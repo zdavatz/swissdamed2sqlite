@@ -26,6 +26,55 @@ pub fn output_db(name: &str) -> Result<String, Box<dyn std::error::Error>> {
         .to_string())
 }
 
+/// Turn the `DD.MM.YYYY` stamp of a dated output file into a `YYYYMMDD` sort
+/// key (`udi_details_01.09.2026.db` + prefix `udi_details_` → `20260901`).
+///
+/// Dated filenames must never be ordered lexically — `..._01.09.2026.db` sorts
+/// *before* `..._28.08.2026.db` — and mtime order only holds until a DB is
+/// copied, restored or rsynced, at which point an older file wins. Every
+/// "newest DB" lookup goes through this instead; see
+/// [`crate::sigvaris_shop::find_latest_db`], where this bug was first fixed.
+///
+/// Returns `None` for a name that carries no well-formed stamp.
+pub fn dated_db_key(name: &str, prefix: &str) -> Option<u32> {
+    let stamp = name.strip_prefix(prefix)?.strip_suffix(".db")?;
+    let parts: Vec<&str> = stamp.split('.').collect();
+    let [d, m, y] = parts[..] else { return None };
+    if d.len() != 2 || m.len() != 2 || y.len() != 4 {
+        return None;
+    }
+    let (d, m, y): (u32, u32, u32) = (d.parse().ok()?, m.parse().ok()?, y.parse().ok()?);
+    if !(1..=31).contains(&d) || !(1..=12).contains(&m) {
+        return None;
+    }
+    Some(y * 10_000 + m * 100 + d)
+}
+
+/// Pick the newest `<prefix>DD.MM.YYYY.db` in `db_dir` by its filename date,
+/// breaking ties on mtime. Files without a well-formed stamp are ignored.
+pub fn find_latest_dated_db(dir: &std::path::Path, prefix: &str) -> Option<std::path::PathBuf> {
+    let mut best: Option<(u32, std::time::SystemTime, std::path::PathBuf)> = None;
+    for entry in fs::read_dir(dir).ok()?.flatten() {
+        let path = entry.path();
+        let name = path.file_name()?.to_string_lossy().into_owned();
+        let key = match dated_db_key(&name, prefix) {
+            Some(k) => k,
+            None => continue,
+        };
+        let mtime = entry
+            .metadata()
+            .and_then(|m| m.modified())
+            .unwrap_or(std::time::UNIX_EPOCH);
+        let better = best
+            .as_ref()
+            .map_or(true, |(k, t, _)| key > *k || (key == *k && mtime > *t));
+        if better {
+            best = Some((key, mtime, path));
+        }
+    }
+    best.map(|(_, _, p)| p)
+}
+
 /// Like [`output_db`] but without the date stamp — a stable filename that is
 /// overwritten on each run (used for the MiGeL match DB so it no longer
 /// accumulates one file per day).
@@ -153,4 +202,51 @@ pub fn write_sqlite_table(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dated_db_keys_order_by_date_not_lexically() {
+        let k = |n: &str| dated_db_key(n, "udi_details_").unwrap();
+        // The regression this guards: September sorts lexically BEFORE August.
+        assert!("udi_details_01.09.2026.db" < "udi_details_28.08.2026.db");
+        assert!(k("udi_details_01.09.2026.db") > k("udi_details_28.08.2026.db"));
+        assert_eq!(k("udi_details_01.09.2026.db"), 20_260_901);
+        assert!(k("udi_details_31.12.2025.db") < k("udi_details_01.01.2026.db"));
+    }
+
+    #[test]
+    fn undated_and_malformed_names_have_no_key() {
+        for n in [
+            "swissdamed_migel.db",          // the fixed-name MiGeL DB
+            "udi_details_2026-09-01.db",    // wrong separator
+            "udi_details_1.9.2026.db",      // unpadded
+            "udi_details_01.09.2026.sqlite" // wrong extension
+        ] {
+            assert_eq!(dated_db_key(n, "udi_details_"), None, "{n}");
+            assert_eq!(dated_db_key(n, "swissdamed_migel_"), None, "{n}");
+        }
+        // A date-shaped stamp that is not a real date is rejected too.
+        assert_eq!(dated_db_key("udi_details_00.13.2026.db", "udi_details_"), None);
+    }
+
+    #[test]
+    fn find_latest_dated_db_ignores_mtime_order() {
+        let dir = std::env::temp_dir().join(format!("sd_export_test_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        // Write the NEWER date first so it also carries the OLDER mtime — an
+        // mtime-ordered lookup would pick 28.08 here.
+        for n in ["udi_details_01.09.2026.db", "udi_details_28.08.2026.db"] {
+            fs::write(dir.join(n), b"x").unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(20));
+        }
+        fs::write(dir.join("udi_details_partial.db"), b"x").unwrap();
+        let got = find_latest_dated_db(&dir, "udi_details_").unwrap();
+        assert_eq!(got.file_name().unwrap(), "udi_details_01.09.2026.db");
+        let _ = fs::remove_dir_all(&dir);
+    }
 }

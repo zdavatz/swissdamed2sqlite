@@ -239,14 +239,7 @@ fn delta_pp(n: i64, total: i64, prev_n: Option<i64>, prev_total: i64) -> String 
 /// Find the udi_details DB immediately preceding `latest` by the DD.MM.YYYY
 /// date embedded in the filename (robust against carry-forward mtimes).
 fn find_prev_db(db_dir: &Path, latest: &Path) -> Option<PathBuf> {
-    let key = |name: &str| -> Option<u32> {
-        let stem = name.strip_prefix("udi_details_")?.strip_suffix(".db")?;
-        let mut it = stem.split('.');
-        let d: u32 = it.next()?.parse().ok()?;
-        let m: u32 = it.next()?.parse().ok()?;
-        let y: u32 = it.next()?.parse().ok()?;
-        Some(y * 10000 + m * 100 + d)
-    };
+    let key = |name: &str| crate::export::dated_db_key(name, "udi_details_");
     let latest_key = key(&latest.file_name()?.to_string_lossy())?;
     let mut best: Option<(u32, PathBuf)> = None;
     for entry in std::fs::read_dir(db_dir).ok()?.flatten() {

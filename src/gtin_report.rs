@@ -218,7 +218,10 @@ const HEAD: &[&str] = &[
 
 /// Everything gathered for one GTIN, plus which sources it came from.
 struct Merged {
+    // Both are asserted on in the tests; the spreadsheet itself reads `row`.
+    #[allow(dead_code)]
     gtin: String,
+    #[allow(dead_code)]
     product_id: String,
     sources: Vec<&'static str>,
     row: Vec<String>,
@@ -802,7 +805,7 @@ fn write_workbook(out: &Path, merged: &[Merged], hits: usize, src: &Sources) -> 
         .set_background_color(Color::RGB(0xC8E6C9))
         .set_text_wrap();
 
-    let mut write_sheet = |wb: &mut Workbook, name: &str, only_hits: bool| -> R<()> {
+    let write_sheet = |wb: &mut Workbook, name: &str, only_hits: bool| -> R<()> {
         let ws = wb.add_worksheet().set_name(name)?;
         for (c, h) in HEAD.iter().enumerate() {
             let fmt = if c < PARTNER_COLS { &partner_head } else { &ours_head };
@@ -854,8 +857,8 @@ fn write_workbook(out: &Path, merged: &[Merged], hits: usize, src: &Sources) -> 
 /// `(line, is_heading)` pairs for the orientation sheet.
 fn info_lines(total: usize, hits: usize, src: &Sources) -> Vec<(String, bool)> {
     let mut v: Vec<(String, bool)> = Vec::new();
-    let mut head = |s: &str, out: &mut Vec<(String, bool)>| out.push((s.to_string(), true));
-    let mut line = |s: String, out: &mut Vec<(String, bool)>| out.push((s, false));
+    let head = |s: &str, out: &mut Vec<(String, bool)>| out.push((s.to_string(), true));
+    let line = |s: String, out: &mut Vec<(String, bool)>| out.push((s, false));
 
     head("Was wurde ergänzt?", &mut v);
     line(

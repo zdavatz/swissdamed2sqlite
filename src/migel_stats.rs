@@ -694,9 +694,33 @@ pub fn find_latest_dbs(db_dir: &Path) -> (Option<PathBuf>, Option<PathBuf>) {
             }
         }
     }
-    let pick_latest = |mut v: Vec<PathBuf>| -> Option<PathBuf> {
-        v.sort_by_key(|p| fs::metadata(p).and_then(|m| m.modified()).ok());
-        v.pop()
+    // Order by the DD.MM.YYYY stamp in the filename, not by mtime: these files
+    // are copied and restored, and lexical order puts 01.09 before 28.08.
+    // The fixed-name MiGeL DB carries no stamp and is the current scheme, so it
+    // always outranks the legacy dated ones.
+    let pick_latest = |v: Vec<PathBuf>, prefix: &str, undated_wins: bool| -> Option<PathBuf> {
+        let mut best: Option<(u32, PathBuf)> = None;
+        for p in v {
+            let name = match p.file_name().map(|n| n.to_string_lossy().into_owned()) {
+                Some(n) => n,
+                None => continue,
+            };
+            let key = match crate::export::dated_db_key(&name, prefix) {
+                Some(k) => k,
+                None if undated_wins => u32::MAX,
+                None => continue,
+            };
+            if best.as_ref().map_or(true, |(k, _)| key > *k) {
+                best = Some((key, p));
+            }
+        }
+        best.map(|(_, p)| p)
     };
-    (pick_latest(migel_dbs), pick_latest(full_dbs))
+    (
+        // The undated `swissdamed_migel.db` is the current scheme and is
+        // overwritten every run, so it outranks every legacy dated file.
+        pick_latest(migel_dbs, "swissdamed_migel_", true),
+        // Full-corpus DBs are always dated; an undated one would be junk.
+        pick_latest(full_dbs, "swissdamed_", false),
+    )
 }
