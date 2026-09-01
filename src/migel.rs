@@ -1614,6 +1614,23 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // --- Transfer-Set (03.07.09.20) should NOT match patient-transfer furniture
     // (hoverboards/stretchers/transfer chairs) or dental tray-transfer copings.
     // The single generic keyword 'transfer' otherwise meets the threshold.
+    // --- 01.09.2026 daily-diff FP sweep: 03.07.09.20 "Transfer-Set" (the
+    // INSULIN-PUMP transfer set of ch. 03.07) held 24 rows and all 24 were the
+    // bare "transfer" homonym again — the same failure the 25.08./26.08. sweeps
+    // hit. Fenced by scoped keyword rather than by company, because both product
+    // names are generic categories other registrants will file too, and neither
+    // maker is disqualified as a whole (cf. audit §4/#5, scoped exclusions).
+    // Every token below verified single-company corpus-wide before adding.
+    // Rescue Trade OHG, 10 rows: "Rescue Transfer Disposable Transfer-Sheet" /
+    // "Umbettungslaken" — a disposable patient slide sheet for the ambulance
+    // service. Both spellings needed: hyphens are not normalized to spaces.
+    ("03.07.09.20", "transfer sheet"),
+    ("03.07.09.20", "transfer-sheet"),
+    ("03.07.09.20", "umbettungslaken"),
+    // Cendres+Métaux SA, 14 rows: "Class I Transfer jigs (for Bars)" — dental
+    // lab transfer jigs for implant bars. Joins the existing dental fences on
+    // this code (implant / abutment / coping / abformpfosten / Brånemark).
+    ("03.07.09.20", "jig"),
     ("03.07.09.20", "hoverboard"),
     ("03.07.09.20", "stretcher"),
     ("03.07.09.20", "blower"),
