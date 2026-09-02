@@ -662,6 +662,19 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // controllers). Its 2 matches were "STERITEX(R) TRANSFER SET" — a pharmacy
     // compounding transfer spike, not the insulin-pump Transfer-Set of 03.07.09.20.
     "CODAN Medizinische Geräte GmbH",
+    // --- 02.09.2026 daily-diff FP sweep ---
+    // PETER BREHM = 393 rows, entire catalogue knee/hip endoprosthesis surgical
+    // instrumentation (EMDN L0911/L0910/P0913 "ORTHOPAEDIC PROSTHESES INSTRUMENTS,
+    // REUSABLE" and the single-use implant blades). All 27 matches were FPs and each
+    // rode a different homonym out of the instrument tray: the rotational-alignment
+    // "Schuh" -> 26.01.04.01 "Spezialschuhe für Orthesen" (8), "Erweiterungsfräser /
+    // T-Handgriff / Spacer Handgriff" -> 15.13.06 "Handgriff für Katheter" (9),
+    // "Boxpräparation" -> 03.07.09.09 (7), "Universaler Ausschläger Knie" ->
+    // 23.04.01, "Montagehilfe Kopplungszapfen" -> 23.10.01, "Parallelkompressor
+    // modular" -> 17.15.03. Too many independent homonyms to fence one by one, and
+    // the maker is disqualified as a whole -> company scope, same class as
+    // Aesculap / Synthes / ARTIQO / Microaire.
+    "PETER BREHM GmbH",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1728,6 +1741,16 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("21.07.02", "eeg"),     // Medker/NEUROLITE EEG electrode ≠ CGM sensor
     ("21.07.02", "nmt"),     // Edan neuromuscular-transmission sensor ≠ CGM sensor
     ("21.07.02", "stimulation"), // Edan EMG/stimulation sensor ≠ CGM sensor
+    // --- 02.09.2026: four more non-CGM sensors caught by the 21.07.02 magnet.
+    // Scoped keywords, not company exclusions: Geratherm also sells genuine
+    // portable spirometers (21.01.15) and Abbott Medical is a separate registrant
+    // from Abbott Diabetes Care Ltd. (FreeStyle Libre, genuine CGM) — a company
+    // fence would be right for neither. Each token verified single-company over
+    // all 174,733 corpus rows.
+    ("21.07.02", "sensor enabled"), // Abbott EnSite Precision cardiac mapping ≠ CGM
+    ("21.07.02", "level sensor"),   // Spectrum perfusion reservoir level ≠ CGM
+    ("21.07.02", "ambient sensor"), // Geratherm Ambistik spirometer ambient ≠ CGM
+    ("21.07.02", "wegsensor"),      // inomed intraoperative displacement ≠ CGM
     ("23", "oximeter"),      // Edan finger/pulse oximeter ≠ finger orthosis (ch.23)
     ("22", "spo2"),          // MIPM SpO2 finger adapter ≠ finger orthosis (hops 23->22.06)
     ("23", "spo2"),          // MIPM SpO2 finger adapter ≠ finger orthosis (ch.23)
