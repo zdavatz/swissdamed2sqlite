@@ -453,6 +453,85 @@ fn add_links(pdf: &Path, urls: &[&str]) -> Result<usize, Box<dyn Error>> {
     Ok(placed)
 }
 
+/// Rewrite the README's "latest sheet" link to `filename`.
+///
+/// The stats PNG link is a whole line and `migel_stats::update_readme` can match
+/// it as one; this link sits *inside* a sentence, so keying on the surrounding
+/// prose would break the moment that sentence is reworded. Instead only the
+/// `[**<name>.pdf**](pdf/<name>.pdf)` fragment is located and swapped, leaving
+/// everything around it untouched. Returns whether the file changed.
+fn rewrite_readme_link(content: &str, filename: &str) -> Option<String> {
+    const OPEN: &str = "[**swissdamed_triage_status_";
+    const MID: &str = ".pdf**](pdf/swissdamed_triage_status_";
+    const CLOSE: &str = ".pdf)";
+    let start = content.find(OPEN)?;
+    let mid = content[start..].find(MID)? + start;
+    let end = content[mid..].find(CLOSE)? + mid + CLOSE.len();
+    // Guard against a stray "[**swissdamed_triage_status_" far from its closing
+    // fragment: a real link is short, a runaway match would span paragraphs.
+    if end - start > 200 {
+        return None;
+    }
+    let replacement = format!("[**{}**](pdf/{})", filename, filename);
+    if content[start..end] == replacement {
+        return None;
+    }
+    let mut out = String::with_capacity(content.len());
+    out.push_str(&content[..start]);
+    out.push_str(&replacement);
+    out.push_str(&content[end..]);
+    Some(out)
+}
+
+/// Mirror the freshly rendered sheet into the repo's `pdf/` (only when run from
+/// a checkout), drop the previous one, and point the README at it — the same
+/// service `migel_stats::generate` performs for the stats PNG. Without this the
+/// README link is hand-maintained and goes dead on any daily run that forgets
+/// it, which is exactly what happened on 02.09.2026.
+fn mirror_into_repo(out: &Path, filename: &str) {
+    if !Path::new("Cargo.toml").exists() || !Path::new("pdf").is_dir() {
+        return;
+    }
+    let repo_dir = Path::new("pdf");
+    let repo_path = repo_dir.join(filename);
+    if let Err(e) = std::fs::copy(out, &repo_path) {
+        eprintln!("[status-pdf] WARN: could not mirror into repo pdf/: {}", e);
+        return;
+    }
+    eprintln!("[status-pdf] mirrored to {}", repo_path.display());
+
+    if let Ok(entries) = std::fs::read_dir(repo_dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if name.starts_with("swissdamed_triage_status_")
+                && name.ends_with(".pdf")
+                && name != filename
+            {
+                match std::fs::remove_file(entry.path()) {
+                    Ok(()) => eprintln!("[status-pdf] removed old pdf/{}", name),
+                    Err(e) => eprintln!("[status-pdf] WARN: could not remove pdf/{}: {}", name, e),
+                }
+            }
+        }
+    }
+
+    let readme = Path::new("README.md");
+    if !readme.exists() {
+        return;
+    }
+    match std::fs::read_to_string(readme) {
+        Ok(content) => match rewrite_readme_link(&content, filename) {
+            Some(updated) => match std::fs::write(readme, updated) {
+                Ok(()) => eprintln!("[status-pdf] updated README.md -> pdf/{}", filename),
+                Err(e) => eprintln!("[status-pdf] WARN: could not write README.md: {}", e),
+            },
+            None => {}
+        },
+        Err(e) => eprintln!("[status-pdf] WARN: could not read README.md: {}", e),
+    }
+}
+
 /// Entry point for `--status-pdf` (no download; reads the latest udi_details DB).
 pub fn run() -> Result<(), Box<dyn Error>> {
     let db_dir = crate::app_data_dir().join("db");
@@ -492,6 +571,12 @@ pub fn run() -> Result<(), Box<dyn Error>> {
         Err(e) => eprintln!("[status-pdf] WARN: link overlay failed (PDF still written): {}", e),
     }
 
+    let filename = Path::new(&out)
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+    mirror_into_repo(Path::new(&out), &filename);
+
     eprintln!(
         "[status-pdf] wrote {} (professional={} public={} [h{} m{} l{}] review={})",
         out,
@@ -503,4 +588,49 @@ pub fn run() -> Result<(), Box<dyn Error>> {
         d.rev
     );
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::rewrite_readme_link;
+
+    const LINE: &str = "Public-vs-professional status — see the latest sheet: \
+[**swissdamed_triage_status_01.09.2026.pdf**](pdf/swissdamed_triage_status_01.09.2026.pdf) \
+(`--status-pdf`, two pages). All figures are pulled live.";
+
+    #[test]
+    fn the_link_is_swapped_without_disturbing_the_sentence() {
+        let out = rewrite_readme_link(LINE, "swissdamed_triage_status_02.09.2026.pdf")
+            .expect("link should be found");
+        assert!(out.contains(
+            "[**swissdamed_triage_status_02.09.2026.pdf**](pdf/swissdamed_triage_status_02.09.2026.pdf)"
+        ));
+        assert!(!out.contains("01.09.2026"));
+        // The prose on both sides survives verbatim.
+        assert!(out.starts_with("Public-vs-professional status — see the latest sheet: "));
+        assert!(out.ends_with("(`--status-pdf`, two pages). All figures are pulled live."));
+    }
+
+    #[test]
+    fn an_already_current_link_is_left_alone() {
+        // Idempotent: re-running --status-pdf the same day must not dirty the
+        // working tree, or every run would show a phantom README change.
+        assert!(rewrite_readme_link(LINE, "swissdamed_triage_status_01.09.2026.pdf").is_none());
+    }
+
+    #[test]
+    fn a_readme_without_the_link_is_untouched() {
+        assert!(rewrite_readme_link("# swissdamed2sqlite\n\nNo sheet linked here.\n", "x.pdf")
+            .is_none());
+    }
+
+    #[test]
+    fn a_runaway_match_is_refused_rather_than_swallowing_paragraphs() {
+        // A stray opening fragment with its closing half far away must not cause
+        // the whole span between them to be replaced.
+        let mut s = String::from("[**swissdamed_triage_status_");
+        s.push_str(&"filler ".repeat(60));
+        s.push_str(".pdf**](pdf/swissdamed_triage_status_09.09.2026.pdf)");
+        assert!(rewrite_readme_link(&s, "swissdamed_triage_status_10.09.2026.pdf").is_none());
+    }
 }
