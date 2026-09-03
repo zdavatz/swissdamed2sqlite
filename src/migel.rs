@@ -675,6 +675,20 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // the maker is disqualified as a whole -> company scope, same class as
     // Aesculap / Synthes / ARTIQO / Microaire.
     "PETER BREHM GmbH",
+    // --- 03.09.2026 daily-diff FP sweep ---
+    // Promepla = 291 rows, OEM maker of clinical single-use kits (EMDN infusion /
+    // irrigation kits, phaco sets, smoke evacuation, autotransfusion, IVF
+    // embryo-transfer catheters). Matched 108/108, all FP, and refilled BOTH
+    // ch. 03.07 "Set" positions for the third time: "Embryo Transfer Set" ->
+    // 03.07.09.20 (21), "Infusion Lines" -> 99.30.06.02 (87). Same class as
+    // Greiner / CODAN / AMS (26.08.2026).
+    "Promepla Group s.a.r.l",
+    // 163 rows, entire catalogue orthopaedic-prosthesis instrumentation
+    // ("Slide Hammer for Cervical Spine" -> 22.12.01). Same class as PETER BREHM.
+    "CENTINEL SPINE, LLC",
+    // 2 rows, acupuncture stimulators / point locators -> 09.02.01.02 (TENS
+    // electrodes). Not TENS.
+    "Neurostimulation Medtech Pvt. Ltd.",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
