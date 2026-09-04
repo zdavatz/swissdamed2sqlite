@@ -689,6 +689,17 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // 2 rows, acupuncture stimulators / point locators -> 09.02.01.02 (TENS
     // electrodes). Not TENS.
     "Neurostimulation Medtech Pvt. Ltd.",
+    // --- 04.09.2026 daily-diff FP sweep ---
+    // ArcRoyal = OEM custom procedure trays (EMDN V0599, Halyard/Vingmed brands),
+    // "General Surgery / Abdominal Surgery CPT" -> 05.11.10 via "abdominal". 5/5 FP.
+    "ArcRoyal Unlimited Company",
+    // Promedical AG = Swiss maker of hospital procedure sets ("OTR Pack", "Gripperset",
+    // "Chemo-Set"). 32 matches on 19 codes, every one a set named after its target
+    // organ riding the orthosis / catheter / dressing homonym: "Knie Arthroskopie
+    // Set" -> 23.04.01, "Blasenkatheter-Set" -> 15.13.01, "Thorax Drainage Kit" ->
+    // 01.03.01, "Injektionsset Nuklearmedizin" -> 03.07.09.11 ... The PETER BREHM
+    // shape (one homonym per chapter) -> company scope.
+    "Promedical AG",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1510,6 +1521,10 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("99.30.06", "blood collection"),
     ("99.30.06", "carrier bag"),
     ("99.30.06", "drip tray"),
+    // 04.09.2026: Sunrise Medical Co., Ltd. (CN, 1 row — NOT the wheelchair maker
+    // Sunrise Medical GmbH, hence a keyword and not a company fence) "Burette
+    // infusion set" = hospital gravity IV set. Single-row token corpus-wide.
+    ("99.30.06", "burette"),
     // --- Schlauchverbände (35.01.08) should NOT match other dressing types ---
     ("35.01.08", "folienverband"),
     ("35.01.08", "schaumverband"),
