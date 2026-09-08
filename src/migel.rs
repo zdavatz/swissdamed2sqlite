@@ -700,6 +700,20 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // 01.03.01, "Injektionsset Nuklearmedizin" -> 03.07.09.11 ... The PETER BREHM
     // shape (one homonym per chapter) -> company scope.
     "Promedical AG",
+    // --- 08.09.2026 daily-diff FP sweep (78 new matches, 78 false) ---
+    // Ormco = orthodontics (6,361 rows, EMDN Q0104 brackets/bands/wires). "ULCUS"
+    // in its bracket codes is "upper left cuspid", not an ulcer -> 17.05.01
+    // Ulcus-Kompressionsstrumpf (29); "COMPRESSION SPRING" NiTi archwire springs ->
+    // 17.15.03 (6); "Ortho Solo" bonding primer -> 26.01.01 (3). 38/38 FP.
+    "Ormco Corporation",
+    // Biomet UK = Oxford Partial Knee instrument tray (EMDN L0911 positioners /
+    // instruments): "Tibia Templates / Trials / Rasp" -> 23.04.01 Knieorthese (28),
+    // "Ankle Clamp" -> 05.02.10 (2). The PETER BREHM shape. 30/30 FP.
+    "Biomet UK",
+    // Klaus Schuler = EEG/EMG neurodiagnostic electrodes (EMDN N0101, 106 rows):
+    // "Nervenreizelektrode" -> 09.02.03.02 (7), "Finger- und Zehenelektrode" ->
+    // 23.20.01 Fingerorthese (3). 10/10 FP.
+    "Klaus Schuler GmbH, Medizintechnik",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
