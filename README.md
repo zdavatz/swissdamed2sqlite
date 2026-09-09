@@ -188,6 +188,12 @@ swissdamed2sqlite --gmail-search 'from:partner@example.com has:attachment' --gdr
 swissdamed2sqlite --gmail-attachments 19a2f4fad057d4f0 --out ./inbox --gdrive-sub user@domain.com
 swissdamed2sqlite --gdrive-download 1AbC...xyz --out partner_list.xlsx
 
+# Read a whole thread as text, then answer it with a draft (gmail.compose scope)
+swissdamed2sqlite --gmail-read 19a2f4fad057d4f0 --gdrive-sub user@domain.com
+swissdamed2sqlite --gmail-draft reply.txt --reply-to 19a2f4fad057d4f0 \
+  --cc colleague@example.com --gdrive-sub user@domain.com          # threaded reply; --to/--subject derived
+swissdamed2sqlite --gmail-draft reply.txt --update-draft r4134… --reply-to 19a2f4fad057d4f0 --gdrive-sub user@domain.com
+
 # Combine: lookup + upload to Drive + email
 swissdamed2sqlite --lookup-chrn CHRN-AR-20000807 --gdrive --mailto recipient@example.com --gdrive-sub user@domain.com
 ```
