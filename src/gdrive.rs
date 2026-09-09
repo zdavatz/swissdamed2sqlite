@@ -514,6 +514,222 @@ pub fn gmail_attachments(
     Ok(written)
 }
 
+/// Scope for creating drafts in a delegated mailbox.
+const SCOPE_GMAIL_COMPOSE: &str = "https://www.googleapis.com/auth/gmail.compose";
+
+/// Print every message of the thread containing `msg_id` as plain text
+/// (headers + text/plain body; HTML-only mails are printed as their HTML).
+pub fn gmail_read(args: &Args, msg_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let sub = args.gdrive_sub.as_deref().ok_or(
+        "--gmail-read requires --gdrive-sub <email>: a service account has no mailbox of its own",
+    )?;
+    let (pem, email) = resolve_google_credentials(args)?;
+    let token = get_google_access_token(&pem, &email, SCOPE_GMAIL_READ, Some(sub))?;
+
+    let msg = google_get_json(
+        &format!("https://gmail.googleapis.com/gmail/v1/users/me/messages/{msg_id}?format=metadata"),
+        &token,
+    )?;
+    let thread_id = msg
+        .get("threadId")
+        .and_then(|v| v.as_str())
+        .ok_or("message carried no threadId")?;
+    let thread = google_get_json(
+        &format!("https://gmail.googleapis.com/gmail/v1/users/me/threads/{thread_id}?format=full"),
+        &token,
+    )?;
+    let engine = base64::engine::general_purpose::URL_SAFE_NO_PAD;
+    for m in thread.get("messages").and_then(|v| v.as_array()).unwrap_or(&vec![]) {
+        let header = |name: &str| -> String {
+            m.get("payload")
+                .and_then(|p| p.get("headers"))
+                .and_then(|h| h.as_array())
+                .and_then(|hs| {
+                    hs.iter().find(|h| {
+                        h.get("name")
+                            .and_then(|n| n.as_str())
+                            .map(|n| n.eq_ignore_ascii_case(name))
+                            .unwrap_or(false)
+                    })
+                })
+                .and_then(|h| h.get("value"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string()
+        };
+        println!("==================================================================");
+        println!("Message-Id: {}", m.get("id").and_then(|v| v.as_str()).unwrap_or(""));
+        println!("RFC822-Id:  {}", header("Message-ID"));
+        println!("Date:       {}", header("Date"));
+        println!("From:       {}", header("From"));
+        println!("To:         {}", header("To"));
+        println!("Cc:         {}", header("Cc"));
+        println!("Subject:    {}", header("Subject"));
+        println!("------------------------------------------------------------------");
+        let mut plain = String::new();
+        let mut html = String::new();
+        collect_body_parts(m.get("payload"), &mut plain, &mut html, &engine);
+        if !plain.trim().is_empty() {
+            println!("{}", plain);
+        } else {
+            println!("{}", html);
+        }
+    }
+    Ok(())
+}
+
+fn collect_body_parts(
+    part: Option<&Value>,
+    plain: &mut String,
+    html: &mut String,
+    engine: &base64::engine::GeneralPurpose,
+) {
+    use base64::Engine;
+    let Some(part) = part else { return };
+    let mime = part.get("mimeType").and_then(|v| v.as_str()).unwrap_or("");
+    if let Some(data) = part.get("body").and_then(|b| b.get("data")).and_then(|v| v.as_str()) {
+        if let Ok(bytes) = engine.decode(data.trim_end_matches('=')) {
+            let text = String::from_utf8_lossy(&bytes);
+            if mime == "text/plain" {
+                plain.push_str(&text);
+            } else if mime == "text/html" {
+                html.push_str(&text);
+            }
+        }
+    }
+    if let Some(parts) = part.get("parts").and_then(|v| v.as_array()) {
+        for p in parts {
+            collect_body_parts(Some(p), plain, html, engine);
+        }
+    }
+}
+
+/// Create a draft in the delegated mailbox. If `reply_to` names a Gmail message
+/// id, the draft is threaded as a reply to it (In-Reply-To / References / same
+/// threadId), and `to`/`subject` default to that message's sender and "AW: ".
+pub fn gmail_draft(
+    args: &Args,
+    to: Option<&str>,
+    subject: Option<&str>,
+    body_text: &str,
+    reply_to: Option<&str>,
+    cc: Option<&str>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    use base64::Engine;
+    let engine = base64::engine::general_purpose::STANDARD;
+    let url_engine = base64::engine::general_purpose::URL_SAFE_NO_PAD;
+    let sub = args.gdrive_sub.as_deref().ok_or(
+        "--gmail-draft requires --gdrive-sub <email>: the mailbox the draft is created in",
+    )?;
+    let (pem, email) = resolve_google_credentials(args)?;
+    let token = get_google_access_token(&pem, &email, SCOPE_GMAIL_COMPOSE, Some(sub))?;
+
+    let sanitize_header = |s: &str| s.replace(['\r', '\n'], "");
+    let mut to_addr = to.map(|s| s.to_string());
+    let mut subj = subject.map(|s| s.to_string());
+    let mut thread_id: Option<String> = None;
+    let mut in_reply_to: Option<String> = None;
+    let mut references: Option<String> = None;
+
+    if let Some(id) = reply_to {
+        let read_token = get_google_access_token(&pem, &email, SCOPE_GMAIL_READ, Some(sub))?;
+        let orig = google_get_json(
+            &format!(
+                "https://gmail.googleapis.com/gmail/v1/users/me/messages/{id}\
+                 ?format=metadata&metadataHeaders=From&metadataHeaders=Reply-To\
+                 &metadataHeaders=Subject&metadataHeaders=Message-ID&metadataHeaders=References"
+            ),
+            &read_token,
+        )?;
+        let header = |name: &str| -> Option<String> {
+            orig.get("payload")
+                .and_then(|p| p.get("headers"))
+                .and_then(|h| h.as_array())
+                .and_then(|hs| {
+                    hs.iter().find(|h| {
+                        h.get("name")
+                            .and_then(|n| n.as_str())
+                            .map(|n| n.eq_ignore_ascii_case(name))
+                            .unwrap_or(false)
+                    })
+                })
+                .and_then(|h| h.get("value"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string())
+        };
+        thread_id = orig.get("threadId").and_then(|v| v.as_str()).map(|s| s.to_string());
+        if to_addr.is_none() {
+            to_addr = header("Reply-To").or_else(|| header("From"));
+        }
+        if subj.is_none() {
+            let s = header("Subject").unwrap_or_default();
+            subj = Some(if s.to_lowercase().starts_with("aw:") || s.to_lowercase().starts_with("re:") {
+                s
+            } else {
+                format!("AW: {s}")
+            });
+        }
+        if let Some(mid) = header("Message-ID") {
+            references = Some(match header("References") {
+                Some(r) => format!("{r} {mid}"),
+                None => mid.clone(),
+            });
+            in_reply_to = Some(mid);
+        }
+    }
+
+    let to_addr = to_addr.ok_or("--gmail-draft needs --to (or --reply-to to derive it)")?;
+    let subj = subj.unwrap_or_default();
+    let subject_hdr = sanitize_header(&if subj.is_ascii() {
+        subj.clone()
+    } else {
+        format!("=?UTF-8?B?{}?=", engine.encode(subj.as_bytes()))
+    });
+
+    let mut raw = format!(
+        "From: {}\r\nTo: {}\r\nSubject: {}\r\n",
+        sanitize_header(sub),
+        sanitize_header(&to_addr),
+        subject_hdr
+    );
+    if let Some(c) = cc {
+        raw.push_str(&format!("Cc: {}\r\n", sanitize_header(c)));
+    }
+    if let Some(ref r) = in_reply_to {
+        raw.push_str(&format!("In-Reply-To: {}\r\n", sanitize_header(r)));
+    }
+    if let Some(ref r) = references {
+        raw.push_str(&format!("References: {}\r\n", sanitize_header(r)));
+    }
+    raw.push_str("MIME-Version: 1.0\r\nContent-Type: text/plain; charset=\"UTF-8\"\r\nContent-Transfer-Encoding: base64\r\n\r\n");
+    raw.push_str(&engine.encode(body_text.as_bytes()));
+    raw.push_str("\r\n");
+
+    let mut message = serde_json::json!({ "raw": url_engine.encode(raw.as_bytes()) });
+    if let Some(t) = thread_id {
+        message["threadId"] = Value::String(t);
+    }
+    let body = serde_json::json!({ "message": message });
+
+    let client = reqwest::blocking::Client::new();
+    let resp = client
+        .post("https://gmail.googleapis.com/gmail/v1/users/me/drafts")
+        .header("Authorization", format!("Bearer {}", token))
+        .header("Content-Type", "application/json")
+        .body(body.to_string())
+        .send()?;
+    if resp.status().is_success() {
+        let result: Value = resp.json()?;
+        let id = result.get("id").and_then(|v| v.as_str()).unwrap_or("?");
+        eprintln!("[gmail] draft created in {sub} (draft id: {id}, to: {to_addr}, subject: {subj})");
+        Ok(())
+    } else {
+        let status = resp.status();
+        let err_body = resp.text().unwrap_or_default();
+        Err(format!("Gmail draft failed ({}): {}", status, err_body).into())
+    }
+}
+
 /// Walk a Gmail payload tree, collecting `(filename, attachmentId)` pairs.
 fn collect_attachment_parts(part: Option<&Value>, out: &mut Vec<(String, String)>) {
     let Some(part) = part else { return };

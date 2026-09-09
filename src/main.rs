@@ -271,6 +271,33 @@ pub struct Args {
     #[arg(long, value_name = "MESSAGE_ID")]
     pub gmail_attachments: Option<String>,
 
+    /// Print the whole thread of one Gmail message (id from --gmail-search)
+    /// as plain text: headers and body of every message.
+    #[arg(long, value_name = "MESSAGE_ID")]
+    pub gmail_read: Option<String>,
+
+    /// Create a draft in the mailbox named by --gdrive-sub. The body is read
+    /// from this file (UTF-8 plain text). Combine with --to, --subject and/or
+    /// --reply-to.
+    #[arg(long, value_name = "BODY_FILE")]
+    pub gmail_draft: Option<PathBuf>,
+
+    /// Recipient for --gmail-draft (defaults to the sender of --reply-to).
+    #[arg(long, value_name = "EMAIL")]
+    pub to: Option<String>,
+
+    /// Subject for --gmail-draft (defaults to "AW: <subject>" of --reply-to).
+    #[arg(long, value_name = "TEXT")]
+    pub subject: Option<String>,
+
+    /// Gmail message id the draft answers; threads the draft into that conversation.
+    #[arg(long, value_name = "MESSAGE_ID")]
+    pub reply_to: Option<String>,
+
+    /// Cc header for --gmail-draft (comma-separated addresses).
+    #[arg(long, value_name = "EMAILS")]
+    pub cc: Option<String>,
+
     /// Join a partner's GTIN list (xlsx, GTIN in column A) against every source
     /// we hold and write one spreadsheet. Sources default to the newest local
     /// DBs; override any of them with the --*-db / --*-csv flags below.
@@ -418,6 +445,24 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(ref msg_id) = args.gmail_attachments {
         let dir = args.out.clone().unwrap_or_else(|| PathBuf::from("."));
         gdrive::gmail_attachments(&args, msg_id, &dir)?;
+        return Ok(());
+    }
+
+    if let Some(ref msg_id) = args.gmail_read {
+        gdrive::gmail_read(&args, msg_id)?;
+        return Ok(());
+    }
+
+    if let Some(ref body_file) = args.gmail_draft {
+        let body = fs::read_to_string(body_file)?;
+        gdrive::gmail_draft(
+            &args,
+            args.to.as_deref(),
+            args.subject.as_deref(),
+            &body,
+            args.reply_to.as_deref(),
+            args.cc.as_deref(),
+        )?;
         return Ok(());
     }
 
