@@ -298,6 +298,10 @@ pub struct Args {
     #[arg(long, value_name = "EMAILS")]
     pub cc: Option<String>,
 
+    /// Replace the content of an existing draft instead of creating a new one.
+    #[arg(long, value_name = "DRAFT_ID")]
+    pub update_draft: Option<String>,
+
     /// Join a partner's GTIN list (xlsx, GTIN in column A) against every source
     /// we hold and write one spreadsheet. Sources default to the newest local
     /// DBs; override any of them with the --*-db / --*-csv flags below.
@@ -462,6 +466,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             &body,
             args.reply_to.as_deref(),
             args.cc.as_deref(),
+            args.update_draft.as_deref(),
         )?;
         return Ok(());
     }

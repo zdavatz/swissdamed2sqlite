@@ -614,6 +614,7 @@ pub fn gmail_draft(
     body_text: &str,
     reply_to: Option<&str>,
     cc: Option<&str>,
+    update_draft_id: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     use base64::Engine;
     let engine = base64::engine::general_purpose::STANDARD;
@@ -712,8 +713,11 @@ pub fn gmail_draft(
     let body = serde_json::json!({ "message": message });
 
     let client = reqwest::blocking::Client::new();
-    let resp = client
-        .post("https://gmail.googleapis.com/gmail/v1/users/me/drafts")
+    let req = match update_draft_id {
+        Some(id) => client.put(format!("https://gmail.googleapis.com/gmail/v1/users/me/drafts/{id}")),
+        None => client.post("https://gmail.googleapis.com/gmail/v1/users/me/drafts"),
+    };
+    let resp = req
         .header("Authorization", format!("Bearer {}", token))
         .header("Content-Type", "application/json")
         .body(body.to_string())
@@ -721,7 +725,8 @@ pub fn gmail_draft(
     if resp.status().is_success() {
         let result: Value = resp.json()?;
         let id = result.get("id").and_then(|v| v.as_str()).unwrap_or("?");
-        eprintln!("[gmail] draft created in {sub} (draft id: {id}, to: {to_addr}, subject: {subj})");
+        let verb = if update_draft_id.is_some() { "updated" } else { "created" };
+        eprintln!("[gmail] draft {verb} in {sub} (draft id: {id}, to: {to_addr}, subject: {subj})");
         Ok(())
     } else {
         let status = resp.status();
