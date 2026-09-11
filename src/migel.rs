@@ -714,6 +714,10 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // "Nervenreizelektrode" -> 09.02.03.02 (7), "Finger- und Zehenelektrode" ->
     // 23.20.01 Fingerorthese (3). 10/10 FP.
     "Klaus Schuler GmbH, Medizintechnik",
+    // --- 11.09.2026 --- BQ Plus = hospital IV infusion sets with flow regulator
+    // (EMDN A03010103, 2 rows); "Air Stop Infusion Set" -> 99.30.06.02. Same
+    // class as CODAN / Greiner. 1/1 FP.
+    "BQ Plus Medical Co., Ltd.",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1340,6 +1344,10 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("15.10", "electrode"),
     ("15.10", "elektrode"),
     // Catheter handles (15.13.06) should NOT match catheters or surgical handles
+    // Moretti bathroom grab bars: "Maniglia a ventosa" = suction grab handle,
+    // "Handgriff" homonym of the catheter-handle position (11.09.2026).
+    ("15.13.06", "maniglia"),
+    ("15.13.06", "pinze da presa"),
     ("15.13.06", "frauenkatheter"),
     ("15.13.06", "nelaton"),
     ("15.13.06", "ballonkatheter"),
@@ -1539,6 +1547,11 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // Sunrise Medical GmbH, hence a keyword and not a company fence) "Burette
     // infusion set" = hospital gravity IV set. Single-row token corpus-wide.
     ("99.30.06", "burette"),
+    // Medline Hudson RCI (11.09.2026): "Voldyne incentive spirometer" is a
+    // breathing exerciser, not a portable spirometer; a tracheostomy adaptor is
+    // ch. 31 airway hardware, not ostomy material.
+    ("21.01.15", "incentive"),
+    ("29.01", "tracheostom"),
     // --- Schlauchverbände (35.01.08) should NOT match other dressing types ---
     ("35.01.08", "folienverband"),
     ("35.01.08", "schaumverband"),
@@ -1754,6 +1767,10 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // --- Sensoren (21.07.02) is for diabetic continuous-glucose sensors (Medtronic
     // Guardian, Abbott FreeStyle Libre). Patient-monitor sensors — capnography
     // (CO2/flow/Capnostat), pulse-oximetry (SpO2), temperature — are NOT MiGeL. ---
+    // Timpel / Infivision electrical-impedance-tomography belts (ICU lung
+    // monitoring, EMDN V9015) — "Sensor Belt" is not a CGM sensor (11.09.2026).
+    ("21.07.02", "sensor belt"),
+    ("21.07.02", "electrode belt"),
     ("21.07.02", "co2"),
     ("21.07.02", "spo2"),
     ("21.07.02", "flow sensor"),
@@ -2636,8 +2653,15 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // none_of excludes ophthalmologists' diagnostic gonioscopy/slit-lamp lenses
     // (Haag-Streit "Diagnostic Contact Lens") — those are instruments, not the
     // corrective vision aids MiGeL 25.01.01 covers.
-    (&["contact lens"], &["diagnostic", "gonio"], "25.01.01.00.1"),
-    (&["kontaktlinse"], &["diagnostik", "gonio"], "25.01.01.00.1"),
+    // "insertion"/"removal": DMV suction-cup lens handling tools are accessories,
+    // not lenses (11.09.2026).
+    (&["contact lens"], &["diagnostic", "gonio", "insertion", "removal"], "25.01.01.00.1"),
+    (&["kontaktlinse"], &["diagnostik", "gonio", "insertion", "removal"], "25.01.01.00.1"),
+    // Moretti "Scarpe ortopediche 4USOFT" — orthopaedic therapy shoes, same
+    // treatment as Künzli rehab shoes → 26.01.04.01 Spezialschuhe für Orthesen,
+    // not 26.01.02 Schuhzurichtungen (shoe modifications), where the bare
+    // "ortopediche" token had put them (11.09.2026).
+    (&["scarpe ortopediche"], &[], "26.01.04.01.1"),
     // Respironics home ventilators → 14.12.02 Heimbeatmungsgerät, Miete.
     // The Bezeichnung compound "Heimbeatmungsgerät" is unreachable via the
     // ventilator→beatmungsgeraet enrichment. MUST come before the PAP rules:
@@ -2665,7 +2689,9 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // as substring misses accessory rows (they say "spirometry"); the
     // "smart one" bigram is guarded against ostomy "one-piece" products.
     (&["spirobank"], &[], "21.01.15.00.1"),
-    (&["spirometer"], &[], "21.01.15.00.1"),
+    // "incentive": Medline Voldyne incentive spirometers are breathing
+    // exercisers, not measuring spirometers (11.09.2026).
+    (&["spirometer"], &["incentive"], "21.01.15.00.1"),
     (&["smart one"], &["piece"], "21.01.15.00.1"),
     // Insulet Omnipod patch pumps → 03.02.01 Insulinpumpen-System (Bezeichnung
     // explicitly anticipates patch pumps; PodPals overlays never carry the token).
