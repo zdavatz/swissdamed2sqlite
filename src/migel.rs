@@ -718,6 +718,10 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // (EMDN A03010103, 2 rows); "Air Stop Infusion Set" -> 99.30.06.02. Same
     // class as CODAN / Greiner. 1/1 FP.
     "BQ Plus Medical Co., Ltd.",
+    // --- 14.09.2026 --- Bonebridge AG = bone-fixation plates (EMDN P0912, Class
+    // IIb implants, 4 rows): "Tibia Plate" -> 23.02.01 Sprunggelenks-Orthese,
+    // "Clavicle Plate" -> 22.09.05 Schlüsselbeinbandage. 3/3 FP.
+    "Bonebridge AG",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1551,6 +1555,14 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // breathing exerciser, not a portable spirometer; a tracheostomy adaptor is
     // ch. 31 airway hardware, not ostomy material.
     ("21.01.15", "incentive"),
+    // TZMO "Matodrape Saugertasche" = surgical drape with fluid-collection pouch;
+    // "Tasche" homonym of 03.07.08.03 "Tasche zu Einweg-Infusionspumpe". TZMO is
+    // a genuine Seni matcher, so scoped, not company-wide (14.09.2026).
+    ("03.07.08", "matodrape"),
+    ("03.07.08", "saugertasche"),
+    // Moretti "Pettorina di contenimento a farfalla" = butterfly-shaped restraint
+    // vest; "farfalla" is the IT keyword of 03.07.09.14 Flügelkanüle (14.09.2026).
+    ("03.07.09", "pettorin"),
     ("29.01", "tracheostom"),
     // --- Schlauchverbände (35.01.08) should NOT match other dressing types ---
     ("35.01.08", "folienverband"),
