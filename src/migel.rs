@@ -722,6 +722,10 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // IIb implants, 4 rows): "Tibia Plate" -> 23.02.01 Sprunggelenks-Orthese,
     // "Clavicle Plate" -> 22.09.05 Schlüsselbeinbandage. 3/3 FP.
     "Bonebridge AG",
+    // --- 16.09.2026 --- Produtos Médicos Hospitalares = hospital IV infusion
+    // sets / extensions (EMDN A03010103 / A03020199, 21 rows); "2-way infusion
+    // set" -> 99.30.06.02. CODAN / Greiner / BQ Plus class. 12/12 FP.
+    "Produtos Médicos Hospitalares",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1563,6 +1567,13 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // Moretti "Pettorina di contenimento a farfalla" = butterfly-shaped restraint
     // vest; "farfalla" is the IT keyword of 03.07.09.14 Flügelkanüle (14.09.2026).
     ("03.07.09", "pettorin"),
+    // 16.09.2026 single-row homonyms, each verified single-company corpus-wide:
+    // Medline "Ear Ulcer Piston and Bulb syringe" ≠ Ulcus-Kompressionsstrumpf;
+    // Abena "Disposable Protective sheets" (bed protection) ≠ Superabsorber steril;
+    // Moretti "Pedaliere professionali" (pedal exerciser) ≠ Milchpumpe.
+    ("17.05", "bulb syringe"),
+    ("35.05", "protective sheet"),
+    ("01.01", "pedalier"),
     ("29.01", "tracheostom"),
     // --- Schlauchverbände (35.01.08) should NOT match other dressing types ---
     ("35.01.08", "folienverband"),
@@ -1712,6 +1723,9 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // lab transfer jigs for implant bars. Joins the existing dental fences on
     // this code (implant / abutment / coping / abformpfosten / Brånemark).
     ("03.07.09.20", "jig"),
+    // Aesthetic Group "Autologous Fat Transfer cannulas" (liposuction, 8 rows) —
+    // the bare "transfer" homonym for the fourth time (16.09.2026).
+    ("03.07.09.20", "fat transfer"),
     ("03.07.09.20", "hoverboard"),
     ("03.07.09.20", "stretcher"),
     ("03.07.09.20", "blower"),
@@ -2393,6 +2407,14 @@ fn keyword_score(
 /// which should NOT match any MiGeL code. These are checked against the
 /// combined DE+FR+IT text.
 const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
+    // TZMO "Matodrape" surgical drapes: fenced on 03.07.08 on 14.09.2026, the
+    // Saugertasche row then hopped to 24.02.01.01 (BH "mit Tasche") — a surgical
+    // drape is never MiGeL, so exclude at the source (16.09.2026).
+    &["matodrape"],
+    // Edwards ClearSight/Acumen "Non-Invasive Finger Cuff" (hemodynamic
+    // monitoring): fenced per code it hops 23.20 -> 23.21 -> 22.06, so exclude
+    // at the source (16.09.2026).
+    &["finger cuff"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
