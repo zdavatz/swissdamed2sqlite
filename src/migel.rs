@@ -726,6 +726,15 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // sets / extensions (EMDN A03010103 / A03020199, 21 rows); "2-way infusion
     // set" -> 99.30.06.02. CODAN / Greiner / BQ Plus class. 12/12 FP.
     "Produtos Médicos Hospitalares",
+    // --- 17.09.2026 --- Swann-Morton = scalpels / surgical blades (EMDN V0101 /
+    // V0103, 358 rows); "Cervical Biopsy Blades" -> 22.12.01 Cervikalstütze. 1/1 FP.
+    "Swann-Morton Limited",
+    // PRISMAN = dental consumables, instrument detergents and lubricants (EMDN
+    // Q0199 / D08 / V07 / V9007, 40 rows). "Adhäsiv Liquid/Spray Alginat" is an
+    // impression-tray adhesive that rode "alginat" onto 35.05.06.01 and, fenced
+    // there, hopped to 35.06.06.20 — a chapter-wide "adhäsiv" negative would hit
+    // genuine adhesive wound dressings, so company scope. 4/4 FP.
+    "PRISMAN GmbH",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -2696,6 +2705,12 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // not 26.01.02 Schuhzurichtungen (shoe modifications), where the bare
     // "ortopediche" token had put them (11.09.2026).
     (&["scarpe ortopediche"], &[], "26.01.04.01.1"),
+    // Mego Afec (Lympha Press) "ComfySleeve" = inflatable garments for
+    // intermittent pneumatic compression pumps. The "<region> garment" bigrams
+    // had routed them to 17.15.01 / 05.11.10 (static compression bandages);
+    // MiGeL has the exact position: 17.20.01.00.3 Zubehör (Manschette) zur IPK,
+    // 10-12-Kammersystem (Lympha Press is a 12-chamber system) (17.09.2026).
+    (&["comfysleeve"], &[], "17.20.01.00.3"),
     // Respironics home ventilators → 14.12.02 Heimbeatmungsgerät, Miete.
     // The Bezeichnung compound "Heimbeatmungsgerät" is unreachable via the
     // ventilator→beatmungsgeraet enrichment. MUST come before the PAP rules:
