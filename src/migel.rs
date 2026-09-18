@@ -2711,6 +2711,14 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // MiGeL has the exact position: 17.20.01.00.3 Zubehör (Manschette) zur IPK,
     // 10-12-Kammersystem (Lympha Press is a 12-chamber system) (17.09.2026).
     (&["comfysleeve"], &[], "17.20.01.00.3"),
+    // "Back support" = Lumbal-Bandage 05.14.01 (PRIM's 38 rows land there by
+    // score). BSN Actimove's "Double Layer Compression" back support rode the
+    // bare "compression" token to 17.15.03 and, fenced there, hopped to 05.06.02
+    // Hüft-Kompressionsbandage — so a pin. none_of keeps Orthobroker out: its
+    // deviceName is "Contoured Back Support" on every BraceID row, while the
+    // trade names (abdominal bandage 05.11.10, cervical collar 22.12.01, lumbo
+    // sacral orthosis 22.15.01) are the correct, golden-pinned codes (18.09.2026).
+    (&["back support"], &["abdominal", "cervical", "lumbo sacral", "orthosis"], "05.14.01.00.1"),
     // Respironics home ventilators → 14.12.02 Heimbeatmungsgerät, Miete.
     // The Bezeichnung compound "Heimbeatmungsgerät" is unreachable via the
     // ventilator→beatmungsgeraet enrichment. MUST come before the PAP rules:
