@@ -2718,7 +2718,10 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // deviceName is "Contoured Back Support" on every BraceID row, while the
     // trade names (abdominal bandage 05.11.10, cervical collar 22.12.01, lumbo
     // sacral orthosis 22.15.01) are the correct, golden-pinned codes (18.09.2026).
-    (&["back support"], &["abdominal", "cervical", "lumbo sacral", "orthosis"], "05.14.01.00.1"),
+    // 19.09.2026: the pin also lifted 101 previously unmatched genuine rows
+    // (PRIM Fajas 70, Orthobroker 22, Mediroyal SRX 9); "rib belt" / "splint"
+    // added so Orthobroker rib belts and SpineBoard splint inserts stay out.
+    (&["back support"], &["abdominal", "cervical", "lumbo sacral", "orthosis", "rib belt", "splint"], "05.14.01.00.1"),
     // Respironics home ventilators → 14.12.02 Heimbeatmungsgerät, Miete.
     // The Bezeichnung compound "Heimbeatmungsgerät" is unreachable via the
     // ventilator→beatmungsgeraet enrichment. MUST come before the PAP rules:
