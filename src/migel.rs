@@ -2424,6 +2424,11 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // monitoring): fenced per code it hops 23.20 -> 23.21 -> 22.06, so exclude
     // at the source (16.09.2026).
     &["finger cuff"],
+    // Pierre Fabre "Dexyane MED Skin Moisture Barrier Dressing" (EMDN M9002 =
+    // soothing creams): the bare "dressing" reached 35.07.01.10 Honig-Wundverband;
+    // a barrier cream is never a MiGeL dressing and ch. 35 has dozens of
+    // sibling positions to hop to, so source scope (21.09.2026).
+    &["moisture barrier"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
