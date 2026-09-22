@@ -735,6 +735,18 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // there, hopped to 35.06.06.20 — a chapter-wide "adhäsiv" negative would hit
     // genuine adhesive wound dressings, so company scope. 4/4 FP.
     "PRISMAN GmbH",
+    // --- 22.09.2026 ---
+    // CRYOPAL = cryogenic (liquid-nitrogen) storage dewars, canisters and their
+    // software (EMDN V0499 / V92 / Z1215, 237 rows); "GT11 + 6 plastic canisters"
+    // -> 99.31.05.01 Einweg-Pinzette Kunststoff via "plastic". 9/9 FP.
+    "CRYOPAL",
+    // Tri-Tech / Rescue Essentials / Hartwell = emergency immobilisers, scoop
+    // stretchers, extrication boards (EMDN V0804 / V0805, 41 rows); "Head
+    // Immobilizer" -> 22.07.03 Hand-Orthese zur Immobilisierung. SAM class. 2/2 FP.
+    "Tri-Tech Forensics Inc., dba Rescue Essentials dba Hartwell Medical",
+    // COSWELL = Isomax nasal / ophthalmic saline monodoses (EMDN Q030103, 5 rows);
+    // "Soluzione fisiologica" -> 99.11.01 Spüllösung steril (wound irrigation). 1/1 FP.
+    "COSWELL SpA",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1582,6 +1594,10 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // Moretti "Pedaliere professionali" (pedal exerciser) ≠ Milchpumpe.
     ("17.05", "bulb syringe"),
     ("35.05", "protective sheet"),
+    // ResMed "Air10 Oximeter Adapter / Oximetry Module / USB / Serial Module" are
+    // CPAP data-port accessories, not pulse oximeters (22.09.2026).
+    ("21.01", "oximeter adapter"), // 21.01-wide: hops 21.01.04 -> 21.01.05 otherwise
+    ("21.01", "oximetry module"),
     ("01.01", "pedalier"),
     ("29.01", "tracheostom"),
     // --- Schlauchverbände (35.01.08) should NOT match other dressing types ---
