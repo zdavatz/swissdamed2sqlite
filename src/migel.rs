@@ -747,6 +747,20 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // COSWELL = Isomax nasal / ophthalmic saline monodoses (EMDN Q030103, 5 rows);
     // "Soluzione fisiologica" -> 99.11.01 Spüllösung steril (wound irrigation). 1/1 FP.
     "COSWELL SpA",
+    // --- 23.09.2026 ---
+    // Portable Therapeutix = "Squid Active Cold Compression Device" (40 rows, EMDN
+    // Z120607 pneumatic compression / physiotherapy equipment): a cryotherapy
+    // pump with body-part wraps rode "compression" + region onto 17.15.03 /
+    // 05.02.10 / 05.07.12 / 05.08.15. 40/40 FP.
+    "Portable Therapeutix",
+    // Alps South = prosthetic gel liners, prosthesis socks, microprocessor knees
+    // (2,764 rows, EMDN Y0624 lower-extremity prostheses); "Above Knee
+    // Transfemoral Gel Liner" -> 23.04.01 Knie-Orthese. Leg prostheses are
+    // IV/SUVA, not MiGeL (ch. 24 = Brust-/Haar-Exoprothesen). 19/19 FP.
+    "Alps South, LLC",
+    // Summit Medical = orthopaedic bone-cement mixing kits (EMDN P099002, 42
+    // rows); "Knee Nozzle" -> 23.04.01. 2/2 FP.
+    "Summit Medical Ltd.",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1596,6 +1610,9 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("35.05", "protective sheet"),
     // ResMed "Air10 Oximeter Adapter / Oximetry Module / USB / Serial Module" are
     // CPAP data-port accessories, not pulse oximeters (22.09.2026).
+    // Medline "Hudson RCI AquaTherm Aerosol Heater" is a hospital humidifier
+    // heater, not the Vernebler consumable (23.09.2026).
+    ("14.01", "aerosol heater"),
     ("21.01", "oximeter adapter"), // 21.01-wide: hops 21.01.04 -> 21.01.05 otherwise
     ("21.01", "oximetry module"),
     ("01.01", "pedalier"),
@@ -2445,6 +2462,9 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // a barrier cream is never a MiGeL dressing and ch. 35 has dozens of
     // sibling positions to hop to, so source scope (21.09.2026).
     &["moisture barrier"],
+    // ResMed "Air10 Tubing Elbow" (CPAP hose connector) -> 23.23.01
+    // Ellenbogen-Orthese via "elbow"; a tubing elbow is never MiGeL (23.09.2026).
+    &["tubing elbow"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
