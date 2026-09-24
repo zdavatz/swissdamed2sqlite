@@ -2465,6 +2465,7 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // ResMed "Air10 Tubing Elbow" (CPAP hose connector) -> 23.23.01
     // Ellenbogen-Orthese via "elbow"; a tubing elbow is never MiGeL (23.09.2026).
     &["tubing elbow"],
+    &["nv elbow"], // ResMed non-vented mask elbow (F20), same homonym (24.09.2026)
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
