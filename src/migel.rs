@@ -761,6 +761,10 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // Summit Medical = orthopaedic bone-cement mixing kits (EMDN P099002, 42
     // rows); "Knee Nozzle" -> 23.04.01. 2/2 FP.
     "Summit Medical Ltd.",
+    // --- 25.09.2026 --- ORTHOKEY = orthopaedic surgery instruments and
+    // navigation (EMDN L0999 / Z1201, 16 rows); "Clamp Star 8-18 mm (Hip)"
+    // -> 23.10.01 Rumpf-Orthesen via the bare "hip". 3/3 FP.
+    "ORTHOKEY ITALIA SRL [IT]",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
