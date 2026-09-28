@@ -765,6 +765,10 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // navigation (EMDN L0999 / Z1201, 16 rows); "Clamp Star 8-18 mm (Hip)"
     // -> 23.10.01 Rumpf-Orthesen via the bare "hip". 3/3 FP.
     "ORTHOKEY ITALIA SRL [IT]",
+    // --- 28.09.2026 --- Germo = disinfectants for medical devices (EMDN D01 /
+    // D02 / D09, 40 rows); "Soluzione pura decontaminante" -> 99.11.01
+    // Spüllösung steril via "soluzione". 1/1 FP. Schülke octenilin stays.
+    "Germo SpA",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
