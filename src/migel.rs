@@ -1850,6 +1850,10 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("21.07.02", "co2"),
     ("21.07.02", "spo2"),
     ("21.07.02", "flow sensor"),
+    // 29.09.2026: Weinmann "FlowCheck" (ventilator flow test) and Novotec
+    // "Galileo" (vibration trainer) are not CGM sensors.
+    ("21.07.02", "flowcheck"),
+    ("21.07.02", "galileo"),
     ("21.07.02", "capnostat"),
     ("21.07.02", "mainstream"),
     ("21.07.02", "temperature"),
@@ -2748,8 +2752,10 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // corrective vision aids MiGeL 25.01.01 covers.
     // "insertion"/"removal": DMV suction-cup lens handling tools are accessories,
     // not lenses (11.09.2026).
-    (&["contact lens"], &["diagnostic", "gonio", "insertion", "removal"], "25.01.01.00.1"),
-    (&["kontaktlinse"], &["diagnostik", "gonio", "insertion", "removal"], "25.01.01.00.1"),
+    // "care solution" / "lens case": Bausch & Lomb ReNu / Biotrue lens-care
+    // solutions are not lenses (29.09.2026).
+    (&["contact lens"], &["diagnostic", "gonio", "insertion", "removal", "care solution", "lens case"], "25.01.01.00.1"),
+    (&["kontaktlinse"], &["diagnostik", "gonio", "insertion", "removal", "pflegemittel", "linsenbehaelter"], "25.01.01.00.1"),
     // Moretti "Scarpe ortopediche 4USOFT" — orthopaedic therapy shoes, same
     // treatment as Künzli rehab shoes → 26.01.04.01 Spezialschuhe für Orthesen,
     // not 26.01.02 Schuhzurichtungen (shoe modifications), where the bare
@@ -2761,6 +2767,10 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // MiGeL has the exact position: 17.20.01.00.3 Zubehör (Manschette) zur IPK,
     // 10-12-Kammersystem (Lympha Press is a 12-chamber system) (17.09.2026).
     (&["comfysleeve"], &[], "17.20.01.00.3"),
+    // OPED "LIVAROknee Immobiliser" -> 22.04.03 Kniegelenk-Orthese zur
+    // Immobilisierung; scored it hit 22.07.03 (hand), fenced it hopped to
+    // 22.03.03 (29.09.2026).
+    (&["livaroknee"], &[], "22.04.03.00.1"),
     // "Back support" = Lumbal-Bandage 05.14.01 (PRIM's 38 rows land there by
     // score). BSN Actimove's "Double Layer Compression" back support rode the
     // bare "compression" token to 17.15.03 and, fenced there, hopped to 05.06.02
