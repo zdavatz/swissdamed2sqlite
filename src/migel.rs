@@ -769,6 +769,31 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // D02 / D09, 40 rows); "Soluzione pura decontaminante" -> 99.11.01
     // Spüllösung steril via "soluzione". 1/1 FP. Schülke octenilin stays.
     "Germo SpA",
+    // --- 01.10.2026 ---
+    // HoverTech = air-assisted lateral patient transfer mattresses (HoverMatt,
+    // EMDN V9099 / Z120112, 12 rows); modelName "Lateral Transfer Device" ->
+    // 03.07.09.20 Transfer-Set, the bare "transfer" homonym a fifth time. 9/9 FP.
+    "HoverTech International",
+    // Edwards Lifesciences = invasive hemodynamic monitoring, embolectomy
+    // catheters (EMDN Z120302 / C0190, 237 rows); "Acumen IQ Sensor with Fluid
+    // Meter" -> 21.07.02 Sensoren (3), after the finger cuff of 16.09. All FP.
+    "Edwards Lifesciences LLC",
+    // --- 02.10.2026 ---
+    // Hegewald = empty sterile mixing bags for pharmacy compounding of
+    // parenteral nutrition (EMDN A0801, 28 rows = whole catalogue);
+    // "Sterile Infusionsmischbeutel" -> 99.30.06.02 Infusions-Set. 28/28 FP.
+    "Hegewald Medizinprodukte GmbH",
+    // MedOne Surgical = ophthalmic irrigation/aspiration cannulas (EMDN Q0211,
+    // 10 rows); "Infusion Cannula 20g" -> 99.30.06.02. 1/1 FP.
+    "MedOne Surgical, Inc.",
+    // MegaGen Implant = dental implants, impression parts, surgical kits
+    // (EMDN Q0102 / P0102, 1,148 rows); "Shoulder Analog" (an implant-shoulder
+    // lab analog) -> 23.25.01 Schulter-Orthesen. 2/2 FP.
+    "MegaGen Implant Co., Ltd.",
+    // eResearchTechnology = clinical-trial spirometers and ECG (EMDN Z1215 /
+    // C0205, 42 rows); "iSpiro Ultrasonic Sensor" / "SpiroSphere Sensor" ->
+    // 21.07.02 Sensoren, the sensor magnet again. 5/5 FP.
+    "eResearchTechnology GmbH",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1776,6 +1801,10 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // Aesthetic Group "Autologous Fat Transfer cannulas" (liposuction, 8 rows) —
     // the bare "transfer" homonym for the fourth time (16.09.2026).
     ("03.07.09.20", "fat transfer"),
+    ("03.07.09.20", "lateral transfer"), // patient transfer mattresses (01.10.2026)
+    // Mölnlycke "Avance Solo Adapt ... Foam, Film and Transfer Port" (negative-
+    // pressure wound therapy set, 1 row) — a sixth "transfer" homonym (02.10.2026).
+    ("03.07.09.20", "transfer port"),
     ("03.07.09.20", "hoverboard"),
     ("03.07.09.20", "stretcher"),
     ("03.07.09.20", "blower"),
