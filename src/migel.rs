@@ -794,6 +794,12 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // C0205, 42 rows); "iSpiro Ultrasonic Sensor" / "SpiroSphere Sensor" ->
     // 21.07.02 Sensoren, the sensor magnet again. 5/5 FP.
     "eResearchTechnology GmbH",
+    // --- 03.10.2026 ---
+    // Baxter Medical Systems (ex TRUMPF Medical) = operating tables and their
+    // accessories (EMDN Z1201, 49 rows); "Orthopedic Extension / Transfer leg
+    // section" -> 03.07.09.20 Transfer-Set, "Docking trolley MIS hip device"
+    // -> 23.10.01 Rumpf-Orthesen. 2/2 FP.
+    "Baxter Medical Systems GmbH + Co. KG",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -2916,7 +2922,8 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // since US-English "walker" also means Gehwagen/Rollator.
     (
         &["walker"],
-        &["human motion", "first aid", "yano", "gehwagen", "rollator", "gehgestell", "walking frame"],
+        // "lightwalker" = Fotona dental laser (03.10.2026).
+        &["human motion", "first aid", "yano", "gehwagen", "rollator", "gehgestell", "walking frame", "lightwalker"],
         "22.02.04.00.1",
     ),
     // --- Jul 10 2026 (intra-day) ---
