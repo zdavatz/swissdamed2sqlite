@@ -241,6 +241,91 @@ pub fn build_rows(
     rows
 }
 
+/// Column names of the `swissdamed_packages` table / CSV.
+pub const PACKAGE_HEADERS: [&str; 11] = [
+    "basicUdiDiCode",
+    "udiDiCode",
+    "packageUdiDiCode",
+    "parentPackageUdiDiCode",
+    "level",
+    "numberOfItems",
+    "totalNumberOfDevices",
+    "marketStatus",
+    "lastModifiedAt",
+    "id",
+    "applicableLegislation",
+];
+
+/// Flatten the packaging hierarchy of every UDI-DI into one row per package
+/// level. In the list response each `udiDis[]` entry carries `packageUdiDis[]`
+/// (the first package level, e.g. the box around the base unit) and every
+/// package nests the next-outer level in `children[]`. `build_rows` ignores
+/// both, so the main `swissdamed` table only holds base-unit UDI-DIs; the
+/// package GTINs live here. `level` is 1 for the package directly around the
+/// base unit; `parentPackageUdiDiCode` is empty on level 1 and otherwise the
+/// code of the next-inner package.
+pub fn build_package_rows(values: &[Value]) -> Vec<Vec<String>> {
+    fn walk(
+        pkgs: Option<&Vec<Value>>,
+        basic: &str,
+        legislation: &str,
+        udi: &str,
+        parent: &str,
+        level: usize,
+        rows: &mut Vec<Vec<String>>,
+    ) {
+        for p in pkgs.into_iter().flatten() {
+            let code = get_field(p, "packageUdiDiCode");
+            rows.push(vec![
+                basic.to_string(),
+                udi.to_string(),
+                code.clone(),
+                parent.to_string(),
+                level.to_string(),
+                get_field(p, "numberOfItems"),
+                get_field(p, "totalNumberOfDevices"),
+                get_field(p, "marketStatus"),
+                get_field(p, "lastModifiedAt"),
+                get_field(p, "id"),
+                legislation.to_string(),
+            ]);
+            walk(
+                p.get("children").and_then(|c| c.as_array()),
+                basic,
+                legislation,
+                udi,
+                &code,
+                level + 1,
+                rows,
+            );
+        }
+    }
+
+    let mut rows = Vec::new();
+    for item in values {
+        let basic = get_field(item, "basicUdiDiCode");
+        let legislation = get_field(item, "applicableLegislation");
+        for udi in item
+            .get("udiDis")
+            .and_then(|v| v.as_array())
+            .into_iter()
+            .flatten()
+        {
+            let code = get_field(udi, "udiDiCode");
+            walk(
+                udi.get("packageUdiDis").and_then(|c| c.as_array()),
+                &basic,
+                &legislation,
+                &code,
+                "",
+                1,
+                &mut rows,
+            );
+        }
+    }
+    rows
+}
+
 // --- Flat data processing (actors, mandates) ---
 
 pub fn collect_flat_headers(values: &[Value]) -> Vec<String> {

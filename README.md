@@ -216,6 +216,7 @@ The output has three sheets and **opens on the hits**: only a small share of a r
 
 Output files are date-stamped and organized into subdirectories:
 - UDI: `csv/swissdamed_25.02.2026.csv` / `db/swissdamed_25.02.2026.db`
+- UDI packaging levels: `csv/swissdamed_packages_25.02.2026.csv` / table `swissdamed_packages` in the same `db/swissdamed_25.02.2026.db` (one row per package level: `udiDiCode` of the base unit, `packageUdiDiCode`, `parentPackageUdiDiCode`, `level`, `numberOfItems`, `totalNumberOfDevices`, …)
 - Actors: `csv/actors_25.02.2026.csv` / `db/actors_25.02.2026.db`
 - Mandates: `csv/mandates_25.02.2026.csv` / `db/mandates_25.02.2026.db`
 - AR Mandates: `csv/ar_mandates_25.02.2026.csv` / `db/ar_mandates_25.02.2026.db`

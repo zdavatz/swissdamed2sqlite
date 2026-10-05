@@ -126,6 +126,71 @@ pub fn write_sqlite(
     write_sqlite_table(headers, rows, filename, "swissdamed")
 }
 
+/// Add a further table to an EXISTING SQLite file (unlike
+/// `write_sqlite_table`, which starts by deleting the file). Used for the
+/// `swissdamed_packages` table next to the main `swissdamed` table.
+pub fn append_sqlite_table(
+    headers: &[String],
+    rows: &[Vec<String>],
+    filename: &str,
+    table_name: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut conn = Connection::open(filename)?;
+    let quote_ident = |s: &str| format!("\"{}\"", s.replace('"', "\"\""));
+    conn.execute(
+        &format!("DROP TABLE IF EXISTS {}", quote_ident(table_name)),
+        [],
+    )?;
+    let col_defs: Vec<String> = headers
+        .iter()
+        .map(|h| format!("{} TEXT", quote_ident(h)))
+        .collect();
+    conn.execute(
+        &format!(
+            "CREATE TABLE {} ({})",
+            quote_ident(table_name),
+            col_defs.join(", ")
+        ),
+        [],
+    )?;
+    let insert_sql = format!(
+        "INSERT INTO {} ({}) VALUES ({})",
+        quote_ident(table_name),
+        headers
+            .iter()
+            .map(|h| quote_ident(h))
+            .collect::<Vec<_>>()
+            .join(", "),
+        vec!["?"; headers.len()].join(", ")
+    );
+    let tx = conn.transaction()?;
+    {
+        let mut stmt = tx.prepare(&insert_sql)?;
+        for row in rows {
+            let params: Vec<&dyn rusqlite::types::ToSql> = row
+                .iter()
+                .map(|s| s as &dyn rusqlite::types::ToSql)
+                .collect();
+            stmt.execute(params.as_slice())?;
+        }
+    }
+    tx.commit()?;
+    for col in ["udiDiCode", "packageUdiDiCode"] {
+        if headers.iter().any(|h| h == col) {
+            conn.execute(
+                &format!(
+                    "CREATE INDEX IF NOT EXISTS {} ON {}({})",
+                    quote_ident(&format!("idx_{}_{}", table_name, col)),
+                    quote_ident(table_name),
+                    quote_ident(col)
+                ),
+                [],
+            )?;
+        }
+    }
+    Ok(())
+}
+
 pub fn write_sqlite_table(
     headers: &[String],
     rows: &[Vec<String>],
@@ -221,16 +286,19 @@ mod tests {
     #[test]
     fn undated_and_malformed_names_have_no_key() {
         for n in [
-            "swissdamed_migel.db",          // the fixed-name MiGeL DB
-            "udi_details_2026-09-01.db",    // wrong separator
-            "udi_details_1.9.2026.db",      // unpadded
-            "udi_details_01.09.2026.sqlite" // wrong extension
+            "swissdamed_migel.db",           // the fixed-name MiGeL DB
+            "udi_details_2026-09-01.db",     // wrong separator
+            "udi_details_1.9.2026.db",       // unpadded
+            "udi_details_01.09.2026.sqlite", // wrong extension
         ] {
             assert_eq!(dated_db_key(n, "udi_details_"), None, "{n}");
             assert_eq!(dated_db_key(n, "swissdamed_migel_"), None, "{n}");
         }
         // A date-shaped stamp that is not a real date is rejected too.
-        assert_eq!(dated_db_key("udi_details_00.13.2026.db", "udi_details_"), None);
+        assert_eq!(
+            dated_db_key("udi_details_00.13.2026.db", "udi_details_"),
+            None
+        );
     }
 
     #[test]

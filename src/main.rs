@@ -405,11 +405,10 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // DBs only, no download.
     if let Some(ref list) = args.gtin_report {
         let db_dir = app_data_dir().join("db");
-        let out = args.out.clone().unwrap_or_else(|| {
-            app_data_dir()
-                .join("csv")
-                .join("gtin_report.xlsx")
-        });
+        let out = args
+            .out
+            .clone()
+            .unwrap_or_else(|| app_data_dir().join("csv").join("gtin_report.xlsx"));
         if let Some(parent) = out.parent() {
             fs::create_dir_all(parent).ok();
         }
@@ -593,10 +592,22 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         headers.len()
     );
 
+    // Packaging hierarchy: one row per package level (packageUdiDis + children),
+    // written as a second table / CSV next to the base-unit UDI-DIs.
+    let pkg_headers: Vec<String> = data::PACKAGE_HEADERS
+        .iter()
+        .map(|h| h.to_string())
+        .collect();
+    let pkg_rows = data::build_package_rows(&values);
+    eprintln!("Package levels: {} rows.", pkg_rows.len());
+
     if do_csv {
         let filename = export::output_csv("swissdamed")?;
         export::write_csv(&headers, &rows, &filename)?;
         eprintln!("CSV written: {}", filename);
+        let pkg_filename = export::output_csv("swissdamed_packages")?;
+        export::write_csv(&pkg_headers, &pkg_rows, &pkg_filename)?;
+        eprintln!("CSV written: {}", pkg_filename);
         if args.gdrive {
             gdrive::gdrive_upload_csv(&args, &filename)?;
         }
@@ -608,6 +619,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     if do_sqlite {
         let filename = export::output_db("swissdamed")?;
         export::write_sqlite(&headers, &rows, &filename)?;
+        export::append_sqlite_table(&pkg_headers, &pkg_rows, &filename, "swissdamed_packages")?;
         eprintln!("SQLite written: {}", filename);
 
         if args.deploy {
