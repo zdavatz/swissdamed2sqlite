@@ -2874,6 +2874,15 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["combifix"], &[], "35.01.06.12.1"),
     // Coop Conviva Protect+ waterproof sterile dressing → Schnellverbände.
     (&["conviva protect"], &[], "35.01.10.12.1"),
+    // Eurosirel "CLASSIC PLASTER FOR MEDICAL TREATMENT" Flawa retail strips
+    // (Textil/Vlies/Aqua/Finger/Junior plast, EMDN M04010199 adhesive dressings
+    // WITH absorbent pad, 11 rows) are Schnellverbände like the maker's CONVIVA
+    // sister line, which already scores to 35.01.10.10. Unpinned, "Textil"/
+    // "Vlies" drifted to 35.01.09.01 Heft-/Fixier-Pflaster (no wound pad) and
+    // "Finger plast" to 23.20.01 Finger-Orthesen (05.10.2026). Both tokens are
+    // required: bare "flawa" also sits on ASO hydrocolloid and IVF Hartmann
+    // Blood Stop rows.
+    (&["classic plaster", "flawa"], &[], "35.01.10.10.1"),
     // --- HANS HEPP first-aid refills (audit §2b) ---
     // (Heft-)Pflasterspulen → Heft-/Fixier-Pflaster spools ("pflasterspule"
     // is a substring of "heftpflasterspule", one rule covers both).
