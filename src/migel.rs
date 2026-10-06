@@ -800,6 +800,19 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // section" -> 03.07.09.20 Transfer-Set, "Docking trolley MIS hip device"
     // -> 23.10.01 Rumpf-Orthesen. 2/2 FP.
     "Baxter Medical Systems GmbH + Co. KG",
+    // --- 06.10.2026 ---
+    // Innomed = reusable orthopaedic-surgery retractors / forceps (EMDN L09,
+    // 20 rows); "Modified Hip Retractor with Waist Pad" -> 23.10.01
+    // Rumpf-Orthesen via "hip". 1/1 FP.
+    "Innomed Inc",
+    // JC OrthoHeal = FlexiOH light-cured polymer cast (EMDN M030599) plus its
+    // curing light sources, 20 rows; a clinician-applied cast replacement, not
+    // a prefab orthosis -> 22.07.03 Hand-Orthese zur Immobilisierung. 18/18 FP.
+    "JC OrthoHeal Private Limited",
+    // Premium Plus (Dongguan) = dental single-use consumables (polishing cups,
+    // impression trays, X-ray sensor sleeves/holders, EMDN Q01 / Z110790,
+    // 61 rows) -> 21.07.02 Sensoren. 5/5 FP.
+    "Premium Plus (Dongguan) Limited",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1888,6 +1901,10 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // 29.09.2026: Weinmann "FlowCheck" (ventilator flow test) and Novotec
     // "Galileo" (vibration trainer) are not CGM sensors.
     ("21.07.02", "flowcheck"),
+    // Dental X-ray sensor barrier sleeves / holders (06.10.2026) — the sister
+    // registrant Premium Plus INternational files the same products.
+    ("21.07.02", "sensor sleeve"),
+    ("21.07.02", "sensor holder"),
     ("21.07.02", "galileo"),
     ("21.07.02", "capnostat"),
     ("21.07.02", "mainstream"),
