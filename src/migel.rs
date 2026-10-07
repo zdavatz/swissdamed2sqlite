@@ -2832,6 +2832,12 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // not 26.01.02 Schuhzurichtungen (shoe modifications), where the bare
     // "ortopediche" token had put them (11.09.2026).
     (&["scarpe ortopediche"], &[], "26.01.04.01.1"),
+    // Schein Orthopädie Service "LucRo" ready-made orthotic / diabetic therapy
+    // shoes (EMDN Y063303, Class I, 4,338 rows whose only text is the deviceName
+    // "LucRo") -> Spezialschuhe, like Künzli and Moretti 4USOFT. Maintainer
+    // decision 07.10.2026. The company token is required: one Allergan row
+    // (EMDN P0680) also contains "lucro", and pins outrank the metadata gate.
+    (&["lucro", "schein orthop"], &[], "26.01.04.01.1"),
     // Mego Afec (Lympha Press) "ComfySleeve" = inflatable garments for
     // intermittent pneumatic compression pumps. The "<region> garment" bigrams
     // had routed them to 17.15.01 / 05.11.10 (static compression bandages);
