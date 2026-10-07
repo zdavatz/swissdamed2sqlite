@@ -813,6 +813,25 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // impression trays, X-ray sensor sleeves/holders, EMDN Q01 / Z110790,
     // 61 rows) -> 21.07.02 Sensoren. 5/5 FP.
     "Premium Plus (Dongguan) Limited",
+    // --- 07.10.2026 ---
+    // Hamilton Medical = ICU ventilator breathing circuits, humidifiers and
+    // accessories (EMDN R02/R06/R90, 111 rows); "Breathing Circuit Set with
+    // Elbow Connectors" -> 23.23.01 Ellenbogen-Orthesen. 28/28 FP.
+    "Hamilton Medical AG",
+    // MEDKONSULT = urodynamics (EMDN U0580 / Z121605 uroflowmeters, 37 rows);
+    // "Air-Charged Pressure Sensor" catheters -> 21.07.02 Sensoren. 20/20 FP.
+    "MEDKONSULT medical technology s.r.o.",
+    // Swemac Innovation = Motec wrist joint prostheses (EMDN P090399, Class
+    // IIb implants, 2 rows) -> 23.21.01 Hand-Orthesen. 2/2 FP.
+    "Swemac Innovation AB",
+    // ULTRADENT = dental treatment units and chairs (EMDN Z121101 / V9099,
+    // 42 rows); "Versorgungselement für Druckwasserflasche" -> 14.10.41
+    // Druckgasflasche Sauerstoff. 1/1 FP.
+    "ULTRADENT Dental-Medizinische Geräte GmbH & Co KG",
+    // Wagner Klinikbedarf = clinical procedure kits (EMDN V0599, 30 rows);
+    // "Set perfusion Cleanpack" -> 99.30.06.02 Infusions-Set (ArcRoyal /
+    // Promedical class). 1/1 FP.
+    "Wagner Klinikbedarf e. K. Inhaber Ingo Wagner",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -2833,7 +2852,7 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // 19.09.2026: the pin also lifted 101 previously unmatched genuine rows
     // (PRIM Fajas 70, Orthobroker 22, Mediroyal SRX 9); "rib belt" / "splint"
     // added so Orthobroker rib belts and SpineBoard splint inserts stay out.
-    (&["back support"], &["abdominal", "cervical", "lumbo sacral", "orthosis", "rib belt", "splint"], "05.14.01.00.1"),
+    (&["back support"], &["abdominal", "cervical", "lumbo sacral", "orthosis", "rib belt", "splint", "armrest"], "05.14.01.00.1"),
     // Respironics home ventilators → 14.12.02 Heimbeatmungsgerät, Miete.
     // The Bezeichnung compound "Heimbeatmungsgerät" is unreachable via the
     // ventilator→beatmungsgeraet enrichment. MUST come before the PAP rules:
@@ -2877,7 +2896,10 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // and not an exclusion. "ypsopump" is Ypsomed-exclusive corpus-wide (2 rows).
     (&["ypsopump"], &[], "03.02.01.00.2"),
     // SIGVARIS Doff'N Donner donning aid → 17.12.01.01.1 Rollmanschetten.
-    (&["doff"], &[], "17.12.01.01.1"),
+    // Stop "medoffice": the pin is a substring match and the company name
+    // "MedOffice Sağlık" contains "doff" — its Med-Cover barrier creams all
+    // landed here (07.10.2026).
+    (&["doff"], &["medoffice"], "17.12.01.01.1"),
     // --- IVF Hartmann DermaPlast retail line (audit §2b; all trigger tokens
     // verified single-company corpus-wide). Sizes aren't text-derivable, so
     // the audit's representative size position is pinned. Never bare
