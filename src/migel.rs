@@ -832,6 +832,14 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // "Set perfusion Cleanpack" -> 99.30.06.02 Infusions-Set (ArcRoyal /
     // Promedical class). 1/1 FP.
     "Wagner Klinikbedarf e. K. Inhaber Ingo Wagner",
+    // --- 08.10.2026 ---
+    // Fiagon = ENT surgical navigation (EMDN Z120114, 11 rows); "Navigation
+    // Sensor FlexArm" -> 21.07.02 Sensoren. 1/1 FP.
+    "Fiagon GmbH",
+    // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
+    // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
+    // -> 99.30.06.02 Infusions-Set. 3/3 FP.
+    "PROACT Medical Ltd.",
 ];
 
 /// Hard gates on structured UDI metadata: in-vitro diagnostics and Class III
@@ -1872,6 +1880,11 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     ("23", "respireo"),
     ("22", "ormco"),
     ("23", "ormco"),
+    // VBM airway "Connectors - ... Elbow; 15 mm I.D./22 mm O.D." (breathing-
+    // circuit angle pieces) -> 23.23.01 Ellenbogen-Orthesen (08.10.2026). VBM
+    // itself stays matchable: its cuff manometers are genuine 31.10.01.
+    ("22", "connector"),
+    ("23", "connector"),
     // --- Cervikalstütze (22.12) should NOT match dental cervical matrices,
     // orthodontic headgear, spinal torque-limiters or neurosurgical skull clamps ---
     ("22.12", "matrices"),
@@ -2549,6 +2562,10 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // Ellenbogen-Orthese via "elbow"; a tubing elbow is never MiGeL (23.09.2026).
     &["tubing elbow"],
     &["nv elbow"], // ResMed non-vented mask elbow (F20), same homonym (24.09.2026)
+    // VBM "Pelvic Sling" = emergency pelvic-fracture binder, not an orthosis
+    // (-> 23.10.01 Rumpf-Orthesen); "pelvic"/"sling" reach hip, trunk and arm-
+    // sling positions alike, so exclude at the source (08.10.2026).
+    &["pelvic sling"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
