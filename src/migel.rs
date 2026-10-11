@@ -2873,6 +2873,13 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // decision 07.10.2026. The company token is required: one Allergan row
     // (EMDN P0680) also contains "lucro", and pins outrank the metadata gate.
     (&["lucro", "schein orthop"], &[], "26.01.04.01.1"),
+    // 11.10.2026, maintainer call: Medline "Absorbent dressing(s)_Sterile /
+    // _Non-sterile" are folded cotton gauze compresses (EMDN M020102), not
+    // superabsorbers (35.05.05.01, where "absorbent" had sent them) ->
+    // Falt- und Vlieskompressen. The rows state no size; 10x10 cm is the
+    // accepted default. "xrd" = X-ray-detectable surgical swabs, never MiGeL.
+    (&["absorbent dressing", "medline industries", "non-sterile"], &["xrd"], "35.01.01.22.1"),
+    (&["absorbent dressing", "medline industries"], &["xrd", "non-sterile"], "35.01.01.03.1"),
     // Mego Afec (Lympha Press) "ComfySleeve" = inflatable garments for
     // intermittent pneumatic compression pumps. The "<region> garment" bigrams
     // had routed them to 17.15.01 / 05.11.10 (static compression bandages);
