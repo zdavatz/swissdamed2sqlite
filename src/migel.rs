@@ -836,6 +836,9 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // Fiagon = ENT surgical navigation (EMDN Z120114, 11 rows); "Navigation
     // Sensor FlexArm" -> 21.07.02 Sensoren. 1/1 FP.
     "Fiagon GmbH",
+    // 09.10.2026: dental consumables, instrument washers and autoclaves;
+    // "HIP Cleaning Solution" rode the bare "hip" to 23.10.01 Rumpf-Orthesen.
+    "Dent4You AG",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -1885,6 +1888,18 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // itself stays matchable: its cuff manometers are genuine 31.10.01.
     ("22", "connector"),
     ("23", "connector"),
+    // 09.10.2026: MILLET Epitact "Doppelschutzkissen ... Hallux Valgus Schutz" is a
+    // protective cushion, not a Hallux-Valgus-Korrekturorthese (22.01.01).
+    ("22", "doppelschutzkissen"),
+    // 10.10.2026: the same Epitact protector filed under its own name
+    // (sic "Shutz"); the "Korrektur-Bandage" day orthoses stay genuine.
+    ("22", "hallux valgus shutz"),
+    ("22", "hallux valgus schutz"),
+    // 10.10.2026: Medline Hudson RCI "Aquapak Pre-Filled Large Volume
+    // Nebulizers" = prefilled sterile-water oxygen humidification bottles
+    // (Class IIb), not the home Vernebler consumable. Brand-scoped: the empty
+    // large-volume and the small-volume nebulizers stay (golden, 11.09.2026).
+    ("14.01", "aquapak"),
     // --- Cervikalstütze (22.12) should NOT match dental cervical matrices,
     // orthodontic headgear, spinal torque-limiters or neurosurgical skull clamps ---
     ("22.12", "matrices"),
@@ -2566,6 +2581,9 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // (-> 23.10.01 Rumpf-Orthesen); "pelvic"/"sling" reach hip, trunk and arm-
     // sling positions alike, so exclude at the source (08.10.2026).
     &["pelvic sling"],
+    // 09.10.2026: Medline "Absorbent dressings XRD" = X-ray-detectable gauze
+    // swabs (surgical, EMDN M02010502), had sat on 35.05.05.01 Superabsorber.
+    &["dressings xrd"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -2994,7 +3012,8 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (
         &["walker"],
         // "lightwalker" = Fotona dental laser (03.10.2026).
-        &["human motion", "first aid", "yano", "gehwagen", "rollator", "gehgestell", "walking frame", "lightwalker"],
+        // "trionic" = Trionic Walker all-terrain rollator (09.10.2026).
+        &["human motion", "first aid", "yano", "gehwagen", "rollator", "gehgestell", "walking frame", "lightwalker", "trionic"],
         "22.02.04.00.1",
     ),
     // --- Jul 10 2026 (intra-day) ---
