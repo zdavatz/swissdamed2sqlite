@@ -839,6 +839,11 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // 09.10.2026: dental consumables, instrument washers and autoclaves;
     // "HIP Cleaning Solution" rode the bare "hip" to 23.10.01 Rumpf-Orthesen.
     "Dent4You AG",
+    // 12.10.2026: dental cements/etchants ("Q-Etch Ortho" -> 23.21.01 Hand-Orthesen).
+    "B.J.M. Laboratories",
+    // 12.10.2026: wheelchair positioners, transfer sheets, lifting slings,
+    // restraint belts (EMDN V08/Y1224) - 6 matches on 4 codes, all homonyms.
+    "Capelli S.r.l.",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -1895,6 +1900,8 @@ const NEGATIVE_KEYWORDS: &[(&str, &str)] = &[
     // (sic "Shutz"); the "Korrektur-Bandage" day orthoses stay genuine.
     ("22", "hallux valgus shutz"),
     ("22", "hallux valgus schutz"),
+    // 12.10.2026: MILLET Epitact shin protector pad, not a lower-leg orthosis.
+    ("23", "schienbeinschutz"),
     // 10.10.2026: Medline Hudson RCI "Aquapak Pre-Filled Large Volume
     // Nebulizers" = prefilled sterile-water oxygen humidification bottles
     // (Class IIb), not the home Vernebler consumable. Brand-scoped: the empty
@@ -2890,6 +2897,9 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // Immobilisierung; scored it hit 22.07.03 (hand), fenced it hopped to
     // 22.03.03 (29.09.2026).
     (&["livaroknee"], &[], "22.04.03.00.1"),
+    // 12.10.2026: BioSkin "Q BRACE CrossFire" is a patellofemoral knee brace
+    // (EMDN Y061209 KNEE ORTHOSES); unpinned it scored to 23.21.01 Hand-Orthesen.
+    (&["q brace", "bioskin"], &[], "23.04.01.00.1"),
     // "Back support" = Lumbal-Bandage 05.14.01 (PRIM's 38 rows land there by
     // score). BSN Actimove's "Double Layer Compression" back support rode the
     // bare "compression" token to 17.15.03 and, fenced there, hopped to 05.06.02
