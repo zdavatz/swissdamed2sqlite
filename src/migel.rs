@@ -2880,6 +2880,10 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // decision 07.10.2026. The company token is required: one Allergan row
     // (EMDN P0680) also contains "lucro", and pins outrank the metadata gate.
     (&["lucro", "schein orthop"], &[], "26.01.04.01.1"),
+    // 13.10.2026, maintainer decision: Schein's second ready-made orthotic
+    // shoe line "MyGeneration" (12,787 rows filed 12.10., EMDN Y063303,
+    // deviceName only) joins LucRo on Spezialschuhe.
+    (&["mygeneration", "schein orthop"], &[], "26.01.04.01.1"),
     // 11.10.2026, maintainer call: Medline "Absorbent dressing(s)_Sterile /
     // _Non-sterile" are folded cotton gauze compresses (EMDN M020102), not
     // superabsorbers (35.05.05.01, where "absorbent" had sent them) ->
