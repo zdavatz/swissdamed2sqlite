@@ -844,6 +844,17 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // 12.10.2026: wheelchair positioners, transfer sheets, lifting slings,
     // restraint belts (EMDN V08/Y1224) - 6 matches on 4 codes, all homonyms.
     "Capelli S.r.l.",
+    // 13.10.2026: ambulance / rescue equipment (stretchers, vacuum and
+    // malleable splints, extrication collars) - SAM / Tri-Tech class.
+    "Spencer Italia s.r.l.",
+    // 13.10.2026: T2 intramedullary nails and screws (Class IIb implants):
+    // "Ankle Arthrodesis Nail" -> 23.02.01, "Compression Screw" -> 17.15.03.
+    "Stryker GmbH",
+    // 13.10.2026: dental interproximal-reduction strips ("Ortho Kit" -> 23.21.01).
+    "Swissdentacare SA",
+    // 13.10.2026: stents, ureteral and nephrostomy catheters (EMDN P07/U02);
+    // "Nephrostomy Catheter Set" -> 29.01.01 Stoma.
+    "optimed Medizinische Instrumente GmbH",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
