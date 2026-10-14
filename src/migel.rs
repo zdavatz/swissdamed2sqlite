@@ -855,6 +855,9 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // 13.10.2026: stents, ureteral and nephrostomy catheters (EMDN P07/U02);
     // "Nephrostomy Catheter Set" -> 29.01.01 Stoma.
     "optimed Medizinische Instrumente GmbH",
+    // 14.10.2026: PICC lines and power-injectable port-access needles
+    // ("PowerLoc Max Infusion Set" -> 99.30.06.02, the watch code again).
+    "Bard Access Systems, Inc.",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
