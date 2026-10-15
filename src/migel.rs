@@ -858,6 +858,20 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // 14.10.2026: PICC lines and power-injectable port-access needles
     // ("PowerLoc Max Infusion Set" -> 99.30.06.02, the watch code again).
     "Bard Access Systems, Inc.",
+    // 15.10.2026: urinary catheterisation kits ("Kit urologico" -> 15.13.07).
+    "CAM HOSPITAL SRL",
+    // 15.10.2026: RETeval electroretinography "Sensor Strip" electrodes (21.07.02 magnet).
+    "LKC Technologies",
+    // 15.10.2026: dental autoclaves / washer-disinfectors, maker of the
+    // "HIP Cleaning Solution" Dent4You distributes (-> 23.10.01).
+    "SciCan Ltd.",
+    // 15.10.2026: surgical power-tool saw blades ("Foot & Ankle Cut Tools" -> 23.02.01).
+    "Stryker Instruments",
+    // 15.10.2026: hypodermic needles, Surflo winged infusion sets, guide wires,
+    // coronary stents ("Surflo Winged Infusion Set" -> 99.30.06.02 watch code).
+    "Terumo Europe N.V.",
+    // 15.10.2026: blood bags ("Single Transfer Bag" -> 03.07.09.20 watch code).
+    "Terumo Penpol Private Limited",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -2605,6 +2619,9 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // 09.10.2026: Medline "Absorbent dressings XRD" = X-ray-detectable gauze
     // swabs (surgical, EMDN M02010502), had sat on 35.05.05.01 Superabsorber.
     &["dressings xrd"],
+    // 15.10.2026: "HIP Cleaning Solution" = dental instrument cleaner, sixth
+    // registrant on the bare "hip" (-> 23.10.01); catches the next distributor.
+    &["hip cleaning"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
