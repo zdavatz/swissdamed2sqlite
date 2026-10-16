@@ -48,7 +48,7 @@ const FONT_BOLD: &[u8] =
 /// lines, in this order, to these URLs — so the order here is the source of truth.
 const LEGEND: &[(&str, &str, Option<&str>)] = &[
     ("EMDN", "European Medical Device Nomenclature — strukturierte Geräte-Kategorie (Buchstabe = Kategorie), dient hier als Proxy für die Zweckbestimmung (~100% Abdeckung).", Some("https://webgate.ec.europa.eu/dyna2/emdn/")),
-    ("EMDN — prof. Kategorien", "L Chirurgie-Instrumente · K minimalinvasiv/Elektrochirurgie · C kardiozirkulatorisch · G Endoskopie · H Nahtmaterial · J aktive Implantate · S Sterilisation · B Bluttransfusion/Hämatologie · D MP-Desinfektion · P Implantat-Prothetik/Osteosynthese. Chirurgisch/interventionell → als «professional»-Ausschluss verwendet.", Some("https://webgate.ec.europa.eu/dyna2/emdn/")),
+    ("EMDN — prof. Kategorien", "L Chirurgie-Instrumente · K minimalinvasiv/Elektrochirurgie · C kardiozirkulatorisch · G Endoskopie · H Nahtmaterial · J aktive Implantate · S Sterilisation · B Bluttransfusion/Hämatologie · D MP-Desinfektion · P Implantat-Prothetik/Osteosynthese · Z Spital-/OP-Geräte · A Infusions-/Entnahme-Hardware (Z/A mit Ausnahmen für Heimgeräte, Stoma, Urinbeutel, Pen-Nadeln) · Q01 Zahnmedizin (nur Q01, nicht Augen Q02 / HNO Q03). Chirurgisch/interventionell → als «professional»-Ausschluss verwendet.", Some("https://webgate.ec.europa.eu/dyna2/emdn/")),
     ("EMDN — Konsum-nah", "M Verbandmaterial · Y technische Hilfen für Behinderte (Orthesen) · T Inkontinenz-/Schutzhilfen · A Applikation/Entnahme/Sammlung (Stoma) · N Neuro/Muskel (TENS). Für die Klasse-IIa-Abgabevermutung genutzt.", Some("https://webgate.ec.europa.eu/dyna2/emdn/")),
     ("MDR", "Medical Device Regulation (EU) 2017/745 — EU-Medizinprodukteverordnung.", Some("https://eur-lex.europa.eu/eli/reg/2017/745/oj")),
     ("MDR-Risikoklassen", "Anhang VIII: I (gering, meist nicht-invasiv) · IIa · IIb · III (höchstes Risiko). Rein risikobasiert — kein Anwender-Signal (sagt nichts über Laie/Fachperson).", Some("https://eur-lex.europa.eu/eli/reg/2017/745/oj#d1e32-92-1")),
@@ -312,7 +312,7 @@ fn build(d: &Dist, prev: Option<&Dist>, dbname: &str) -> Result<genpdf::Document
     metric(&mut doc, "Professional",
         &format!("{}   ({})", sep(d.prof), pct(d.prof, total)),
         &delta_pp(d.prof, total, prev.map(|p| p.prof), pt),
-        "Implantat / Klasse III · IVD-Profitesting · chirurgische EMDN L/K/C/G/H/J/S/B/D/P");
+        "Implantat / Klasse III · IVD-Profitesting · chirurgische EMDN L/K/C/G/H/J/S/B/D/P/Z/A + Q01 Dental");
     metric(&mut doc, "Public — hoch",
         &format!("{}   ({})", sep(d.ph), pct(d.ph, total)),
         &delta_pp(d.ph, total, prev.map(|p| p.ph), pt),
@@ -337,7 +337,7 @@ fn build(d: &Dist, prev: Option<&Dist>, dbname: &str) -> Result<genpdf::Document
     h2(&mut doc, "Methode — zwei Fragen, getrennt nach Konfidenz");
     bullet(&mut doc, "Intended-User (streng, Haftungsseite: für wen ist das Gerät bestimmt): «public» nur aus einem strukturierten IVD-Selbsttest-Feld (hoch), MiGeL-/KLV-Art.-20-Listung (mittel) oder einer expliziten Laienanwendungs-Aussage. Ein falsches «public» = Verkauf eines rein professionellen Geräts = Verstoss; ein falsches «professional» = nur ein entgangener Verkauf.");
     bullet(&mut doc, "Shop-Verkäuflichkeit (MepV-Grundsatz: an das Publikum abgebbar, sofern nicht beschränkt): public/tief = kuratierte Konsum-EMDN-Liste (Antidekubitus-Matratzen) plus jedes risikoarme Gerät nach den Profi-Gattern — Klasse I breit, Klasse IIa für Konsum-EMDN (Verband, Hilfsmittel, Inkontinenz, Stoma, TENS). Eine «keine-Beschränkung-gefunden»-Vermutung: stets die IFU prüfen.");
-    bullet(&mut doc, "Professionell ausgeschlossen: AIMDD / implantierbar / Klasse III–D, IVD-Profi- & patientennahe Testung sowie chirurgisch-interventionelle EMDN-Kategorien L/K/C/G/H/J/S/B/D/P.");
+    bullet(&mut doc, "Professionell ausgeschlossen: AIMDD / implantierbar / Klasse III–D, IVD-Profi- & patientennahe Testung sowie chirurgisch-interventionelle EMDN-Kategorien L/K/C/G/H/J/S/B/D/P/Z/A sowie Zahnmedizin Q01.");
 
     h2(&mut doc, "Kernbefunde");
     bullet(&mut doc, "swissdamed / EUDAMED führen KEIN Intended-User-Feld für MDR oder IVD (das EUDAMED-Feld medicalPurpose ist nur bei System-/Prozedurpacks befüllt) — durch Regulatory-Review bestätigt. Das einzige strukturierte Signal ist die IVD-Trias Selbst-/patientennahe/Profi-Testung, die die Testmodalität beschreibt, nicht den Anwender.");

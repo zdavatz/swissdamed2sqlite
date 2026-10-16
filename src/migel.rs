@@ -872,6 +872,8 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Terumo Europe N.V.",
     // 15.10.2026: blood bags ("Single Transfer Bag" -> 03.07.09.20 watch code).
     "Terumo Penpol Private Limited",
+    // 16.10.2026: biopsy and vial-collection needles ("Easy Transfer" -> 03.07.09.20).
+    "AEA srl",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -2622,6 +2624,9 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // 15.10.2026: "HIP Cleaning Solution" = dental instrument cleaner, sixth
     // registrant on the bare "hip" (-> 23.10.01); catches the next distributor.
     &["hip cleaning"],
+    // 16.10.2026: Breg Polar Care cryotherapy pads (EMDN cryo/thermotherapy)
+    // rode "compression" + body region onto 17.15.03 / 23.04.01 / 23.25.01.
+    &["cold compression pad"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -2935,6 +2940,12 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // 12.10.2026: BioSkin "Q BRACE CrossFire" is a patellofemoral knee brace
     // (EMDN Y061209 KNEE ORTHOSES); unpinned it scored to 23.21.01 Hand-Orthesen.
     (&["q brace", "bioskin"], &[], "23.04.01.00.1"),
+    // 16.10.2026: Breg "ARC 2.0 Sling" is a shoulder abduction orthosis
+    // (EMDN SHOULDER ORTHOSES); unpinned it scored to 23.10.01 Rumpf-Orthesen.
+    (&["arc 2.0 sling", "breg"], &[], "23.25.01.00.1"),
+    // 16.10.2026: Bauerfeind "GloboPed" fore-/rearfoot relief orthoses are
+    // post-op offloading shoes; unpinned they scored to 23.21.01 Hand-Orthesen.
+    (&["globoped", "bauerfeind"], &[], "26.01.04.02.1"),
     // "Back support" = Lumbal-Bandage 05.14.01 (PRIM's 38 rows land there by
     // score). BSN Actimove's "Double Layer Compression" back support rode the
     // bare "compression" token to 17.15.03 and, fenced there, hopped to 05.06.02

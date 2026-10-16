@@ -99,6 +99,16 @@ const EMDN_PROFESSIONAL_CATS: &[char] =
 /// MiGeL evidence (tube feed is reimbursed as Spezialnahrung, not as a MiGeL
 /// position) but is unambiguously patient-run — a documented maintainer call,
 /// safe because it only withholds a professional assertion.
+/// Professional EMDN *sub-categories* inside a category that is not single-sided
+/// as a whole. Q mixes three worlds: Q01 dental (36,020 rows on 16.10.2026, zero
+/// MiGeL matches, even the oral-hygiene leaf Q019003 is labelled "for
+/// professional use"), Q02 ophthalmic (contact lenses and lens care, 242 MiGeL
+/// matches) and Q03 ENT (nasal saline, ear devices). Only Q01 qualifies — added
+/// 16.10.2026 after Ormco (6,164) and American Orthodontics (7,048) had parked
+/// their orthodontic catalogues in `review` and MegaGen's Class I implant parts
+/// in `public/low`. Same exclusion-only, low-confidence semantics as above.
+const EMDN_PROFESSIONAL_PREFIXES: &[&str] = &["Q01"];
+
 const EMDN_PROFESSIONAL_EXEMPT_CODES: &[&str] = &[
     // Respiratory therapy at home — the largest genuine cluster in Z.
     "Z12030102",    // continuous positive pressure equipment (CPAP)
@@ -330,6 +340,9 @@ pub fn classify(detail: &Value, migel_code: Option<&str>) -> (String, String, St
 
     // TIER 6 — EMDN clearly-professional category (surgical/interventional).
     // Exclusion direction only, low confidence.
+    if EMDN_PROFESSIONAL_PREFIXES.iter().any(|p| ecode.starts_with(p)) {
+        return prof("low", format!("EMDN professional sub-category {} ({})", &ecode[..3], eterm));
+    }
     if EMDN_PROFESSIONAL_CATS.contains(&ecat)
         && !EMDN_PROFESSIONAL_EXEMPT_CODES
             .iter()
