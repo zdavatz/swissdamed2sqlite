@@ -2627,6 +2627,14 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // 16.10.2026: Breg Polar Care cryotherapy pads (EMDN cryo/thermotherapy)
     // rode "compression" + body region onto 17.15.03 / 23.04.01 / 23.25.01.
     &["cold compression pad"],
+    // 19.10.2026: Franz Kalff "Dreiecktuch / Triangular Bandage" (first-aid
+    // sling cloth, no MiGeL position) rode "bandage" onto 05.06.02 Hüft-
+    // Kompressionsbandage; Novomed "Dressing Kits" (procedure sets, EMDN
+    // M9099) onto 35.07.01.10 Honig-Wundverband. Ch. 05/35 offer many siblings
+    // to hop to, so both are excluded at the source.
+    &["dreiecktuch"],
+    &["triangular bandage"],
+    &["dressing kit"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3026,6 +3034,16 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // required: bare "flawa" also sits on ASO hydrocolloid and IVF Hartmann
     // Blood Stop rows.
     (&["classic plaster", "flawa"], &[], "35.01.10.10.1"),
+    // Franz Kalff first-aid bandages (19.10.2026) all share a few deviceNames
+    // and scattered over five codes incl. 05.20.04 Tape, 17.30.01.32 2-Lagen-
+    // Kompression and 23.20.01 Finger-Orthesen. Order matters: the adhesive
+    // spool "Heftpflaster" carries the deviceName "Elastische Fixierbinde", and
+    // one cohesive row carries the tradeName "Fixierbinde". Heftpflaster has no
+    // stated width → narrowest position as accepted default.
+    (&["heftpflaster", "franz kalff"], &[], "35.01.09.01.1"),
+    (&["fingerschnellverband", "franz kalff"], &[], "35.01.07.20.1"),
+    (&["fixierbandage", "franz kalff"], &[], "35.01.07.20.1"),
+    (&["fixierbinde", "franz kalff"], &[], "35.01.07.01.1"),
     // --- HANS HEPP first-aid refills (audit §2b) ---
     // (Heft-)Pflasterspulen → Heft-/Fixier-Pflaster spools ("pflasterspule"
     // is a substring of "heftpflasterspule", one rule covers both).
