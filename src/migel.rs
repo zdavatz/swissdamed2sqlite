@@ -874,6 +874,18 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Terumo Penpol Private Limited",
     // 16.10.2026: biopsy and vial-collection needles ("Easy Transfer" -> 03.07.09.20).
     "AEA srl",
+    // 20.10.2026: hip / shoulder / nail implant instrumentation and X-ray
+    // templates ("Analogue X-Ray Templates, Hip" -> 23.10.01, "Stem-Free
+    // Shoulder Tray" -> 23.25.01), 265/265 FP.
+    "Zimmer Switzerland Manufacturing GmbH",
+    // 20.10.2026: operating-table components (abdominal / shoulder rests, knee
+    // cradles) -> 05.11.10 / 23.25.01 / 23.04.01, 3/3 FP.
+    "Schaerer Medical Schweiz AG",
+    // 20.10.2026: infusion needle ("Universal Infusion Line" -> 99.30.06.02).
+    "Teknomek Medikal Malz. San. Ve Tic. Ltd. Sti.",
+    // 20.10.2026: rescue immobilisation splints ("Splint-Fix", EMDN V0804)
+    // -> 99.01.01.03 Knauf zu Arm-Lagerungsschiene, 5/5 FP.
+    "Novo Klinik-Service GmbH",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -2635,6 +2647,13 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["dreiecktuch"],
     &["triangular bandage"],
     &["dressing kit"],
+    // 20.10.2026: gynaecological cytology scrapers -> 22.12.01 Cervikalstütze;
+    // latex finger cots (examination gloves) -> 23.20.01 Finger-Orthesen (bare
+    // "finger cot" would take Bota's genuine DIGIFIX finger splints);
+    // REH4MAT modular wheelchair posture systems (EMDN Y180939) -> 23.21.01.
+    &["cervical scraper"],
+    &["latex finger cot"],
+    &["posturale kompressionsorthese"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -2983,6 +3002,9 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // All trigger tokens verified Respironics-exclusive corpus-wide.
     (&["autosv"], PAP_ACCESSORY_STOPS, "14.11.03.00.2"),
     (&["dreamstation"], PAP_ACCESSORY_STOPS, "14.11.02.00.2"),
+    // Yuwell (Suzhou Yuyue) YH-820/825/830 and Pocket CPAP/APAP units had
+    // scored to 14.03.01 PEP-Gerät on "positive ... pressure" (20.10.2026).
+    (&["positive airway pressure unit", "yuyue"], PAP_ACCESSORY_STOPS, "14.11.02.00.2"),
     (&["system one"], PAP_ACCESSORY_STOPS, "14.11.02.00.2"),
     (&["remstar"], PAP_ACCESSORY_STOPS, "14.11.02.00.2"),
     (&["dorma"], PAP_ACCESSORY_STOPS, "14.11.02.00.2"),
