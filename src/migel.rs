@@ -886,6 +886,15 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // 20.10.2026: rescue immobilisation splints ("Splint-Fix", EMDN V0804)
     // -> 99.01.01.03 Knauf zu Arm-Lagerungsschiene, 5/5 FP.
     "Novo Klinik-Service GmbH",
+    // 21.10.2026: IVD histology reagents ("Trilogy Pretreatment Solution" fired
+    // the Respironics `trilogy` ventilator pin -> 14.12.02; IVDR, 6/6 FP).
+    "Cell Marque Corporation",
+    // 21.10.2026: dental matrices ("Matrices – Transparent Cervical" ->
+    // 23.11.01, 8/8 FP).
+    "Kerr Italia Srl",
+    // 21.10.2026: neonatal pulse-oximeter sensor wraps ("NeoPulse", EMDN
+    // elastic fixing bandage) -> 21.01.04 Pulsoxymeter, 3/3 FP.
+    "Neotech Products LLC",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -2654,6 +2663,13 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["cervical scraper"],
     &["latex finger cot"],
     &["posturale kompressionsorthese"],
+    // 21.10.2026: paraffin heat packs -> 23.25.01 Schulter-Orthesen (bare
+    // "paraffin" would take impregnated paraffin gauze); ophthalmic irrigation /
+    // aspiration cannulas -> 03.07.09.12 / 99.30.06.02; IVF "Patient Transfer
+    // Pack" procedure kits -> 03.07.09.20 (the eleventh "transfer" homonym).
+    &["paraffinkompresse"],
+    &["cannula irrigation"],
+    &["transfer pack"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3034,6 +3050,9 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // "MedOffice Sağlık" contains "doff" — its Med-Cover barrier creams all
     // landed here (07.10.2026).
     (&["doff"], &["medoffice"], "17.12.01.01.1"),
+    // Helping Hand "EZY ON" compression-stocking frame (EMDN M030405) had scored
+    // to 17.15.02 Hand-Kompressionsbandage (21.10.2026) -> Rahmengestelle.
+    (&["ezy on", "helping hand"], &[], "17.12.01.01.1"),
     // --- IVF Hartmann DermaPlast retail line (audit §2b; all trigger tokens
     // verified single-company corpus-wide). Sizes aren't text-derivable, so
     // the audit's representative size position is pinned. Never bare
