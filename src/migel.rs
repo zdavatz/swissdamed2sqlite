@@ -895,6 +895,12 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // 21.10.2026: neonatal pulse-oximeter sensor wraps ("NeoPulse", EMDN
     // elastic fixing bandage) -> 21.01.04 Pulsoxymeter, 3/3 FP.
     "Neotech Products LLC",
+    // 22.10.2026: dental intraoral X-ray sensors ("DEXIS IXS Intraoral Sensor"
+    // -> the 21.07.02 Sensoren magnet).
+    "Dental Imaging Technologies Corporation",
+    // 22.10.2026: hip-arthroplasty instrument trays ("HIP Instruments Set" ->
+    // 23.10.01 Rumpf-Orthesen via the bare "hip").
+    "Permedica S.p.A",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -2670,6 +2676,9 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["paraffinkompresse"],
     &["cannula irrigation"],
     &["transfer pack"],
+    // 22.10.2026: PINO moor / paraffin heat carriers -> 14.10.40 Füllung
+    // Sauerstoff-Druckgasflaschen (via "Füllung").
+    &["heat carrier"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3053,6 +3062,9 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // Helping Hand "EZY ON" compression-stocking frame (EMDN M030405) had scored
     // to 17.15.02 Hand-Kompressionsbandage (21.10.2026) -> Rahmengestelle.
     (&["ezy on", "helping hand"], &[], "17.12.01.01.1"),
+    // Tytex "Fixierstrumpf für Beinbeutel" (leg-bag retaining sleeve) had scored
+    // to 15.14.05 Urin-Beinbeutel steril (22.10.2026) -> Haltebänder.
+    (&["fixierstrumpf", "tytex"], &[], "15.14.99.02.1"),
     // --- IVF Hartmann DermaPlast retail line (audit §2b; all trigger tokens
     // verified single-company corpus-wide). Sizes aren't text-derivable, so
     // the audit's representative size position is pinned. Never bare
