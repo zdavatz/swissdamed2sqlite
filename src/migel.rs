@@ -901,6 +901,12 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // 22.10.2026: hip-arthroplasty instrument trays ("HIP Instruments Set" ->
     // 23.10.01 Rumpf-Orthesen via the bare "hip").
     "Permedica S.p.A",
+    // 23.10.2026: dental implants and instruments -> 03.07.09.20 (7) and
+    // 15.13.06 (1), 8/8 FP.
+    "Dr. Ihde Dental AG",
+    // 23.10.2026: urodynamic catheters and pump tubing ("Abdominal Pressure
+    // Catheter" -> 05.11.10, "Pump Infusion Tubing" -> 99.30.06.02), 4/4 FP.
+    "Laborie Medical Technologies, Corp.",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -2679,6 +2685,13 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // 22.10.2026: PINO moor / paraffin heat carriers -> 14.10.40 Füllung
     // Sauerstoff-Druckgasflaschen (via "Füllung").
     &["heat carrier"],
+    // 23.10.2026: surgical instrument trays (Incipio "ROSA Hip CT Instrument
+    // Tray" -> 23.10.01 via "hip"; Permedica's trays the day before).
+    &["instrument tray"],
+    // Bauerfeind b:joynz compression stockings in Kompressionsklasse 1 are not
+    // a MiGeL Pflichtleistung (BAG ch. 17, same rule as the SIGVARIS layer);
+    // the class-2 rows are pinned below.
+    &["joynz", "ccl 1"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3065,6 +3078,16 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // Tytex "Fixierstrumpf für Beinbeutel" (leg-bag retaining sleeve) had scored
     // to 15.14.05 Urin-Beinbeutel steril (22.10.2026) -> Haltebänder.
     (&["fixierstrumpf", "tytex"], &[], "15.14.99.02.1"),
+    // Bauerfeind "b:joynz compression stockings" (EMDN M030405, 747 rows on
+    // 23.10.2026) all scored to 17.15.03 Arm-Kompressionsbandage. Class 2
+    // rows go to 17.02.01 by length (AD Wade / AG Schenkel / AT Strumpfhose)
+    // and Serie vs. "custom made" (nach Mass); class 1 is excluded above.
+    (&["joynz", "ccl 2", ", ad,", "custom made"], &[], "17.02.01.02.1"),
+    (&["joynz", "ccl 2", ", ad,"], &[], "17.02.01.01.1"),
+    (&["joynz", "ccl 2", ", ag,", "custom made"], &[], "17.02.01.06.1"),
+    (&["joynz", "ccl 2", ", ag,"], &[], "17.02.01.05.1"),
+    (&["joynz", "ccl 2", ", at,", "custom made"], &[], "17.02.01.08.1"),
+    (&["joynz", "ccl 2", ", at,"], &[], "17.02.01.07.1"),
     // --- IVF Hartmann DermaPlast retail line (audit §2b; all trigger tokens
     // verified single-company corpus-wide). Sizes aren't text-derivable, so
     // the audit's representative size position is pinned. Never bare
@@ -3147,7 +3170,8 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
         &["walker"],
         // "lightwalker" = Fotona dental laser (03.10.2026).
         // "trionic" = Trionic Walker all-terrain rollator (09.10.2026).
-        &["human motion", "first aid", "yano", "gehwagen", "rollator", "gehgestell", "walking frame", "lightwalker", "trionic"],
+        // "sunrise medical" = rollators with seat, EMDN Y120609 (23.10.2026).
+        &["human motion", "first aid", "yano", "gehwagen", "rollator", "gehgestell", "walking frame", "lightwalker", "trionic", "sunrise medical"],
         "22.02.04.00.1",
     ),
     // --- Jul 10 2026 (intra-day) ---
