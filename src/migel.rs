@@ -907,6 +907,8 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // 23.10.2026: urodynamic catheters and pump tubing ("Abdominal Pressure
     // Catheter" -> 05.11.10, "Pump Infusion Tubing" -> 99.30.06.02), 4/4 FP.
     "Laborie Medical Technologies, Corp.",
+    "Biomet Orthopedics",
+    "Idmed",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -2692,6 +2694,7 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // a MiGeL Pflichtleistung (BAG ch. 17, same rule as the SIGVARIS layer);
     // the class-2 rows are pinned below.
     &["joynz", "ccl 1"],
+    &["compression sock", "bauerfeind"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
