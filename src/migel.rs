@@ -909,6 +909,10 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Laborie Medical Technologies, Corp.",
     "Biomet Orthopedics",
     "Idmed",
+    "Heyer-Aerotech GmbH",
+    "Karma Medical Products Co., LTD.",
+    "Thoratec Corporation",
+    "Mediberg S.r.l.",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -3081,6 +3085,7 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // Tytex "Fixierstrumpf für Beinbeutel" (leg-bag retaining sleeve) had scored
     // to 15.14.05 Urin-Beinbeutel steril (22.10.2026) -> Haltebänder.
     (&["fixierstrumpf", "tytex"], &[], "15.14.99.02.1"),
+    (&["wundpflaster", "wundmed"], &[], "35.01.10.10.1"),
     // Bauerfeind "b:joynz compression stockings" (EMDN M030405, 747 rows on
     // 23.10.2026) all scored to 17.15.03 Arm-Kompressionsbandage. Class 2
     // rows go to 17.02.01 by length (AD Wade / AG Schenkel / AT Strumpfhose)
