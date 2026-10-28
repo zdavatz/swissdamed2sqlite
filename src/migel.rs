@@ -913,6 +913,10 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Karma Medical Products Co., LTD.",
     "Thoratec Corporation",
     "Mediberg S.r.l.",
+    "Haleon CH SARL",
+    "Exact Imaging, Inc.",
+    "Intuitive Surgical",
+    "OLYMPUS MEDICAL SYSTEMS CORP.",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
