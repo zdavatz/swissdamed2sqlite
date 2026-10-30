@@ -2704,6 +2704,10 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // the class-2 rows are pinned below.
     &["joynz", "ccl 1"],
     &["compression sock", "bauerfeind"],
+    // Cedic "Compat Buddy" gastrostomy feeding-tube extension sets (EMDN A030403,
+    // enteral nutrition) rode "gastrostomy" onto 29.01.01 Stoma (27.10.2026);
+    // enteral feeding is reimbursed as Spezialnahrung, MiGeL has no position.
+    &["feeding tube extension"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
