@@ -917,6 +917,7 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Exact Imaging, Inc.",
     "Intuitive Surgical",
     "OLYMPUS MEDICAL SYSTEMS CORP.",
+    "Besmed Health Business Corp.",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -3100,6 +3101,31 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["joynz", "ccl 2", ", ag,"], &[], "17.02.01.05.1"),
     (&["joynz", "ccl 2", ", at,", "custom made"], &[], "17.02.01.08.1"),
     (&["joynz", "ccl 2", ", at,"], &[], "17.02.01.07.1"),
+    // Bauerfeind VenoTrain (EMDN M030405, ~5,000 rows on 30.10.2026, none matched:
+    // no "compression" token). Same routing as b:joynz, plus A-F Halbschenkel and
+    // class 3 -> 17.03.01. "AG waist attachement" is an A-G with hip fixation.
+    // BD/BG/CG/ATH/ATX cuts, class 1 and the US-scale "discrétion" stay unmatched.
+    (&["venotrain", "ccl 2", ", ad,", "custom made"], &[], "17.02.01.02.1"),
+    (&["venotrain", "ccl 2", ", ad,"], &[], "17.02.01.01.1"),
+    (&["venotrain", "ccl 2", ", af,", "custom made"], &[], "17.02.01.04.1"),
+    (&["venotrain", "ccl 2", ", af,"], &[], "17.02.01.03.1"),
+    (&["venotrain", "ccl 2", ", ag,", "custom made"], &[], "17.02.01.06.1"),
+    (&["venotrain", "ccl 2", ", ag,"], &[], "17.02.01.05.1"),
+    (&["venotrain", "ccl 2", ", ag waist", "custom made"], &[], "17.02.01.06.1"),
+    (&["venotrain", "ccl 2", ", ag waist"], &[], "17.02.01.05.1"),
+    (&["venotrain", "ccl 2", ", at,", "custom made"], &[], "17.02.01.08.1"),
+    (&["venotrain", "ccl 2", ", at,"], &[], "17.02.01.07.1"),
+    (&["venotrain", "ccl 3", ", ad,", "custom made"], &[], "17.03.01.02.1"),
+    (&["venotrain", "ccl 3", ", ad,"], &[], "17.03.01.01.1"),
+    (&["venotrain", "ccl 3", ", af,", "custom made"], &[], "17.03.01.04.1"),
+    (&["venotrain", "ccl 3", ", af,"], &[], "17.03.01.03.1"),
+    (&["venotrain", "ccl 3", ", ag,", "custom made"], &[], "17.03.01.06.1"),
+    (&["venotrain", "ccl 3", ", ag,"], &[], "17.03.01.05.1"),
+    (&["venotrain", "ccl 3", ", ag waist", "custom made"], &[], "17.03.01.06.1"),
+    (&["venotrain", "ccl 3", ", ag waist"], &[], "17.03.01.05.1"),
+    (&["venotrain", "ccl 3", ", at,", "custom made"], &[], "17.03.01.08.1"),
+    (&["venotrain", "ccl 3", ", at,"], &[], "17.03.01.07.1"),
+    (&["venotrain ulcertec"], &[], "17.05.01.00.1"),
     // --- IVF Hartmann DermaPlast retail line (audit §2b; all trigger tokens
     // verified single-company corpus-wide). Sizes aren't text-derivable, so
     // the audit's representative size position is pinned. Never bare
