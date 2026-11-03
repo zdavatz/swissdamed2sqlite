@@ -918,6 +918,13 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Intuitive Surgical",
     "OLYMPUS MEDICAL SYSTEMS CORP.",
     "Besmed Health Business Corp.",
+    "MT ORTHO SRL",
+    "LM-Instruments Oy",
+    "Erbe Elektromedizin GmbH",
+    "OCULUS Optikgeräte GmbH",
+    "STILLE AG",
+    "Terumo Corporation",
+    "Erregi sas di Antonioli Roberto & C.",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -2708,6 +2715,10 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // enteral nutrition) rode "gastrostomy" onto 29.01.01 Stoma (27.10.2026);
     // enteral feeding is reimbursed as Spezialnahrung, MiGeL has no position.
     &["feeding tube extension"],
+    // Blood-bag "Transfer Bag" (Terumo) and IVF embryo-transfer catheters
+    // (Vitrolife, KITAZATO) on 03.07.09.20 Transfer-Set (03.11.2026).
+    &["transfer bag"],
+    &["embryo transfer"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3213,7 +3224,8 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
         // "lightwalker" = Fotona dental laser (03.10.2026).
         // "trionic" = Trionic Walker all-terrain rollator (09.10.2026).
         // "sunrise medical" = rollators with seat, EMDN Y120609 (23.10.2026).
-        &["human motion", "first aid", "yano", "gehwagen", "rollator", "gehgestell", "walking frame", "lightwalker", "trionic", "sunrise medical"],
+        // "sara stedy" = Arjo standing / transfer aid (03.11.2026).
+        &["human motion", "first aid", "yano", "gehwagen", "rollator", "gehgestell", "walking frame", "lightwalker", "trionic", "sunrise medical", "sara stedy"],
         "22.02.04.00.1",
     ),
     // --- Jul 10 2026 (intra-day) ---
