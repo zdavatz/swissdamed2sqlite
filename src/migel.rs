@@ -925,6 +925,11 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "STILLE AG",
     "Terumo Corporation",
     "Erregi sas di Antonioli Roberto & C.",
+    "Wright Medical Technology, Inc.",
+    "Tornier, Inc.",
+    "GEXFIX SA",
+    "Delta Med SPA",
+    "A.M.I. Agency for Medical Innovations GmbH",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -2995,7 +3000,7 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // not lenses (11.09.2026).
     // "care solution" / "lens case": Bausch & Lomb ReNu / Biotrue lens-care
     // solutions are not lenses (29.09.2026).
-    (&["contact lens"], &["diagnostic", "gonio", "insertion", "removal", "care solution", "lens case"], "25.01.01.00.1"),
+    (&["contact lens"], &["diagnostic", "gonio", "insertion", "removal", "care solution", "lens case", "hydrating drops"], "25.01.01.00.1"),
     (&["kontaktlinse"], &["diagnostik", "gonio", "insertion", "removal", "pflegemittel", "linsenbehaelter"], "25.01.01.00.1"),
     // Moretti "Scarpe ortopediche 4USOFT" — orthopaedic therapy shoes, same
     // treatment as Künzli rehab shoes → 26.01.04.01 Spezialschuhe für Orthesen,
@@ -3106,40 +3111,64 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // to 15.14.05 Urin-Beinbeutel steril (22.10.2026) -> Haltebänder.
     (&["fixierstrumpf", "tytex"], &[], "15.14.99.02.1"),
     (&["wundpflaster", "wundmed"], &[], "35.01.10.10.1"),
-    // Bauerfeind "b:joynz compression stockings" (EMDN M030405, 747 rows on
-    // 23.10.2026) all scored to 17.15.03 Arm-Kompressionsbandage. Class 2
-    // rows go to 17.02.01 by length (AD Wade / AG Schenkel / AT Strumpfhose)
-    // and Serie vs. "custom made" (nach Mass); class 1 is excluded above.
-    (&["joynz", "ccl 2", ", ad,", "custom made"], &[], "17.02.01.02.1"),
-    (&["joynz", "ccl 2", ", ad,"], &[], "17.02.01.01.1"),
-    (&["joynz", "ccl 2", ", ag,", "custom made"], &[], "17.02.01.06.1"),
-    (&["joynz", "ccl 2", ", ag,"], &[], "17.02.01.05.1"),
-    (&["joynz", "ccl 2", ", at,", "custom made"], &[], "17.02.01.08.1"),
-    (&["joynz", "ccl 2", ", at,"], &[], "17.02.01.07.1"),
-    // Bauerfeind VenoTrain (EMDN M030405, ~5,000 rows on 30.10.2026, none matched:
-    // no "compression" token). Same routing as b:joynz, plus A-F Halbschenkel and
-    // class 3 -> 17.03.01. "AG waist attachement" is an A-G with hip fixation.
-    // BD/BG/CG/ATH/ATX cuts, class 1 and the US-scale "discrétion" stay unmatched.
-    (&["venotrain", "ccl 2", ", ad,", "custom made"], &[], "17.02.01.02.1"),
-    (&["venotrain", "ccl 2", ", ad,"], &[], "17.02.01.01.1"),
-    (&["venotrain", "ccl 2", ", af,", "custom made"], &[], "17.02.01.04.1"),
-    (&["venotrain", "ccl 2", ", af,"], &[], "17.02.01.03.1"),
-    (&["venotrain", "ccl 2", ", ag,", "custom made"], &[], "17.02.01.06.1"),
-    (&["venotrain", "ccl 2", ", ag,"], &[], "17.02.01.05.1"),
-    (&["venotrain", "ccl 2", ", ag waist", "custom made"], &[], "17.02.01.06.1"),
-    (&["venotrain", "ccl 2", ", ag waist"], &[], "17.02.01.05.1"),
-    (&["venotrain", "ccl 2", ", at,", "custom made"], &[], "17.02.01.08.1"),
-    (&["venotrain", "ccl 2", ", at,"], &[], "17.02.01.07.1"),
-    (&["venotrain", "ccl 3", ", ad,", "custom made"], &[], "17.03.01.02.1"),
-    (&["venotrain", "ccl 3", ", ad,"], &[], "17.03.01.01.1"),
-    (&["venotrain", "ccl 3", ", af,", "custom made"], &[], "17.03.01.04.1"),
-    (&["venotrain", "ccl 3", ", af,"], &[], "17.03.01.03.1"),
-    (&["venotrain", "ccl 3", ", ag,", "custom made"], &[], "17.03.01.06.1"),
-    (&["venotrain", "ccl 3", ", ag,"], &[], "17.03.01.05.1"),
-    (&["venotrain", "ccl 3", ", ag waist", "custom made"], &[], "17.03.01.06.1"),
-    (&["venotrain", "ccl 3", ", ag waist"], &[], "17.03.01.05.1"),
-    (&["venotrain", "ccl 3", ", at,", "custom made"], &[], "17.03.01.08.1"),
-    (&["venotrain", "ccl 3", ", at,"], &[], "17.03.01.07.1"),
+    // Bauerfeind round-knit medical compression stockings (EMDN M030405), all
+    // brands (b:joynz 23.10., VenoTrain 30.10., Provena / Varilind 03.11.2026):
+    // none carry a "compression" token the scorer could use, so they are routed
+    // by class (Ccl 2 -> 17.02.01, Ccl 3 -> 17.03.01), length (AD / AF / AG,
+    // "AG waist attachement" = AG / AT / ATU Maternity / Arm) and Serie vs.
+    // "custom made" (nach Mass). The pins match ", ad," etc. with commas so the
+    // company token "Bauerfeind AG" cannot trigger the AG pin. Class 1 is not a
+    // Pflichtleistung; ATH/ATX/ATS/ATE and BD/BG/CG cuts stay unmatched.
+    (&["bauerfeind", "ccl 2", ", ad,", "custom made"], &[], "17.02.01.02.1"),
+    (&["bauerfeind", "ccl 2", ", ad,"], &[], "17.02.01.01.1"),
+    (&["bauerfeind", "ccl 2", ", af,", "custom made"], &[], "17.02.01.04.1"),
+    (&["bauerfeind", "ccl 2", ", af,"], &[], "17.02.01.03.1"),
+    (&["bauerfeind", "ccl 2", ", ag,", "custom made"], &[], "17.02.01.06.1"),
+    (&["bauerfeind", "ccl 2", ", ag,"], &[], "17.02.01.05.1"),
+    (&["bauerfeind", "ccl 2", ", ag waist", "custom made"], &[], "17.02.01.06.1"),
+    (&["bauerfeind", "ccl 2", ", ag waist"], &[], "17.02.01.05.1"),
+    (&["bauerfeind", "ccl 2", ", at,", "custom made"], &[], "17.02.01.08.1"),
+    (&["bauerfeind", "ccl 2", ", at,"], &[], "17.02.01.07.1"),
+    (&["bauerfeind", "ccl 2", ", atu,", "custom made"], &[], "17.02.01.10.1"),
+    (&["bauerfeind", "ccl 2", ", atu,"], &[], "17.02.01.09.1"),
+    (&["bauerfeind", "ccl 2", ", arm,", "custom made"], &[], "17.02.01.12.1"),
+    (&["bauerfeind", "ccl 2", ", arm,"], &[], "17.02.01.11.1"),
+    (&["bauerfeind", "ccl2", ", ad,", "custom made"], &[], "17.02.01.02.1"),
+    (&["bauerfeind", "ccl2", ", ad,"], &[], "17.02.01.01.1"),
+    (&["bauerfeind", "ccl2", ", af,", "custom made"], &[], "17.02.01.04.1"),
+    (&["bauerfeind", "ccl2", ", af,"], &[], "17.02.01.03.1"),
+    (&["bauerfeind", "ccl2", ", ag,", "custom made"], &[], "17.02.01.06.1"),
+    (&["bauerfeind", "ccl2", ", ag,"], &[], "17.02.01.05.1"),
+    (&["bauerfeind", "ccl2", ", ag waist", "custom made"], &[], "17.02.01.06.1"),
+    (&["bauerfeind", "ccl2", ", ag waist"], &[], "17.02.01.05.1"),
+    (&["bauerfeind", "ccl2", ", at,", "custom made"], &[], "17.02.01.08.1"),
+    (&["bauerfeind", "ccl2", ", at,"], &[], "17.02.01.07.1"),
+    (&["bauerfeind", "ccl2", ", atu,", "custom made"], &[], "17.02.01.10.1"),
+    (&["bauerfeind", "ccl2", ", atu,"], &[], "17.02.01.09.1"),
+    (&["bauerfeind", "ccl2", ", arm,", "custom made"], &[], "17.02.01.12.1"),
+    (&["bauerfeind", "ccl2", ", arm,"], &[], "17.02.01.11.1"),
+    (&["bauerfeind", "ccl 3", ", ad,", "custom made"], &[], "17.03.01.02.1"),
+    (&["bauerfeind", "ccl 3", ", ad,"], &[], "17.03.01.01.1"),
+    (&["bauerfeind", "ccl 3", ", af,", "custom made"], &[], "17.03.01.04.1"),
+    (&["bauerfeind", "ccl 3", ", af,"], &[], "17.03.01.03.1"),
+    (&["bauerfeind", "ccl 3", ", ag,", "custom made"], &[], "17.03.01.06.1"),
+    (&["bauerfeind", "ccl 3", ", ag,"], &[], "17.03.01.05.1"),
+    (&["bauerfeind", "ccl 3", ", ag waist", "custom made"], &[], "17.03.01.06.1"),
+    (&["bauerfeind", "ccl 3", ", ag waist"], &[], "17.03.01.05.1"),
+    (&["bauerfeind", "ccl 3", ", at,", "custom made"], &[], "17.03.01.08.1"),
+    (&["bauerfeind", "ccl 3", ", at,"], &[], "17.03.01.07.1"),
+    (&["bauerfeind", "ccl 3", ", arm,", "custom made"], &[], "17.03.01.10.1"),
+    (&["bauerfeind", "ccl3", ", ad,", "custom made"], &[], "17.03.01.02.1"),
+    (&["bauerfeind", "ccl3", ", ad,"], &[], "17.03.01.01.1"),
+    (&["bauerfeind", "ccl3", ", af,", "custom made"], &[], "17.03.01.04.1"),
+    (&["bauerfeind", "ccl3", ", af,"], &[], "17.03.01.03.1"),
+    (&["bauerfeind", "ccl3", ", ag,", "custom made"], &[], "17.03.01.06.1"),
+    (&["bauerfeind", "ccl3", ", ag,"], &[], "17.03.01.05.1"),
+    (&["bauerfeind", "ccl3", ", ag waist", "custom made"], &[], "17.03.01.06.1"),
+    (&["bauerfeind", "ccl3", ", ag waist"], &[], "17.03.01.05.1"),
+    (&["bauerfeind", "ccl3", ", at,", "custom made"], &[], "17.03.01.08.1"),
+    (&["bauerfeind", "ccl3", ", at,"], &[], "17.03.01.07.1"),
+    (&["bauerfeind", "ccl3", ", arm,", "custom made"], &[], "17.03.01.10.1"),
     (&["venotrain ulcertec"], &[], "17.05.01.00.1"),
     // --- IVF Hartmann DermaPlast retail line (audit §2b; all trigger tokens
     // verified single-company corpus-wide). Sizes aren't text-derivable, so
