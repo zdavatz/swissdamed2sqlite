@@ -930,6 +930,10 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "GEXFIX SA",
     "Delta Med SPA",
     "A.M.I. Agency for Medical Innovations GmbH",
+    "STILLE AB",
+    "Metrex Research LLC",
+    "Metrex Research LLC dba Orascoptic",
+    "Stryker Leibinger GmbH & Co. KG",
     // PROACT Medical = laryngoscopes and blades (EMDN R9002 / Z120210,
     // 100 rows); "Pressure Infusion Bag" (a pressure cuff around an IV bag)
     // -> 99.30.06.02 Infusions-Set. 3/3 FP.
@@ -3111,6 +3115,9 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // to 15.14.05 Urin-Beinbeutel steril (22.10.2026) -> Haltebänder.
     (&["fixierstrumpf", "tytex"], &[], "15.14.99.02.1"),
     (&["wundpflaster", "wundmed"], &[], "35.01.10.10.1"),
+    // Schulte-Elektronik "Ultrasonic nebuliser U-3003" (EMDN R0601) scored to
+    // 23.25.01 Schulter-Orthesen via the company name (05.11.2026) -> Aerosol-Apparat, Kauf.
+    (&["ultrasonic nebuliser", "schulte-elektronik"], &[], "14.01.01.00.1"),
     // Bauerfeind round-knit medical compression stockings (EMDN M030405), all
     // brands (b:joynz 23.10., VenoTrain 30.10., Provena / Varilind 03.11.2026):
     // none carry a "compression" token the scorer could use, so they are routed
