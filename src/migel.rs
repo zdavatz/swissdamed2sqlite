@@ -3118,6 +3118,10 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // Schulte-Elektronik "Ultrasonic nebuliser U-3003" (EMDN R0601) scored to
     // 23.25.01 Schulter-Orthesen via the company name (05.11.2026) -> Aerosol-Apparat, Kauf.
     (&["ultrasonic nebuliser", "schulte-elektronik"], &[], "14.01.01.00.1"),
+    // PAMPAMED "FMF Dynamic Compressor System" (pectus-carinatum compression brace,
+    // EMDN THORACIC ORTHOSES) had scored to 23.21.01 Hand-Orthesen (05.11.2026)
+    // -> Thorax-Orthese zur Stabilisierung, definierte Position (maintainer call).
+    (&["fmf dynamic compressor"], &[], "22.13.01.00.1"),
     // Bauerfeind round-knit medical compression stockings (EMDN M030405), all
     // brands (b:joynz 23.10., VenoTrain 30.10., Provena / Varilind 03.11.2026):
     // none carry a "compression" token the scorer could use, so they are routed
