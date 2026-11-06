@@ -54,6 +54,8 @@ cargo run -- --unique-srns                   # export all unique SRNs with manuf
 cargo run -- --details --details-limit 500   # per-device detail enrichment (POC: 500 devices)
 cargo run -- --details --details-limit 0 --details-threads 32  # full detail rebuild (overwrites DB, all ~153k udiDis)
 cargo run -- --details-update                 # incremental: fetch only new/changed udiDis, append to latest DB
+cargo run -- --details --details-gtin-file gtins.txt  # details only for these GTINs (implies --details-limit 0); writes a SUBSET udi_details DB
+cargo run -- --gtin-bundle gtins.txt         # list + packages + details per GTIN from the latest local DBs → gtin_bundle_*.db (no download)
 cargo run -- --migel --skip-details           # --migel runs the incremental details update by default; opt out with --skip-details
 cargo run -- --triage                        # classify public vs professional in latest udi_details DB (no download)
 cargo run -- --status-pdf                     # render one-page A4 status PDF (+ nomenclature legend w/ links) from latest udi_details DB
