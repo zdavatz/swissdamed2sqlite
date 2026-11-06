@@ -931,6 +931,13 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Delta Med SPA",
     "A.M.I. Agency for Medical Innovations GmbH",
     "STILLE AB",
+    "Shenzhen Med-link Electronics Tech Co., Ltd.",
+    "Cook Incorporated",
+    "CIVCO Medical Instruments Co., dba CIVCO and CIVCO Medical Solutions",
+    "GE Healthcare Finland Oy",
+    "MAKO Surgical Corp.",
+    "Talktech",
+    "Preceyes B.V.",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2728,6 +2735,14 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // (Vitrolife, KITAZATO) on 03.07.09.20 Transfer-Set (03.11.2026).
     &["transfer bag"],
     &["embryo transfer"],
+    // Venipuncture "Multiple Sample Blood Collection Needle" (Berpu, 06.11.2026)
+    // on 21.03.05.01 Sicherheitslanzetten; Berpu's pen needles stay matched.
+    &["blood collection needle"],
+    // Contact-lens care solutions scored onto 25.01.01 Kontaktlinsen via the
+    // Italian "lenti a contatto" (Omisan Amavita / Sun Store, 06.11.2026).
+    &["kontaktlinsenlosung"],
+    &["kontaktlinsenloesung"],
+    &["cura delle lenti"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3005,7 +3020,7 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // "care solution" / "lens case": Bausch & Lomb ReNu / Biotrue lens-care
     // solutions are not lenses (29.09.2026).
     (&["contact lens"], &["diagnostic", "gonio", "insertion", "removal", "care solution", "lens case", "hydrating drops"], "25.01.01.00.1"),
-    (&["kontaktlinse"], &["diagnostik", "gonio", "insertion", "removal", "pflegemittel", "linsenbehaelter"], "25.01.01.00.1"),
+    (&["kontaktlinse"], &["diagnostik", "gonio", "insertion", "removal", "pflegemittel", "linsenbehaelter", "linsenlosung", "linsenloesung"], "25.01.01.00.1"),
     // Moretti "Scarpe ortopediche 4USOFT" — orthopaedic therapy shoes, same
     // treatment as Künzli rehab shoes → 26.01.04.01 Spezialschuhe für Orthesen,
     // not 26.01.02 Schuhzurichtungen (shoe modifications), where the bare
@@ -3277,6 +3292,10 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // corpus-wide (19 rows, incl. the "(BW/KZ)" cotton/short-stretch variant); the
     // rows carry no width, so pin the family base position (2 cm) as representative.
     (&["trikotschlauch"], &[], "35.01.08.01.1"),
+    // Tobler "Polsterschlauch superelastisch" (-> 05.20.04 Tape) and "Oberschenkel
+    // mit Spickel Frottée-Stretch" (-> 23.05.01 Orthese) are tubular bandages too (06.11.2026).
+    (&["polsterschlauch", "tobler"], &[], "35.01.08.01.1"),
+    (&["spickel", "tobler"], &[], "35.01.08.01.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
