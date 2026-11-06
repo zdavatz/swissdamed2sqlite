@@ -8,6 +8,7 @@ pub mod download;
 mod error_report;
 pub mod export;
 pub mod gdrive;
+pub mod gtin_bundle;
 pub mod gtin_report;
 mod gui;
 pub mod linkedin;
@@ -232,6 +233,15 @@ pub struct Args {
     #[arg(long, default_value_t = 500)]
     pub details_limit: u32,
 
+    /// Everything swissdamed has for the GTINs in this file (one per line), from
+    /// the latest local DBs (list, packages, udi_details) → gtin_bundle_<date>.db.
+    /// No download.
+    #[arg(long)]
+    pub gtin_bundle: Option<PathBuf>,
+    /// Restrict --details to the GTINs (udiDiCode) in this file, one per line
+    /// (8-14 digits, compared left-padded to 14). Implies --details-limit 0.
+    #[arg(long)]
+    pub details_gtin_file: Option<PathBuf>,
     /// Number of parallel worker threads for --details fetching.
     #[arg(long, default_value_t = 32)]
     pub details_threads: u32,
@@ -379,6 +389,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --sigvaris-shop mode (scrape shop.sigvaris.com, build override DB)
     if args.sigvaris_shop {
         return sigvaris_shop::run();
+    }
+
+    // --gtin-bundle: join list, packages and details for a GTIN list (no download)
+    if let Some(ref path) = args.gtin_bundle {
+        return gtin_bundle::run(path);
     }
 
     // Handle --details mode (per-device detail enrichment → SQLite)

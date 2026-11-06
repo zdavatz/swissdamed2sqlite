@@ -75,7 +75,10 @@ fn refs_from_values(values: &[Value]) -> Vec<UdiRef> {
 }
 
 fn s(v: &Value, key: &str) -> String {
-    v.get(key).and_then(|x| x.as_str()).unwrap_or("").to_string()
+    v.get(key)
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .to_string()
 }
 
 /// A boolean field rendered as "true"/"false", or "" when absent.
@@ -142,7 +145,10 @@ fn collect_udi_refs(
                         last_modified_at: s(u, "lastModifiedAt"),
                     });
                     if limit != 0 && refs.len() as u32 >= limit {
-                        eprintln!("[details] Collected {} udiDi refs (limit reached).", refs.len());
+                        eprintln!(
+                            "[details] Collected {} udiDi refs (limit reached).",
+                            refs.len()
+                        );
                         return Ok(refs);
                     }
                 }
@@ -226,7 +232,10 @@ fn emdn(udi_di: &Value) -> (String, String) {
 
 /// Pick the additional description text, preferring the EN entry.
 fn additional_description(udi_di: &Value) -> String {
-    let arr = match udi_di.get("additionalDescription").and_then(|v| v.as_array()) {
+    let arr = match udi_di
+        .get("additionalDescription")
+        .and_then(|v| v.as_array())
+    {
         Some(a) => a,
         None => return String::new(),
     };
@@ -406,7 +415,30 @@ fn fetch_rows(
 /// Entry point for `--details` (full/limited rebuild — overwrites the DB).
 pub fn run(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
     let client = http_client()?;
-    let refs = collect_udi_refs(&client, args.page_size, args.details_limit)?;
+    let limit = if args.details_gtin_file.is_some() {
+        0
+    } else {
+        args.details_limit
+    };
+    let mut refs = collect_udi_refs(&client, args.page_size, limit)?;
+    if let Some(path) = &args.details_gtin_file {
+        let pad = |g: &str| format!("{:0>14}", g.trim());
+        let want: std::collections::HashSet<String> = std::fs::read_to_string(path)?
+            .lines()
+            .map(|l| l.trim())
+            .filter(|l| l.len() >= 8 && l.len() <= 14 && l.bytes().all(|b| b.is_ascii_digit()))
+            .map(pad)
+            .collect();
+        let listed = refs.len();
+        refs.retain(|r| want.contains(&pad(&r.udi_di_code)));
+        eprintln!(
+            "[details] GTIN filter {}: {} GTINs wanted, {} of {} listed udiDis match",
+            path.display(),
+            want.len(),
+            refs.len(),
+            listed
+        );
+    }
     let total = refs.len();
     if total == 0 {
         return Err("No udiDi references collected".into());
@@ -429,7 +461,11 @@ pub fn run(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
     let headers: Vec<String> = HEADERS.iter().map(|h| h.to_string()).collect();
     let db_path = export::output_db("udi_details")?;
     export::write_sqlite_table(&headers, &rows, &db_path, "udi_details")?;
-    eprintln!("[details] SQLite written: {} ({} rows)", db_path, rows.len());
+    eprintln!(
+        "[details] SQLite written: {} ({} rows)",
+        db_path,
+        rows.len()
+    );
 
     if args.csv {
         let csv_path = export::output_csv("udi_details")?;
@@ -470,7 +506,10 @@ fn ensure_schema(conn: &rusqlite::Connection) -> Result<(), Box<dyn std::error::
         )
         .unwrap_or(false);
     if !table_exists {
-        let cols: Vec<String> = HEADERS.iter().map(|h| format!("{} TEXT", quote(h))).collect();
+        let cols: Vec<String> = HEADERS
+            .iter()
+            .map(|h| format!("{} TEXT", quote(h)))
+            .collect();
         conn.execute(
             &format!("CREATE TABLE udi_details ({})", cols.join(", ")),
             [],
@@ -510,10 +549,7 @@ fn ensure_schema(conn: &rusqlite::Connection) -> Result<(), Box<dyn std::error::
 /// `lastModifiedAt`), replaces changed rows, and removes delisted ones. Carries
 /// the latest existing DB forward into today's date-stamped file. Reuses the
 /// caller's UDI download (no extra list request).
-pub fn update_details(
-    values: &[Value],
-    threads: u32,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn update_details(values: &[Value], threads: u32) -> Result<(), Box<dyn std::error::Error>> {
     use std::collections::{HashMap, HashSet};
 
     let db_dir = crate::app_data_dir().join("db");
@@ -546,12 +582,16 @@ pub fn update_details(
         [],
     )?;
     if backfilled > 0 {
-        eprintln!("[details] backfilled lastModifiedAt for {} legacy rows", backfilled);
+        eprintln!(
+            "[details] backfilled lastModifiedAt for {} legacy rows",
+            backfilled
+        );
     }
 
     // Existing state: udiDiId -> lastModifiedAt.
     let existing: HashMap<String, String> = {
-        let mut stmt = conn.prepare("SELECT udiDiId, IFNULL(lastModifiedAt,'') FROM udi_details")?;
+        let mut stmt =
+            conn.prepare("SELECT udiDiId, IFNULL(lastModifiedAt,'') FROM udi_details")?;
         let it = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?;
         it.filter_map(|r| r.ok()).collect()
     };
@@ -605,7 +645,11 @@ pub fn update_details(
 
     // Apply: delete rows we can replace (successfully fetched) + delisted, then insert.
     let quote = |s: &str| format!("\"{}\"", s.replace('"', "\"\""));
-    let cols_sql = HEADERS.iter().map(|h| quote(h)).collect::<Vec<_>>().join(", ");
+    let cols_sql = HEADERS
+        .iter()
+        .map(|h| quote(h))
+        .collect::<Vec<_>>()
+        .join(", ");
     let ph = vec!["?"; HEADERS.len()].join(", ");
     let insert_sql = format!("INSERT INTO udi_details ({}) VALUES ({})", cols_sql, ph);
 
@@ -617,15 +661,16 @@ pub fn update_details(
         }
         let mut ins = tx.prepare(&insert_sql)?;
         for row in &rows {
-            let params: Vec<&dyn rusqlite::types::ToSql> =
-                row.iter().map(|s| s as &dyn rusqlite::types::ToSql).collect();
+            let params: Vec<&dyn rusqlite::types::ToSql> = row
+                .iter()
+                .map(|s| s as &dyn rusqlite::types::ToSql)
+                .collect();
             ins.execute(params.as_slice())?;
         }
     }
     tx.commit()?;
 
-    let final_count: i64 =
-        conn.query_row("SELECT COUNT(*) FROM udi_details", [], |r| r.get(0))?;
+    let final_count: i64 = conn.query_row("SELECT COUNT(*) FROM udi_details", [], |r| r.get(0))?;
     eprintln!(
         "[details] update done: +{} inserted, -{} delisted → {} rows in {}",
         rows.len(),
