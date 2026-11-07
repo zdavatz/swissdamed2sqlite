@@ -938,6 +938,10 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "MAKO Surgical Corp.",
     "Talktech",
     "Preceyes B.V.",
+    "In2Bones SAS",
+    "In2Bones, USA",
+    "Carl Zeiss Meditec AG",
+    "VARILAG GmbH & Co. KG",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2743,6 +2747,10 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["kontaktlinsenlosung"],
     &["kontaktlinsenloesung"],
     &["cura delle lenti"],
+    // Trulife "PressureCare" hospital positioning pads (heel protector, hip pad,
+    // shoulder support) on ankle / trunk / shoulder orthoses (07.11.2026); Trulife
+    // itself stays matchable (its Breastcare breast forms are MiGeL ch. 24).
+    &["pressurecare"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
