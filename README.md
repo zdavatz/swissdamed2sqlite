@@ -245,7 +245,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - **Lookup CHRN** — finds all SRNs for a given CHRN (e.g. `CHRN-AR-20000807`). Downloads actors, matches by `chrn` field, fetches mandate details (which contain SRN), outputs timestamped CSV
 - **Google Drive** — uploads CSV to Google Drive using a service account .p12 key with domain-wide delegation (`--gdrive --gdrive-sub user@domain.com`)
 - **Email** — sends CSV as attachment via Gmail API using the same service account delegation (`--mailto recipient@example.com --gdrive-sub user@domain.com`). Non-ASCII subject lines (umlauts etc.) are RFC 2047 encoded.
-- **MiGeL** — matches UDI devices against MiGeL (Mittel- und Gegenständeliste) codes (~97,000 of ~513,000 rows, category-level precision ~99.9%) in two layers:
+- **MiGeL** — matches UDI devices against MiGeL (Mittel- und Gegenständeliste) codes (~98,000 of ~513,000 rows, category-level precision ~99.9%) in two layers:
   1. **GTIN overrides** from `db/sigvaris_shop_*.db` (built by `--sigvaris-shop`) take precedence. Each variant is mapped to its exact MiGeL code (or explicit skip for Stützstrumpf / Anti-Thrombose / Reisestrumpf / Klasse 1, per BAG Kap. 17). ~7,900 SIGVARIS rows mapped this way.
   2. **Heuristic Aho-Corasick** matcher for remaining manufacturers — curated **forced-match pins** for brand/category-exclusive tokens (O2 regulators, crutches, contact lenses, home ventilators, CPAP, spirometers, insulin patch pumps, ready-made therapy shoes), a **hard metadata gate** (IVD and Class III devices never reach text matching), IDF-weighted multi-language scoring with deterministic tie-breaking, English-to-German medical term translation (~85 terms with context-aware combinations like "ortho"+"rehab"→"spezialschuhe"), German compound-word decomposition (e.g. `Ellenbogenschiene`→Ellenbogen-Orthese), and region-gated enrichment for compression garments, ostomy, urinary drainage, incontinence, diabetes supplies and wound dressings. Precision is enforced by per-code negative keywords, universal exclusions, generic-token stop-words, and a pure-non-MiGeL **company exclusion** list (~109 entries: radiation-therapy, dental, sleep-lab, surgical-instrument, lab-venipuncture and hospital-IV makers whose entire output would otherwise be false positives). Adds ~7,800 matches.
   Output: `db/swissdamed_migel.db` (fixed name, overwritten each run — no longer one dated file per day). Auto-generates a stats PNG (rendered natively in Rust via [plotters](https://crates.io/crates/plotters)) after each run; use `--migel-stats` to re-render from existing DBs without downloading. A golden-set regression test (`cargo test`, ~450 curated rows against a pinned MiGeL XLSX) guards every matcher rule change.
@@ -255,7 +255,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 
 ### MiGeL Matching Results
 
-![MiGeL Matching Stats](png/swissdamed_migel_stats_15h24.07.11.2026.png)
+![MiGeL Matching Stats](png/swissdamed_migel_stats_17h02.07.11.2026.png)
 
 ### Triage Status Sheet
 

@@ -3304,6 +3304,11 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // mit Spickel Frottée-Stretch" (-> 23.05.01 Orthese) are tubular bandages too (06.11.2026).
     (&["polsterschlauch", "tobler"], &[], "35.01.08.01.1"),
     (&["spickel", "tobler"], &[], "35.01.08.01.1"),
+    // Trulife "Breastcare" (07.11.2026, maintainer decision): silicone breast forms
+    // carry only brand names (Silk, Luna, Impressions, …) → ch. 24 Brust-Exoprothese;
+    // breast-form covers / Re-Cover shells → 24.02.01.01 "… und Zubehör".
+    (&["breastcare", "trulife", "cover"], &[], "24.02.01.01.1"),
+    (&["breastcare", "trulife"], &[], "24.02.01.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
