@@ -458,6 +458,46 @@ pub fn find_latest_db(db_dir: &std::path::Path) -> Option<std::path::PathBuf> {
     crate::export::find_latest_dated_db(db_dir, "udi_details_")
 }
 
+/// EMDN prefixes for limb prostheses (Y0618 upper, Y0624 lower extremity).
+/// Routed to MiGeL `24.03.01.00.1` *Prothesen der Extremitäten, inkl.
+/// Prothesenzubehör* (SVOT / OSM tariff) — maintainer decision 10.11.2026.
+pub const LIMB_PROSTHESIS_EMDN_PREFIXES: &[&str] = &["Y0618", "Y0624"];
+pub const LIMB_PROSTHESIS_MIGEL_CODE: &str = "24.03.01.00.1";
+
+/// udiDiCodes whose EMDN code starts with one of `prefixes`, read from the
+/// newest `udi_details_*.db`. The list endpoint the matcher runs on carries no
+/// EMDN, so this is the only way to route by nomenclature. Best-effort: an
+/// empty set when no details DB exists (rows filed today are only seen from
+/// the next run on, once the incremental update has fetched their details).
+pub fn load_udis_with_emdn_prefix(
+    db_dir: &std::path::Path,
+    prefixes: &[&str],
+) -> std::collections::HashSet<String> {
+    let mut out = std::collections::HashSet::new();
+    let Some(path) = find_latest_db(db_dir) else {
+        return out;
+    };
+    let Ok(conn) = rusqlite::Connection::open_with_flags(
+        &path,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    ) else {
+        return out;
+    };
+    for pre in prefixes {
+        let Ok(mut stmt) =
+            conn.prepare("SELECT udiDiCode FROM udi_details WHERE emdnCode LIKE ?1 || '%'")
+        else {
+            continue;
+        };
+        let codes: Vec<String> = match stmt.query_map([pre], |r| r.get::<_, String>(0)) {
+            Ok(rows) => rows.flatten().collect(),
+            Err(_) => continue,
+        };
+        out.extend(codes);
+    }
+    out
+}
+
 /// Ensure the `udi_details` table exists and has every column in `HEADERS`
 /// (migrates older DBs via `ALTER TABLE ADD COLUMN`).
 fn ensure_schema(conn: &rusqlite::Connection) -> Result<(), Box<dyn std::error::Error>> {

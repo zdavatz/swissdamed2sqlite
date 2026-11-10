@@ -176,12 +176,37 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         .map(|m| (m.position_nr.as_str(), m))
         .collect();
 
+    let prosthesis_udis = crate::details::load_udis_with_emdn_prefix(
+        &crate::app_data_dir().join("db"),
+        crate::details::LIMB_PROSTHESIS_EMDN_PREFIXES,
+    );
+    let prosthesis_item = migel_items
+        .iter()
+        .find(|m| m.position_nr == crate::details::LIMB_PROSTHESIS_MIGEL_CODE);
+    eprintln!("EMDN limb-prosthesis layer: {} udiDis", prosthesis_udis.len());
+
     let override_hits = std::sync::atomic::AtomicUsize::new(0);
     let override_skips = std::sync::atomic::AtomicUsize::new(0);
 
     let matched_rows: Vec<Vec<String>> = rows
         .par_iter()
         .filter_map(|row| {
+            // 0. EMDN limb-prosthesis layer (10.11.2026): Y0618 / Y0624 rows
+            // go to 24.03.01 regardless of text or company exclusion — the
+            // nomenclature is structured and unambiguous, the text is not
+            // ("Modular Knee Joint" is both an orthosis and a prosthesis part).
+            if let (Some(gi), Some(item)) = (idx_gtin, prosthesis_item) {
+                if let Some(gtin) = row.get(gi) {
+                    if prosthesis_udis.contains(gtin) {
+                        let mut matched_row = row.clone();
+                        matched_row.push(item.position_nr.clone());
+                        matched_row.push(item.bezeichnung.clone());
+                        matched_row.push(item.limitation.clone());
+                        return Some(matched_row);
+                    }
+                }
+            }
+
             if let Some(ci) = idx_company {
                 if let Some(company) = row.get(ci) {
                     if excluded_companies.contains(&company.as_str()) {

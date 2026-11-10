@@ -720,14 +720,40 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
     let idx_company = headers.iter().position(|h| h == "companyName");
     let idx_device_type = headers.iter().position(|h| h == "deviceType");
     let idx_risk_class = headers.iter().position(|h| h == "riskClass");
+    let idx_gtin = headers.iter().position(|h| h == "udiDiCode");
 
     // Shared single source of truth for both CLI and GUI (src/migel.rs).
     let excluded_companies: &[&str] = crate::migel::EXCLUDED_COMPANIES;
+
+    let prosthesis_udis = crate::details::load_udis_with_emdn_prefix(
+        &crate::app_data_dir().join("db"),
+        crate::details::LIMB_PROSTHESIS_EMDN_PREFIXES,
+    );
+    let prosthesis_item = migel_items
+        .iter()
+        .find(|m| m.position_nr == crate::details::LIMB_PROSTHESIS_MIGEL_CODE);
+    eprintln!("EMDN limb-prosthesis layer: {} udiDis", prosthesis_udis.len());
 
     use rayon::prelude::*;
     let matched_rows: Vec<Vec<String>> = rows
         .par_iter()
         .filter_map(|row| {
+            // 0. EMDN limb-prosthesis layer (10.11.2026): Y0618 / Y0624 rows
+            // go to 24.03.01 regardless of text or company exclusion — the
+            // nomenclature is structured and unambiguous, the text is not
+            // ("Modular Knee Joint" is both an orthosis and a prosthesis part).
+            if let (Some(gi), Some(item)) = (idx_gtin, prosthesis_item) {
+                if let Some(gtin) = row.get(gi) {
+                    if prosthesis_udis.contains(gtin) {
+                        let mut matched_row = row.clone();
+                        matched_row.push(item.position_nr.clone());
+                        matched_row.push(item.bezeichnung.clone());
+                        matched_row.push(item.limitation.clone());
+                        return Some(matched_row);
+                    }
+                }
+            }
+
             if let Some(ci) = idx_company {
                 if let Some(company) = row.get(ci) {
                     if excluded_companies.contains(&company.as_str()) {
