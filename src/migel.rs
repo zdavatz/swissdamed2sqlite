@@ -943,6 +943,7 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Carl Zeiss Meditec AG",
     "VARILAG GmbH & Co. KG",
     "GBUK Group",
+    "LivaNova Deutschland GmbH",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2755,6 +2756,7 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["infusion filter"],
     &["drop sensor"], &["drip sensor"],
     &["warm-kompresse"], &["warm kompresse"],
+    &["vitrectomy"], &["finger protector"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3032,7 +3034,7 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // "care solution" / "lens case": Bausch & Lomb ReNu / Biotrue lens-care
     // solutions are not lenses (29.09.2026).
     (&["contact lens"], &["diagnostic", "gonio", "insertion", "removal", "care solution", "lens case", "hydrating drops"], "25.01.01.00.1"),
-    (&["kontaktlinse"], &["diagnostik", "gonio", "insertion", "removal", "pflegemittel", "linsenbehaelter", "linsenlosung", "linsenloesung"], "25.01.01.00.1"),
+    (&["kontaktlinse"], &["diagnostik", "gonio", "insertion", "removal", "pflegemittel", "pflegemitel", "linsenbehaelter", "linsenlosung", "linsenloesung"], "25.01.01.00.1"),
     // Moretti "Scarpe ortopediche 4USOFT" — orthopaedic therapy shoes, same
     // treatment as Künzli rehab shoes → 26.01.04.01 Spezialschuhe für Orthesen,
     // not 26.01.02 Schuhzurichtungen (shoe modifications), where the bare
