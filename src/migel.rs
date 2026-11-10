@@ -942,6 +942,7 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "In2Bones, USA",
     "Carl Zeiss Meditec AG",
     "VARILAG GmbH & Co. KG",
+    "GBUK Group",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2751,6 +2752,9 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // shoulder support) on ankle / trunk / shoulder orthoses (07.11.2026); Trulife
     // itself stays matchable (its Breastcare breast forms are MiGeL ch. 24).
     &["pressurecare"],
+    &["infusion filter"],
+    &["drop sensor"], &["drip sensor"],
+    &["warm-kompresse"], &["warm kompresse"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
