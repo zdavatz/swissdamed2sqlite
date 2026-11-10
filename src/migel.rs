@@ -3315,6 +3315,28 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // breast-form covers / Re-Cover shells → 24.02.01.01 "… und Zubehör".
     (&["breastcare", "trulife", "cover"], &[], "24.02.01.01.1"),
     (&["breastcare", "trulife"], &[], "24.02.01.00.1"),
+    // Ottobock orthotic components (10.11.2026, maintainer decision): route by
+    // body region where the scorer picked a wrong region (stirrups → shoes,
+    // AFO/KAFO/spine parts → Hand-Orthese). Prosthetic knee joints filed under
+    // knee-orthosis EMDN → 24.03.01. Both registrant spellings are needed.
+    (&["prosth", "ottobock"], &[], "24.03.01.00.1"),
+    (&["prosth", "otto bock"], &[], "24.03.01.00.1"),
+    (&["hyperextensi", "ottobock"], &[], "23.10.01.00.1"),
+    (&["hyperextensi", "otto bock"], &[], "23.10.01.00.1"),
+    (&["omo immobil", "ottobock"], &[], "22.09.01.00.1"),
+    (&["omo immobil", "otto bock"], &[], "22.09.01.00.1"),
+    (&["heel relief orthosis", "ottobock"], &[], "26.01.04.02.1"),
+    (&["heel relief orthosis", "otto bock"], &[], "26.01.04.02.1"),
+    (&["shoe stirrup", "ottobock"], &[], "23.02.01.00.1"),
+    (&["shoe stirrup", "otto bock"], &[], "23.02.01.00.1"),
+    (&["17ad300", "ottobock"], &[], "23.02.01.00.1"),
+    (&["17ad300", "otto bock"], &[], "23.02.01.00.1"),
+    (&["e-mag", "ottobock"], &[], "23.04.01.00.1"),
+    (&["e-mag", "otto bock"], &[], "23.04.01.00.1"),
+    (&["freewalk", "ottobock"], &[], "23.04.01.00.1"),
+    (&["freewalk", "otto bock"], &[], "23.04.01.00.1"),
+    (&["free walk", "ottobock"], &[], "23.04.01.00.1"),
+    (&["free walk", "otto bock"], &[], "23.04.01.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
