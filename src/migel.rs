@@ -944,6 +944,10 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "VARILAG GmbH & Co. KG",
     "GBUK Group",
     "LivaNova Deutschland GmbH",
+    "Liko Aktiebolag",
+    "DIDACTIC S.A.S.",
+    "CARDEA GmbH & Co. KG",
+    "Tecres S.p.A.",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2757,6 +2761,7 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["drop sensor"], &["drip sensor"],
     &["warm-kompresse"], &["warm kompresse"],
     &["vitrectomy"], &["finger protector"],
+    &["babycontrol"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3315,6 +3320,8 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // breast-form covers / Re-Cover shells → 24.02.01.01 "… und Zubehör".
     (&["breastcare", "trulife", "cover"], &[], "24.02.01.01.1"),
     (&["breastcare", "trulife"], &[], "24.02.01.00.1"),
+    // Bauerfeind CoxaTrain hip support (11.11.2026): scored to 23.10.01 Rumpf.
+    (&["coxatrain", "bauerfeind"], &[], "05.06.02.00.1"),
     // Ottobock orthotic components (10.11.2026, maintainer decision): route by
     // body region where the scorer picked a wrong region (stirrups → shoes,
     // AFO/KAFO/spine parts → Hand-Orthese). Prosthetic knee joints filed under
