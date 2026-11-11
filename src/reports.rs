@@ -188,7 +188,7 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
     let override_hits = std::sync::atomic::AtomicUsize::new(0);
     let override_skips = std::sync::atomic::AtomicUsize::new(0);
 
-    let matched_rows: Vec<Vec<String>> = rows
+    let mut matched_rows: Vec<Vec<String>> = rows
         .par_iter()
         .filter_map(|row| {
             // 0. EMDN limb-prosthesis layer (10.11.2026): Y0618 / Y0624 rows
@@ -366,6 +366,74 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
+    // Daily hook: incrementally refresh the per-device details DB from the same
+    // UDI download (new/changed udiDis only). Non-fatal — a details failure must
+    // not fail the MiGeL run. Opt out with --skip-details.
+    // Runs BEFORE the stats PNG / LinkedIn / Twitter step (11.11.2026) so the
+    // EMDN prosthesis catch-up below can see today's newly fetched details.
+    if !args.skip_details {
+        eprintln!("[migel] Updating udi_details (incremental) ...");
+        if let Err(e) = crate::details::update_details(&values, args.details_threads) {
+            eprintln!("[migel] details update failed (non-fatal): {}", e);
+        }
+    }
+
+    // 6b. EMDN limb-prosthesis catch-up (11.11.2026). The EMDN layer above only
+    // knows udiDis whose details were already in the DB when the run started,
+    // so a prosthesis filed today was scored by text (or not matched at all).
+    // Now that the details update has fetched it, re-apply the layer to those
+    // rows and rewrite the MiGeL DB before anything is rendered or published.
+    if !args.skip_details {
+        if let (Some(gi), Some(item)) = (idx_gtin, prosthesis_item) {
+            let fresh = crate::details::load_udis_with_emdn_prefix(
+                &db_dir,
+                crate::details::LIMB_PROSTHESIS_EMDN_PREFIXES,
+            );
+            let added: std::collections::HashSet<&String> =
+                fresh.iter().filter(|u| !prosthesis_udis.contains(*u)).collect();
+            if !added.is_empty() {
+                let code_col = headers.len();
+                let mut matched_gtins = std::collections::HashSet::new();
+                let mut rerouted = 0usize;
+                for r in matched_rows.iter_mut() {
+                    if let Some(g) = r.get(gi).cloned() {
+                        if added.contains(&g) && r[code_col] != item.position_nr {
+                            r[code_col] = item.position_nr.clone();
+                            r[code_col + 1] = item.bezeichnung.clone();
+                            r[code_col + 2] = item.limitation.clone();
+                            rerouted += 1;
+                        }
+                        matched_gtins.insert(g);
+                    }
+                }
+                let mut appended = 0usize;
+                for row in &rows {
+                    if let Some(g) = row.get(gi) {
+                        if added.contains(g) && !matched_gtins.contains(g) {
+                            let mut m = row.clone();
+                            m.push(item.position_nr.clone());
+                            m.push(item.bezeichnung.clone());
+                            m.push(item.limitation.clone());
+                            matched_rows.push(m);
+                            matched_gtins.insert(g.clone());
+                            appended += 1;
+                        }
+                    }
+                }
+                if rerouted + appended > 0 {
+                    write_sqlite(&migel_headers, &matched_rows, &db_filename)?;
+                    eprintln!(
+                        "EMDN prosthesis catch-up: +{} new, {} re-routed → MiGel matches: {} out of {} rows",
+                        appended,
+                        rerouted,
+                        matched_rows.len(),
+                        rows.len()
+                    );
+                }
+            }
+        }
+    }
+
     // 7. Generate stats PNG (Rust, via plotters)
     let db_dir = crate::app_data_dir().join("db");
     let (_, full_db) = crate::migel_stats::find_latest_dbs(&db_dir);
@@ -399,16 +467,6 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             }
         } else {
             eprintln!("Skipping Twitter publish: PNG generation failed.");
-        }
-    }
-
-    // Daily hook: incrementally refresh the per-device details DB from the same
-    // UDI download (new/changed udiDis only). Non-fatal — a details failure must
-    // not fail the MiGeL run. Opt out with --skip-details.
-    if !args.skip_details {
-        eprintln!("[migel] Updating udi_details (incremental) ...");
-        if let Err(e) = crate::details::update_details(&values, args.details_threads) {
-            eprintln!("[migel] details update failed (non-fatal): {}", e);
         }
     }
 
