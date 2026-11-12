@@ -948,6 +948,8 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "DIDACTIC S.A.S.",
     "CARDEA GmbH & Co. KG",
     "Tecres S.p.A.",
+    "A2J GmbH",
+    "Megadyne Medical Products, Inc.",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -3322,6 +3324,12 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["breastcare", "trulife"], &[], "24.02.01.00.1"),
     // Bauerfeind CoxaTrain hip support (11.11.2026): scored to 23.10.01 Rumpf.
     (&["coxatrain", "bauerfeind"], &[], "05.06.02.00.1"),
+    // 12.11.2026 wrong-code pins: Hollister male sheaths sat on 15.01.03
+    // Inkontinenzvorlagen; Foryou charcoal dressings and GAUKE gauze on the
+    // Superabsorber position. No size in the rows → 10x10 cm accepted default.
+    (&["incontinence sheath", "hollister"], &[], "15.16.02.00.1"),
+    (&["activated charcoal", "foryou"], &[], "35.03.01.03.1"),
+    (&["absorbent gauze", "gauke"], &[], "35.01.01.03.1"),
     // Ottobock orthotic components (10.11.2026, maintainer decision): route by
     // body region where the scorer picked a wrong region (stirrups → shoes,
     // AFO/KAFO/spine parts → Hand-Orthese). Prosthetic knee joints filed under
