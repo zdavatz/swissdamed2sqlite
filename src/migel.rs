@@ -2677,6 +2677,8 @@ fn keyword_score(
 /// which should NOT match any MiGeL code. These are checked against the
 /// combined DE+FR+IT text.
 const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
+    // Mediroyal spare knee hinges and a hip derotation strap kit: no MiGeL position (13.11.2026).
+    &["rom hinge", "mediroyal"], &["double hinge", "mediroyal"], &["hip rotation", "mediroyal"],
     // TZMO "Matodrape" surgical drapes: fenced on 03.07.08 on 14.09.2026, the
     // Saugertasche row then hopped to 24.02.01.01 (BH "mit Tasche") — a surgical
     // drape is never MiGeL, so exclude at the source (16.09.2026).
@@ -3373,6 +3375,38 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["freewalk", "otto bock"], &[], "23.04.01.00.1"),
     (&["free walk", "ottobock"], &[], "23.04.01.00.1"),
     (&["free walk", "otto bock"], &[], "23.04.01.00.1"),
+    // Mediroyal Nordic AB (13.11.2026, maintainer): serial prefab orthoses and
+    // supports had scored onto the ch. 23 MASSORTHESEN codes. Prefab orthoses
+    // go to ch. 22 by function, soft supports to the ch. 05 bandages. Order
+    // matters: specific families before the bare body-region token.
+    (&["post-op", "mediroyal"], &[], "22.04.04.00.1"),
+    (&["knee immo", "mediroyal"], &[], "22.04.03.00.1"),
+    (&["liga x rom", "mediroyal"], &[], "22.04.02.00.1"),
+    (&["liga", "mediroyal"], &[], "22.04.01.00.1"),
+    (&["hinged knee", "mediroyal"], &[], "22.04.01.00.1"),
+    (&["patella lux", "mediroyal"], &[], "05.04.13.00.1"),
+    (&["patella tendon", "mediroyal"], &[], "22.04.10.00.1"),
+    (&["patellatendon", "mediroyal"], &[], "22.04.10.00.1"),
+    (&["knee strap", "mediroyal"], &[], "22.04.10.00.1"),
+    (&["patella", "mediroyal"], &[], "05.04.12.00.1"),
+    (&["knee", "mediroyal"], &["hinge", "ice wrap"], "05.04.10.00.1"),
+    (&["armis", "mediroyal"], &[], "22.02.02.00.1"),
+    (&["crx", "ankle", "mediroyal"], &[], "22.02.02.00.1"),
+    (&["ankle", "mediroyal"], &["ice wrap"], "05.02.10.00.1"),
+    (&["finger", "spring", "mediroyal"], &["edema"], "22.06.05.00.1"),
+    (&["finger", "mediroyal"], &["edema"], "22.06.01.00.1"),
+    (&["srx", "universal wrist", "mediroyal"], &[], "05.07.10.00.1"),
+    (&["tfcc", "mediroyal"], &[], "22.07.01.00.1"),
+    (&["wrist", "mediroyal"], &[], "22.07.01.00.1"),
+    (&["ulnar", "elbow", "mediroyal"], &[], "22.08.03.00.1"),
+    (&["ulnar", "mediroyal"], &[], "22.07.01.00.1"),
+    (&["epi elbow", "mediroyal"], &[], "22.08.06.00.1"),
+    (&["tennis elbow", "mediroyal"], &[], "22.08.06.00.1"),
+    (&["elbow", "mediroyal"], &["ice wrap"], "05.08.05.00.1"),
+    (&["humerus fracture", "mediroyal"], &[], "23.24.01.00.1"),
+    (&["shoulder immo", "mediroyal"], &[], "22.09.01.00.1"),
+    (&["erix", "shoulder", "mediroyal"], &[], "22.09.02.00.1"),
+    (&["shoulder", "mediroyal"], &["ice wrap"], "05.09.05.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
