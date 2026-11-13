@@ -950,6 +950,7 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Tecres S.p.A.",
     "A2J GmbH",
     "Megadyne Medical Products, Inc.",
+    "Materialise NV",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
