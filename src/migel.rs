@@ -951,6 +951,7 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "A2J GmbH",
     "Megadyne Medical Products, Inc.",
     "Materialise NV",
+    "Spectros Medical Devices, Inc.",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2677,6 +2678,11 @@ fn keyword_score(
 /// which should NOT match any MiGeL code. These are checked against the
 /// combined DE+FR+IT text.
 const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
+    // PRIM SPINAIR hip belt: an accessory of the spinal orthosis, no MiGeL position (13.11.2026).
+    &["spinair hip belt"],
+    // SWASH hip-abduction system parts (pelvic bands, uprights, thigh cuffs, pads): only the
+    // joint set is pinned to 22.05.02 (pins run before this list); the rest has no position.
+    &["swash", "prim, s.a."],
     // Mediroyal spare knee hinges and a hip derotation strap kit: no MiGeL position (13.11.2026).
     &["rom hinge", "mediroyal"], &["double hinge", "mediroyal"], &["hip rotation", "mediroyal"],
     // TZMO "Matodrape" surgical drapes: fenced on 03.07.08 on 14.09.2026, the
@@ -3435,6 +3441,43 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["shoulder immo", "mediroyal"], &[], "22.09.01.00.1"),
     (&["erix", "shoulder", "mediroyal"], &[], "22.09.02.00.1"),
     (&["shoulder", "mediroyal"], &["ice wrap"], "05.09.05.00.1"),
+    // Ch. 22 audit (13.11.2026, maintainer): PRIM serial orthoses and supports off the
+    // ch. 23 Massorthesen codes. Company token "prim, s.a." so PRIMecare & co. never fire.
+    (&["swash", "joint set", "prim, s.a."], &[], "22.05.02.00.1"),
+    (&["hyperextension", "prim, s.a."], &[], "22.13.02.00.1"),
+    (&["spinair sp500", "prim, s.a."], &[], "22.15.01.00.1"),
+    (&["dropfoot", "prim, s.a."], &[], "22.03.05.00.1"),
+    (&["multipositional ankle", "prim, s.a."], &[], "22.03.04.00.1"),
+    (&["immobilizing splint", "prim, s.a."], &[], "22.02.04.00.1"),
+    (&["ankle brace splint", "prim, s.a."], &[], "22.02.01.00.1"),
+    (&["medio lateral ankle", "prim, s.a."], &[], "22.02.01.00.1"),
+    (&["ankle brace w/stays", "prim, s.a."], &[], "22.02.02.00.1"),
+    (&["maleolar pad", "prim, s.a."], &[], "05.02.12.00.1"),
+    (&["ankle", "prim, s.a."], &[], "05.02.10.00.1"),
+    (&["rom knee", "prim, s.a."], &[], "22.04.02.00.1"),
+    (&["semi open rom", "prim, s.a."], &[], "22.04.02.00.1"),
+    (&["rom e-sense", "prim, s.a."], &[], "22.04.02.00.1"),
+    (&["knee brace splint", "prim, s.a."], &[], "22.04.03.00.1"),
+    (&["knee immobilizer", "prim, s.a."], &[], "22.04.03.00.1"),
+    (&["knee", "centric", "prim, s.a."], &[], "22.04.01.00.1"),
+    (&["genu-recurvatum", "prim, s.a."], &[], "22.04.01.00.1"),
+    (&["mpk knee", "prim, s.a."], &["immobilizer"], "22.04.01.00.1"),
+    (&["knee", "stays", "prim, s.a."], &[], "05.04.13.00.1"),
+    (&["knee", "prim, s.a."], &[], "05.04.10.00.1"),
+    (&["finger extensor", "prim, s.a."], &[], "22.06.05.00.1"),
+    (&["hallux valgus", "prim, s.a."], &[], "22.01.01.00.1"),
+    (&["toe aligner", "prim, s.a."], &[], "22.01.01.00.1"),
+    (&["thumb abduction", "prim, s.a."], &[], "22.07.01.00.1"),
+    (&["thumb inmobilizer", "prim, s.a."], &[], "22.07.01.00.1"),
+    (&["wrist", "inmobilization", "prim, s.a."], &[], "22.07.03.00.1"),
+    (&["wrist", "prim, s.a."], &["elastic", "bandage"], "22.07.01.00.1"),
+    (&["post-op elbow", "prim, s.a."], &[], "22.08.04.00.1"),
+    (&["elbow", "prim, s.a."], &[], "05.08.05.00.1"),
+    (&["abduction", "prim, s.a."], &[], "22.09.03.00.1"),
+    (&["immobilizing strap", "prim, s.a."], &[], "22.09.01.00.1"),
+    (&["sling", "prim, s.a."], &["forearm sling"], "22.09.01.00.1"),
+    (&["hsafe", "prim, s.a."], &[], "22.09.02.00.1"),
+    (&["shoulder", "prim, s.a."], &[], "05.09.05.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
