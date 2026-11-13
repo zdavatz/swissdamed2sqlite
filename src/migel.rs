@@ -3325,6 +3325,26 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["breastcare", "trulife"], &[], "24.02.01.00.1"),
     // Bauerfeind CoxaTrain hip support (11.11.2026): scored to 23.10.01 Rumpf.
     (&["coxatrain", "bauerfeind"], &[], "05.06.02.00.1"),
+    // Bauerfeind bandages (13.11.2026, maintainer): soft supports belong on the
+    // ch. 05 bandage positions, not the ch. 23 orthosis codes the scorer picked.
+    (&["achill", "bauerfeind"], &[], "05.02.20.00.1"),
+    (&["ankle support", "bauerfeind"], &[], "05.02.10.00.1"),
+    (&["knee support", "bauerfeind"], &[], "05.04.10.00.1"),
+    (&["elbow support", "bauerfeind"], &[], "05.08.05.00.1"),
+    // "Train" medical bandage line: anatomical compression bandages with
+    // silicone pad(s); "+ Funktionselement" where a strap / stabiliser is part
+    // of the product (S, S Pro, P3, OA, Plus).
+    (&["genutrain s", "bauerfeind"], &[], "05.04.13.00.1"),
+    (&["genutrain p3", "bauerfeind"], &[], "05.04.13.00.1"),
+    (&["genutrain oa", "bauerfeind"], &[], "05.04.13.00.1"),
+    (&["genutrain", "bauerfeind"], &[], "05.04.12.00.1"),
+    (&["malleotrain s", "bauerfeind"], &[], "05.02.14.00.1"),
+    (&["malleotrain plus", "bauerfeind"], &[], "05.02.14.00.1"),
+    (&["malleotrain", "bauerfeind"], &[], "05.02.12.00.1"),
+    (&["epitrain", "bauerfeind"], &[], "05.08.07.00.1"),
+    (&["manutrain", "bauerfeind"], &[], "05.07.14.00.1"),
+    (&["omotrain", "bauerfeind"], &[], "05.09.05.00.1"),
+    (&["lumbotrain", "bauerfeind"], &[], "05.14.02.00.1"),
     // 12.11.2026 wrong-code pins: Hollister male sheaths sat on 15.01.03
     // Inkontinenzvorlagen; Foryou charcoal dressings and GAUKE gauze on the
     // Superabsorber position. No size in the rows → 10x10 cm accepted default.

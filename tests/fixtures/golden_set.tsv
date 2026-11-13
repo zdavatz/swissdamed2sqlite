@@ -649,7 +649,7 @@ Aerosoltherapy Nebulizer SIH 13	Aerosoltherapy Nebulizer SIH 13	Aerosoltherapy N
  Infusion Sets URODYNAMICS DEVICES - ACCESSORIES	 Infusion Sets URODYNAMICS DEVICES - ACCESSORIES	 Infusion Sets URODYNAMICS DEVICES - ACCESSORIES	Delta Med SPA	MDR	CLASS_IIA	NONE	Delta Med urodynamics company exclusion 04.11.
  A.M.I. HAL Knotpusher Trilogy Intruments	 A.M.I. HAL Knotpusher Trilogy Intruments	 A.M.I. HAL Knotpusher Trilogy Intruments	A.M.I. Agency for Medical Innovations GmbH	MDR	CLASS_I	NONE	trilogy pin hit, company exclusion 04.11.
  ReNu Advanced Contact Lens Hydrating Drops	 ReNu Advanced Contact Lens Hydrating Drops	 ReNu Advanced Contact Lens Hydrating Drops	Dr. Gerhard Mann chem.-pharm. Fabrik GmbH	MDR	CLASS_IIA	NONE	lens drops off contact-lens pin 04.11.
- b:joynz knee support, titan, 5 b:joynz knee support	 b:joynz knee support, titan, 5 b:joynz knee support	 b:joynz knee support, titan, 5 b:joynz knee support	Bauerfeind AG	MDR	CLASS_I	23.04.01.00.1	b:joynz knee support positive 04.11.
+ b:joynz knee support, titan, 5 b:joynz knee support	 b:joynz knee support, titan, 5 b:joynz knee support	 b:joynz knee support, titan, 5 b:joynz knee support	Bauerfeind AG	MDR	CLASS_I	05.04.10.00.1	b:joynz knee support positive 04.11.
  Catheter tray 1000mm Catheter Tray 1000mm	 Catheter tray 1000mm Catheter Tray 1000mm	 Catheter tray 1000mm Catheter Tray 1000mm	STILLE AB	MDR	CLASS_I	NONE	STILLE AB OR tables company exclusion 05.11.
  Pinnacle Sensor Cover Barriers	 Pinnacle Sensor Cover Barriers	 Pinnacle Sensor Cover Barriers	Metrex Research LLC	MDR	CLASS_I	NONE	Metrex dental sensor barriers company exclusion 05.11.
  Pelvic Pin for Knee Navigation	 Pelvic Pin for Knee Navigation	 Pelvic Pin for Knee Navigation	Stryker Leibinger GmbH & Co. KG	MDR	CLASS_IIA	NONE	Stryker Leibinger navigation company exclusion 05.11.
@@ -705,4 +705,9 @@ Aerosoltherapy Nebulizer SIH 13	Aerosoltherapy Nebulizer SIH 13	Aerosoltherapy N
  Oberschenkelgurt 2D-Basic Unterschenkel Gurt 2D	 Oberschenkelgurt 2D-Basic Unterschenkel Gurt 2D	 Oberschenkelgurt 2D-Basic Unterschenkel Gurt 2D	A2J GmbH	MDR	CLASS_I	NONE	A2J wheelchair belts company exclusion 12.11.
  MEGADYNE RF Sensor	 MEGADYNE RF Sensor	 MEGADYNE RF Sensor	Megadyne Medical Products, Inc.	MDR	CLASS_IIB	NONE	Megadyne electrosurgery company exclusion 12.11.
  SurgiCase Shoulder Planner	 SurgiCase Shoulder Planner	 SurgiCase Shoulder Planner	Materialise NV	MDR	CLASS_I	NONE	Materialise surgical planning software company exclusion 13.11.
- Sports ankle support	 Sports Ankle Support, black, left, Size M	 Sports ankle support	Bauerfeind AG	MDR	CLASS_I	23.02.01.00.1	Bauerfeind Sports ankle support positive 13.11.
+ Sports ankle support	 Sports Ankle Support, black, left, Size M	 Sports ankle support	Bauerfeind AG	MDR	CLASS_I	05.02.10.00.1	Bauerfeind ankle support pin ch.05 13.11.
+ GenuTrain	 GenuTrain, Gr. 3, titan	 GenuTrain	Bauerfeind AG	MDR	CLASS_I	05.04.12.00.1	Bauerfeind bandage pin ch.05 13.11.
+ GenuTrain S	 GenuTrain S, Gr. 3, links	 GenuTrain S	Bauerfeind AG	MDR	CLASS_I	05.04.13.00.1	Bauerfeind bandage pin ch.05 13.11.
+ MalleoTrain	 MalleoTrain, Gr. 2, links	 MalleoTrain	Bauerfeind AG	MDR	CLASS_I	05.02.12.00.1	Bauerfeind bandage pin ch.05 13.11.
+ EpiTrain	 EpiTrain, Gr. 3, titan	 EpiTrain	Bauerfeind AG	MDR	CLASS_I	05.08.07.00.1	Bauerfeind bandage pin ch.05 13.11.
+ Outdoor Knee Support	 Outdoor Knee Support, Sandstone-Orange, L	 Outdoor Knee Support	Bauerfeind AG	MDR	CLASS_I	05.04.10.00.1	Bauerfeind bandage pin ch.05 13.11.

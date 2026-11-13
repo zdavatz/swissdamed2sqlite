@@ -245,7 +245,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 - **Lookup CHRN** — finds all SRNs for a given CHRN (e.g. `CHRN-AR-20000807`). Downloads actors, matches by `chrn` field, fetches mandate details (which contain SRN), outputs timestamped CSV
 - **Google Drive** — uploads CSV to Google Drive using a service account .p12 key with domain-wide delegation (`--gdrive --gdrive-sub user@domain.com`)
 - **Email** — sends CSV as attachment via Gmail API using the same service account delegation (`--mailto recipient@example.com --gdrive-sub user@domain.com`). Non-ASCII subject lines (umlauts etc.) are RFC 2047 encoded.
-- **MiGeL** — matches UDI devices against MiGeL (Mittel- und Gegenständeliste) codes (~113,000 of ~600,000 rows, category-level precision ~99.9%) in three layers:
+- **MiGeL** — matches UDI devices against MiGeL (Mittel- und Gegenständeliste) codes (~114,000 of ~600,000 rows, category-level precision ~99.9%) in three layers:
   0. **EMDN limb-prosthesis layer** — udiDis whose EMDN code is `Y0618` / `Y0624` (upper / lower limb prostheses, read from the newest `udi_details_*.db`) go straight to `24.03.01.00.1` *Prothesen der Extremitäten*; ~14,600 rows (Ottobock, Alps South, Steeper, …). In the daily `--migel` run the details update now runs before the PNG / LinkedIn step, and the layer is re-applied to same-day filings.
   1. **GTIN overrides** from `db/sigvaris_shop_*.db` (built by `--sigvaris-shop`) take precedence. Each variant is mapped to its exact MiGeL code (or explicit skip for Stützstrumpf / Anti-Thrombose / Reisestrumpf / Klasse 1, per BAG Kap. 17). ~7,900 SIGVARIS rows mapped this way.
   2. **Heuristic Aho-Corasick** matcher for remaining manufacturers — curated **forced-match pins** for brand/category-exclusive tokens (O2 regulators, crutches, contact lenses, home ventilators, CPAP, spirometers, insulin patch pumps, ready-made therapy shoes), a **hard metadata gate** (IVD and Class III devices never reach text matching), IDF-weighted multi-language scoring with deterministic tie-breaking, English-to-German medical term translation (~85 terms with context-aware combinations like "ortho"+"rehab"→"spezialschuhe"), German compound-word decomposition (e.g. `Ellenbogenschiene`→Ellenbogen-Orthese), and region-gated enrichment for compression garments, ostomy, urinary drainage, incontinence, diabetes supplies and wound dressings. Precision is enforced by per-code negative keywords, universal exclusions, generic-token stop-words, and a pure-non-MiGeL **company exclusion** list (~109 entries: radiation-therapy, dental, sleep-lab, surgical-instrument, lab-venipuncture and hospital-IV makers whose entire output would otherwise be false positives). Adds ~7,800 matches.
@@ -256,7 +256,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 
 ### MiGeL Matching Results
 
-![MiGeL Matching Stats](png/swissdamed_migel_stats_14h49.13.11.2026.png)
+![MiGeL Matching Stats](png/swissdamed_migel_stats_15h26.13.11.2026.png)
 
 ### Triage Status Sheet
 
