@@ -2680,6 +2680,12 @@ fn keyword_score(
 const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // PRIM SPINAIR hip belt: an accessory of the spinal orthosis, no MiGeL position (13.11.2026).
     &["spinair hip belt"],
+    // Bota "Ortho 515": no body region in any language (16.11.2026) — left unmatched.
+    &["ortho", "515", "laboratoria bota"],
+    // 16.11.2026: Franz Mensch "Gowns with elastic wrist band" (protective gowns) and
+    // AbbVie "Hip Pack" (Duodopa pump pouch) -> 23.10.01 Rumpf via wrist / hip.
+    &["gown"],
+    &["hip pack"],
     // SWASH hip-abduction system parts (pelvic bands, uprights, thigh cuffs, pads): only the
     // joint set is pinned to 22.05.02 (pins run before this list); the rest has no position.
     &["swash", "prim, s.a."],
@@ -3478,6 +3484,39 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["sling", "prim, s.a."], &["forearm sling"], "22.09.01.00.1"),
     (&["hsafe", "prim, s.a."], &[], "22.09.02.00.1"),
     (&["shoulder", "prim, s.a."], &[], "05.09.05.00.1"),
+    // Ch. 22 audit, part 4 — Laboratoria Bota (16.11.2026, maintainer): Bota files its
+    // supports as EMDN elastic compression bandages, so they go to the ch. 05 bandage
+    // positions; only the splint-type products (Stabilising Orthosis, Digifix, the tennis-
+    // elbow clasp) go to ch. 22. "+ velcro" / silicone pad read as Funktionselement / Pelotte.
+    // Family tokens, not bare body regions, so unapproved Bota lines are not swept in.
+    (&["stabilising orthosis ankle", "laboratoria bota"], &[], "22.02.01.00.1"),
+    (&["stabilising orthosis knee", "laboratoria bota"], &[], "22.04.03.00.1"),
+    (&["ankle", "velcro", "bota plus", "laboratoria bota"], &[], "05.02.13.00.1"),
+    (&["botalastic", "velcro", "ankle", "laboratoria bota"], &[], "05.02.13.00.1"),
+    (&["ankle 930", "laboratoria bota"], &[], "05.02.13.00.1"),
+    (&["ankle brace", "bota plus", "laboratoria bota"], &[], "05.02.10.00.1"),
+    (&["botasol ankle", "laboratoria bota"], &[], "05.02.10.00.1"),
+    (&["knee support", "bota plus", "laboratoria bota"], &[], "05.04.10.00.1"),
+    (&["botasol knee", "laboratoria bota"], &[], "05.04.10.00.1"),
+    (&["df knee 4000", "laboratoria bota"], &[], "05.04.13.00.1"),
+    (&["correction patella", "laboratoria bota"], &[], "05.04.13.00.1"),
+    (&["digifix finger mallet", "laboratoria bota"], &[], "22.06.03.00.1"),
+    (&["digifix finger cot", "laboratoria bota"], &[], "22.06.01.00.1"),
+    (&["hand wrist brace", "thumb", "laboratoria bota"], &[], "05.07.11.00.1"),
+    (&["hand wrist brace", "laboratoria bota"], &[], "05.07.10.00.1"),
+    (&["tennis elbow sport", "laboratoria bota"], &[], "22.08.06.00.1"),
+    (&["elbow 820", "laboratoria bota"], &[], "05.08.09.00.1"),
+    (&["elbow brace", "pelotte", "bota plus", "laboratoria bota"], &[], "05.08.09.00.1"),
+    (&["elbow 810", "laboratoria bota"], &[], "05.08.07.00.1"),
+    (&["elbow 800", "laboratoria bota"], &[], "05.08.05.00.1"),
+    (&["elbota", "laboratoria bota"], &[], "05.08.05.00.1"),
+    (&["elbow brace", "bota plus", "laboratoria bota"], &[], "05.08.05.00.1"),
+    (&["botasol elbow", "laboratoria bota"], &[], "05.08.05.00.1"),
+    (&["shoulder 700", "laboratoria bota"], &[], "05.09.05.00.1"),
+    (&["botasol shoulder", "laboratoria bota"], &[], "05.09.05.00.1"),
+    // TensCare stimulators (16.11.2026) scored to the electrode position 09.02.01.02.
+    (&["perfect tens", "tenscare"], &[], "09.02.01.01.1"),
+    (&["sports tens", "tenscare"], &[], "09.02.01.01.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
