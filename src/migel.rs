@@ -952,6 +952,7 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Megadyne Medical Products, Inc.",
     "Materialise NV",
     "Spectros Medical Devices, Inc.",
+    "Aspen Surgical Products Inc",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2686,6 +2687,24 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // AbbVie "Hip Pack" (Duodopa pump pouch) -> 23.10.01 Rumpf via wrist / hip.
     &["gown"],
     &["hip pack"],
+    // Ch. 22 audit, part 5 (16.11.2026): Aspen accessory kits, panels and pads on ch. 23 have no
+    // position (the Mediroyal-hinge / SWASH precedent). Named tokens only — Aspen's replacement
+    // panels already on 22.15.01 were deliberately left alone.
+    &["replacement", "knee", "aspen medical products"],
+    &["aspen tlso upgrade", "aspen medical products"],
+    &["vista 464 tlso upgrade", "aspen medical products"],
+    &["chest panel upgrade", "aspen medical products"],
+    &["spk upgrade", "aspen medical products"],
+    &["contour w/vista upgrade", "aspen medical products"],
+    &["accy", "aspen medical products"],
+    &["stop frame", "aspen medical products"],
+    &["knee suspension wrap", "aspen medical products"],
+    &["shoulder strap", "aspen medical products"],
+    &["extension panel","tlso", "aspen medical products"],
+    &["align orthosis replacement", "aspen medical products"],
+    &["lso/tlso replacement", "aspen medical products"],
+    &["spk replacement", "aspen medical products"],
+    &["vista replacement", "aspen medical products"],
     // SWASH hip-abduction system parts (pelvic bands, uprights, thigh cuffs, pads): only the
     // joint set is pinned to 22.05.02 (pins run before this list); the rest has no position.
     &["swash", "prim, s.a."],
@@ -3517,6 +3536,16 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // TensCare stimulators (16.11.2026) scored to the electrode position 09.02.01.02.
     (&["perfect tens", "tenscare"], &[], "09.02.01.01.1"),
     (&["sports tens", "tenscare"], &[], "09.02.01.01.1"),
+    // Ch. 22 audit, part 5 — Aspen Medical Products (16.11.2026, maintainer).
+    (&["m2 afo", "aspen medical products"], &[], "22.03.05.00.1"),
+    (&["hinged knee", "aspen medical products"], &[], "22.04.01.00.1"),
+    (&["rom knee", "aspen medical products"], &[], "22.04.02.00.1"),
+    (&["ci knee", "aspen medical products"], &["accy", "stop frame"], "22.04.01.00.1"),
+    (&["paladin xt", "aspen medical products"], &[], "22.04.01.00.1"),
+    (&["oa knee", "aspen medical products"], &[], "22.04.02.00.1"),
+    (&["hyperextension", "tlso", "aspen medical products"], &[], "22.13.02.00.1"),
+    (&["tlso", "aspen medical products"], &["ctlso", "cto", "cervical", "upgrade", "replacement", "panel", "strap", "accy", "scolio"], "22.15.01.00.1"),
+    (&["hinged wrist", "aspen medical products"], &[], "22.07.02.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
