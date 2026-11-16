@@ -2705,6 +2705,8 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["lso/tlso replacement", "aspen medical products"],
     &["spk replacement", "aspen medical products"],
     &["vista replacement", "aspen medical products"],
+    // Span Link XcelTrax replacement liners (16.11.2026): accessory, no position.
+    &["replacement liner", "span link"],
     // SWASH hip-abduction system parts (pelvic bands, uprights, thigh cuffs, pads): only the
     // joint set is pinned to 22.05.02 (pins run before this list); the rest has no position.
     &["swash", "prim, s.a."],
@@ -3363,6 +3365,8 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["achill", "bauerfeind"], &[], "05.02.20.00.1"),
     (&["ankle support", "bauerfeind"], &[], "05.02.10.00.1"),
     (&["knee support", "bauerfeind"], &[], "05.04.10.00.1"),
+    // Sports Elbow Strap (16.11.2026) = epicondylitis strap, ch. 22 like Mediroyal / Bota.
+    (&["elbow strap", "bauerfeind"], &[], "22.08.06.00.1"),
     (&["elbow support", "bauerfeind"], &[], "05.08.05.00.1"),
     // "Train" medical bandage line: anatomical compression bandages with
     // silicone pad(s); "+ Funktionselement" where a strap / stabiliser is part
@@ -3546,6 +3550,17 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["hyperextension", "tlso", "aspen medical products"], &[], "22.13.02.00.1"),
     (&["tlso", "aspen medical products"], &["ctlso", "cto", "cervical", "upgrade", "replacement", "panel", "strap", "accy", "scolio"], "22.15.01.00.1"),
     (&["hinged wrist", "aspen medical products"], &[], "22.07.02.00.1"),
+    // Ch. 22 audit, part 6 — Span Link (16.11.2026, maintainer); XcelTrax walkers per the walker policy.
+    (&["xcel", "span link"], &["replacement"], "22.02.04.00.1"),
+    (&["joynz ankle brace", "span link"], &[], "22.02.02.00.1"),
+    (&["joynz ankle stirrup", "span link"], &[], "22.02.01.00.1"),
+    (&["oa lite", "span link"], &[], "22.04.02.00.1"),
+    (&["talarmade oa", "span link"], &[], "22.04.02.00.1"),
+    (&["joynz knee rom", "span link"], &[], "22.04.02.00.1"),
+    (&["joynz knee brace pro", "span link"], &[], "22.04.01.00.1"),
+    (&["tlso", "span link"], &["ctlso", "cto", "cervical"], "22.15.01.00.1"),
+    (&["alufoam", "span link"], &[], "22.06.03.00.1"),
+    (&["joynz shoulder immobilizer", "span link"], &[], "22.09.01.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
