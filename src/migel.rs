@@ -954,6 +954,7 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Spectros Medical Devices, Inc.",
     "Aspen Surgical Products Inc",
     "Young Microbrush LLC dba Microbrush International",
+    "TECNOBODY S.P.A.",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -3374,6 +3375,8 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["elbow strap", "bauerfeind"], &[], "22.08.06.00.1"),
     // Sports Knee Strap (16.11.2026): an infrapatellar strap, like Mediroyal's Knee Strap.
     (&["knee strap", "bauerfeind"], &[], "22.04.10.00.1"),
+    // Sports Wrist Strap (16.11.2026): elastic wrist wrap, like Mediroyal's SRX Universal straps.
+    (&["wrist strap", "bauerfeind"], &[], "05.07.10.00.1"),
     (&["elbow support", "bauerfeind"], &[], "05.08.05.00.1"),
     // "Train" medical bandage line: anatomical compression bandages with
     // silicone pad(s); "+ Funktionselement" where a strap / stabiliser is part
