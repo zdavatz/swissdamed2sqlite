@@ -953,6 +953,7 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Materialise NV",
     "Spectros Medical Devices, Inc.",
     "Aspen Surgical Products Inc",
+    "Young Microbrush LLC dba Microbrush International",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2707,6 +2708,10 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["vista replacement", "aspen medical products"],
     // Span Link XcelTrax replacement liners (16.11.2026): accessory, no position.
     &["replacement liner", "span link"],
+    // Orthobroker BraceID post-op knee replacement kit (16.11.2026): spare parts, no position.
+    &["replacement kit", "orthobroker"],
+    // MESI ABPI MD (16.11.2026): automated ankle-brachial-index measuring device, not an orthosis.
+    &["ankle brachial"],
     // SWASH hip-abduction system parts (pelvic bands, uprights, thigh cuffs, pads): only the
     // joint set is pinned to 22.05.02 (pins run before this list); the rest has no position.
     &["swash", "prim, s.a."],
@@ -3367,6 +3372,8 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["knee support", "bauerfeind"], &[], "05.04.10.00.1"),
     // Sports Elbow Strap (16.11.2026) = epicondylitis strap, ch. 22 like Mediroyal / Bota.
     (&["elbow strap", "bauerfeind"], &[], "22.08.06.00.1"),
+    // Sports Knee Strap (16.11.2026): an infrapatellar strap, like Mediroyal's Knee Strap.
+    (&["knee strap", "bauerfeind"], &[], "22.04.10.00.1"),
     (&["elbow support", "bauerfeind"], &[], "05.08.05.00.1"),
     // "Train" medical bandage line: anatomical compression bandages with
     // silicone pad(s); "+ Funktionselement" where a strap / stabiliser is part
@@ -3561,6 +3568,30 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["tlso", "span link"], &["ctlso", "cto", "cervical"], "22.15.01.00.1"),
     (&["alufoam", "span link"], &[], "22.06.03.00.1"),
     (&["joynz shoulder immobilizer", "span link"], &[], "22.09.01.00.1"),
+    // Ch. 22 audit, part 7 — Orthobroker BraceID (16.11.2026, maintainer). Orthobroker files one
+    // deviceName per product group (Ankle Stirrup-Junior Air, 0 deg Knee Immobiliser-40, Embrace
+    // Wrist — Small Right, OrthoSling Single Unit) on every row of that group, so these pins key on
+    // trade-name tokens, specific families before the group token, with stop-words for siblings.
+    (&["tri-step", "orthobroker"], &[], "22.02.10.00.1"),
+    (&["ortho wedge shoe", "orthobroker"], &[], "26.01.04.02.1"),
+    (&["ankle wrap bandage", "orthobroker"], &[], "05.02.10.00.1"),
+    (&["ankle stirrup", "orthobroker"], &["walker", "tri-step", "wedge", "wrap"], "22.02.01.00.1"),
+    (&["cool rom", "orthobroker"], &[], "22.04.02.00.1"),
+    (&["post-op rom", "orthobroker"], &[], "22.04.04.00.1"),
+    (&["ptkd", "orthobroker"], &[], "22.04.03.00.1"),
+    (&["functional knee", "orthobroker"], &[], "22.04.01.00.1"),
+    (&["preserver knee", "orthobroker"], &[], "22.04.02.00.1"),
+    (&["oa knee orthosis", "orthobroker"], &[], "22.04.02.00.1"),
+    (&["spiral stay", "orthobroker"], &[], "05.04.13.00.1"),
+    (&["with hinge", "orthobroker"], &[], "22.04.01.00.1"),
+    (&["knee immobiliser", "orthobroker"], &["replacement"], "22.04.03.00.1"),
+    (&["stack finger splint", "orthobroker"], &[], "22.06.03.00.1"),
+    (&["embrace wrist", "orthobroker"], &["thumb", "d-ring", "spica", "carpi", "finger"], "22.07.01.00.1"),
+    (&["epicondylitis elbow strap", "orthobroker"], &[], "22.08.06.00.1"),
+    (&["rom elbow", "orthobroker"], &[], "22.08.04.00.1"),
+    (&["pillow 15", "orthobroker"], &[], "22.09.03.00.1"),
+    (&["shoulder immobiliser", "orthobroker"], &[], "22.09.01.00.1"),
+    (&["lumbo sacral orthosis", "orthobroker"], &["panel"], "22.15.01.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
