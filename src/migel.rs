@@ -2711,8 +2711,13 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["replacement liner", "span link"],
     // Orthobroker BraceID post-op knee replacement kit (16.11.2026): spare parts, no position.
     &["replacement kit", "orthobroker"],
+    // BSN Actimove "Y-Tab for Sling Comfort" (17.11.2026): a sling accessory part, no position.
+    &["y-tab", "bsn medical"],
     // MESI ABPI MD (16.11.2026): automated ankle-brachial-index measuring device, not an orthosis.
     &["ankle brachial"],
+    // Microval hernia meshes (17.11.2026): "Synthetic permanent implant for abdominal wall
+    // reinforcement", Class IIb implants, scored to 05.11.10 Leib-/Rumpf-Bandage.
+    &["abdominal wall reinforcement"],
     // SWASH hip-abduction system parts (pelvic bands, uprights, thigh cuffs, pads): only the
     // joint set is pinned to 22.05.02 (pins run before this list); the rest has no position.
     &["swash", "prim, s.a."],
@@ -3595,6 +3600,23 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["pillow 15", "orthobroker"], &[], "22.09.03.00.1"),
     (&["shoulder immobiliser", "orthobroker"], &[], "22.09.01.00.1"),
     (&["lumbo sacral orthosis", "orthobroker"], &["panel"], "22.15.01.00.1"),
+    // Ch. 22 audit, part 8 — BSN medical Actimove / Tricodur (17.11.2026, maintainer). All 73 rows
+    // on ch. 23 were serial supports and immobilisers. BSN files the family in the deviceName
+    // (trade name is just "Actimove"), so the pins key on it; pads / straps / stays are readings
+    // from the product lines, not stated in the rows.
+    (&["talocast", "bsn medical"], &[], "22.02.01.00.1"),
+    (&["talomotion", "bsn medical"], &[], "05.02.14.00.1"),
+    (&["criss-cross", "bsn medical"], &[], "05.02.13.00.1"),
+    (&["ankle support", "bsn medical"], &[], "05.02.10.00.1"),
+    (&["4 stays", "bsn medical"], &[], "05.04.13.00.1"),
+    (&["genumotion", "bsn medical"], &[], "05.04.13.00.1"),
+    (&["knee support", "bsn medical"], &["stabilizer", "thigh"], "05.04.10.00.1"),
+    (&["wrist stabilizer", "bsn medical"], &[], "05.07.11.00.1"),
+    (&["epimotion", "bsn medical"], &[], "05.08.09.00.1"),
+    (&["pressur pad", "bsn medical"], &[], "05.08.09.00.1"),
+    (&["es elbow support", "bsn medical"], &[], "05.08.05.00.1"),
+    (&["gilchrist", "bsn medical"], &[], "22.09.01.00.1"),
+    (&["umerus", "bsn medical"], &[], "22.09.01.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
