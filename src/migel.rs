@@ -3617,6 +3617,25 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["es elbow support", "bsn medical"], &[], "05.08.05.00.1"),
     (&["gilchrist", "bsn medical"], &[], "22.09.01.00.1"),
     (&["umerus", "bsn medical"], &[], "22.09.01.00.1"),
+    // BSN JOBST compression garments (17.11.2026, maintainer). The rows state class, Lower /
+    // Upper, RTW (ready-made) vs MTM (made-to-measure) and the knit family, but never the length,
+    // so round-knit stockings take the calf position as accepted default (the SIGVARIS Compreflex
+    // precedent). Elvarex and Bellavar are flat-knit -> 17.15 (made-to-measure only, so Bellavar
+    // RTW stays unmatched). CCL1 (not a Pflichtleistung) and the US-scale Relax line stay
+    // unmatched via the stop-words.
+    (&["ulcercare", "bsn jobst"], &[], "17.05.01.00.1"),
+    (&["bellavar", "mtm", "bsn jobst"], &["ccl1"], "17.15.01.00.1"),
+    (&["elvarex", "glove", "bsn jobst"], &["ccl1"], "17.15.02.00.1"),
+    (&["elvarex", "upper", "bsn jobst"], &["ccl1"], "17.15.03.00.1"),
+    (&["elvarex", "lower", "bsn jobst"], &["ccl1"], "17.15.01.00.1"),
+    (&["ccl3", "lower", "mtm", "bsn jobst"], &["bellavar", "elvarex"], "17.03.01.02.1"),
+    (&["ccl2", "lower", "mtm", "bsn jobst"], &["bellavar", "elvarex"], "17.02.01.02.1"),
+    (&["ccl2", "lower", "rtw", "bsn jobst"], &["bellavar", "elvarex"], "17.02.01.01.1"),
+    // BSN FarrowWrap adjustable wrap systems -> 17.06.01 medizinisch adaptives Kompressionssystem.
+    // "LG FT TH KN" names leg, foot, thigh and knee together -> Wade as accepted default.
+    // Gauntlet (no hand position) and liners (included in the system position) stay unmatched.
+    (&["farrowwrap", "arm", "bsn medical"], &["liner", "gauntlet"], "17.06.01.00.1"),
+    (&["farrowwrap", "lg ft th", "bsn medical"], &["liner", "gauntlet"], "17.06.01.02.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
