@@ -955,6 +955,10 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Aspen Surgical Products Inc",
     "Young Microbrush LLC dba Microbrush International",
     "TECNOBODY S.P.A.",
+    // 17.11.2026: dental impression alginates and silicones (Q0102) -> 35.05.06 Alginate / 23.21.01.
+    "Zhermack S.p.A.",
+    // 17.11.2026: Corega denture cleansing tablets and adhesive cream -> 99.50.20 Tablettenteiler.
+    "Stafford-Miller (Ireland) Limited",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2718,6 +2722,12 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // Microval hernia meshes (17.11.2026): "Synthetic permanent implant for abdominal wall
     // reinforcement", Class IIb implants, scored to 05.11.10 Leib-/Rumpf-Bandage.
     &["abdominal wall reinforcement"],
+    // Denture cleansing tablets (17.11.2026, Corega / Fittydent / retail brands) -> 99.50.20.
+    &["reinigungstabletten"], &["cleansing tablet"],
+    // Ypsomed "ServoPen non-insulin" (17.11.2026): teriparatide / apomorphine pens on the insulin-pen position.
+    &["non-insulin"],
+    // Arion Swash perineum wipes and wash gloves (17.11.2026): not absorbent incontinence aids.
+    &["swash perineum"],
     // SWASH hip-abduction system parts (pelvic bands, uprights, thigh cuffs, pads): only the
     // joint set is pinned to 22.05.02 (pins run before this list); the rest has no position.
     &["swash", "prim, s.a."],
@@ -3624,6 +3634,9 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // RTW stays unmatched). CCL1 (not a Pflichtleistung) and the US-scale Relax line stay
     // unmatched via the stop-words.
     (&["ulcercare", "bsn jobst"], &[], "17.05.01.00.1"),
+    // KOB "Short Stretch Compression Bandage" (17.11.2026) had scored to 17.15.03 (flat-knit arm, nach
+    // Mass) -> Kurzzug compression bandage; no width stated, narrowest (6 cm) as accepted default.
+    (&["short stretch compression bandage", "kob gmbh"], &[], "17.30.01.01.1"),
     (&["bellavar", "mtm", "bsn jobst"], &["ccl1"], "17.15.01.00.1"),
     (&["elvarex", "glove", "bsn jobst"], &["ccl1"], "17.15.02.00.1"),
     (&["elvarex", "upper", "bsn jobst"], &["ccl1"], "17.15.03.00.1"),
