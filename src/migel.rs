@@ -3718,6 +3718,8 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // follows the corpus precedent on 05.10.01 (open question: 05.10.01 is the child position).
     (&["armsling abduction", "catell"], &[], "22.09.03.00.1"),
     (&["armsling standard", "catell"], &[], "05.10.01.00.1"),
+    // Ch. 22 audit, part 14 — thuasne serial OA unloader knee brace (sizes 1A–4B), maintainer 18.11.2026.
+    (&["knee osteoarthritis brace", "thuasne"], &[], "22.04.02.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
