@@ -963,6 +963,9 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Biomet France",
     "Johnson & Johnson Surgical Vision, Inc.",
     "Multimedical s.r.l.",
+    // 18.11.2026: reusable surgical instruments ("Strumenti chirurgici riutilizzabili"),
+    // suction cannulas -> 03.07.09.09 Aufziehkanüle.
+    "Medesy srl",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2736,6 +2739,8 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["balloon dilation"],
     // Swisslastic VENOSAN stockings state no compression class or length -> cannot be coded.
     &["venosan medical compression stockings"],
+    // Breg "Post Op T Scope Elbow Hnd Piece" (18.11.2026): accessory of the T Scope elbow brace.
+    &["hnd piece", "breg"],
     // SWASH hip-abduction system parts (pelvic bands, uprights, thigh cuffs, pads): only the
     // joint set is pinned to 22.05.02 (pins run before this list); the rest has no position.
     &["swash", "prim, s.a."],
@@ -3146,7 +3151,8 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["q brace", "bioskin"], &[], "05.04.13.00.1"),
     // 16.10.2026: Breg "ARC 2.0 Sling" is a shoulder abduction orthosis
     // (EMDN SHOULDER ORTHOSES); unpinned it scored to 23.10.01 Rumpf-Orthesen.
-    (&["arc 2.0 sling", "breg"], &[], "23.25.01.00.1"),
+    // 18.11.2026 (ch. 22 audit, part 11): re-pointed 23.25.01 -> 22.09.03 Schulterabduktionsorthese.
+    (&["arc 2.0 sling", "breg"], &[], "22.09.03.00.1"),
     // 16.10.2026: Bauerfeind "GloboPed" fore-/rearfoot relief orthoses are
     // post-op offloading shoes; unpinned they scored to 23.21.01 Hand-Orthesen.
     (&["globoped", "bauerfeind"], &[], "26.01.04.02.1"),
@@ -3695,6 +3701,12 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["tennis elbow band", "bioskin"], &[], "22.08.06.00.1"),
     (&["tennis elbow sleeve", "bioskin"], &[], "05.08.09.00.1"),
     (&["standard elbow sleeve", "bioskin"], &[], "05.08.05.00.1"),
+    // Ch. 22 audit, part 11 — Breg DOC serial braces (maintainer 18.11.2026, no recall intended).
+    (&["tscope hip", "breg"], &[], "22.05.02.00.1"),
+    (&["elbow po tscope", "breg"], &[], "22.08.04.00.1"),
+    (&["elbow brace hex", "breg"], &[], "22.08.04.00.1"),
+    (&["wrist lacer", "breg"], &[], "22.07.01.00.1"),
+    (&["shoulder abduction pillow", "breg"], &[], "22.09.03.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)

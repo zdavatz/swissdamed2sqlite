@@ -140,6 +140,16 @@ pub struct Args {
     #[arg(long)]
     pub migel_stats: bool,
 
+    /// List MiGeL positions whose number starts with one of the given prefixes
+    /// (e.g. `--migel-positions 05.02 22.07`). Reads `--migel-xlsx`, else the
+    /// last downloaded `migel.xlsx` in cwd, else the pinned test fixture.
+    #[arg(long, num_args = 1.., value_name = "PREFIX")]
+    pub migel_positions: Option<Vec<String>>,
+
+    /// MiGeL XLSX to read for --migel-positions.
+    #[arg(long)]
+    pub migel_xlsx: Option<PathBuf>,
+
     /// Download actors data
     #[arg(long)]
     pub actors: bool,
@@ -473,6 +483,25 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --linkedin-delete mode (delete a post, no download/render)
     if let Some(ref post_ref) = args.linkedin_delete {
         linkedin::delete_post(post_ref)?;
+        return Ok(());
+    }
+
+    // Handle --migel-positions (list MiGeL positions by prefix, no download)
+    if let Some(ref prefixes) = args.migel_positions {
+        let xlsx = args.migel_xlsx.clone().unwrap_or_else(|| {
+            let live = PathBuf::from("migel.xlsx");
+            if live.exists() {
+                live
+            } else {
+                PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/fixtures/migel.xlsx"))
+            }
+        });
+        eprintln!("Reading {}", xlsx.display());
+        for item in migel::parse_migel_items(&xlsx.to_string_lossy())? {
+            if prefixes.iter().any(|p| item.position_nr.starts_with(p.as_str())) {
+                println!("{} | {}", item.position_nr, item.bezeichnung);
+            }
+        }
         return Ok(());
     }
 

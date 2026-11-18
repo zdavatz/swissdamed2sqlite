@@ -146,6 +146,9 @@ swissdamed2sqlite --migel --deploy
 # Re-render the MiGeL stats PNG from existing DBs (no download)
 swissdamed2sqlite --migel-stats
 
+# List MiGeL positions by number prefix (no download)
+swissdamed2sqlite --migel-positions 05.02 22.07
+
 # Publish the MiGeL stats PNG to LinkedIn / X-Twitter
 swissdamed2sqlite --migel --linkedin --twitter
 swissdamed2sqlite --migel-stats --linkedin --twitter
@@ -256,7 +259,7 @@ The nested `udiDis` array from the UDI API is flattened: each UDI DI entry becom
 
 ### MiGeL Matching Results
 
-![MiGeL Matching Stats](png/swissdamed_migel_stats_15h10.18.11.2026.png)
+![MiGeL Matching Stats](png/swissdamed_migel_stats_17h04.18.11.2026.png)
 
 ### Triage Status Sheet
 
