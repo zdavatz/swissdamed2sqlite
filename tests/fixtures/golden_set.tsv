@@ -14,8 +14,8 @@ desc_de	desc_fr	desc_it	brand	device_type	risk_class	expected	note
  Ortho-Pad Schulterkissen rechts Gr. 2, grau Schulterkissen Orthopad	 Schulterkissen Orthopad	 Schulterkissen Orthopad	Achim Ruthner GmbH	MDR	CLASS_I	22.09.03.00.1	genuine
  Halskrawatte, anatomisch 4 cm Halskrawatten	 Halskrawatten	 Halskrawatten	Achim Ruthner GmbH	MDR	CLASS_I	22.12.01.00.1	genuine
  Halskrawatte, anatomisch 5,6cm Halskrawatten	 Halskrawatten	 Halskrawatten	Achim Ruthner GmbH	MDR	CLASS_I	22.12.01.00.1	genuine
- Ellenbogenschiene lang Gr. xx-small rechts Ellenbogenschienen lang	 Ellenbogenschienen lang	 Ellenbogenschienen lang	Achim Ruthner GmbH	MDR	CLASS_I	23.23.01.00.1	genuine
- Ellenbogenschiene lang Gr. x-small rechts Ellenbogenschienen lang	 Ellenbogenschienen lang	 Ellenbogenschienen lang	Achim Ruthner GmbH	MDR	CLASS_I	23.23.01.00.1	genuine
+ Ellenbogenschiene lang Gr. xx-small rechts Ellenbogenschienen lang	 Ellenbogenschienen lang	 Ellenbogenschienen lang	Achim Ruthner GmbH	MDR	CLASS_I	22.08.03.00.1	genuine
+ Ellenbogenschiene lang Gr. x-small rechts Ellenbogenschienen lang	 Ellenbogenschienen lang	 Ellenbogenschienen lang	Achim Ruthner GmbH	MDR	CLASS_I	22.08.03.00.1	genuine
  Stoma-Bandage Comfort Höhe 22,5cm Größe XXXXL rechts 60mm Stomabandagen	 Stomabandagen	 Stomabandagen	Achim Ruthner GmbH	MDR	CLASS_I	29.01.01.00.1	genuine
  Stoma-Bandage Comfort Höhe 22,5cm Größe S links 60mm Stomabandagen	 Stomabandagen	 Stomabandagen	Achim Ruthner GmbH	MDR	CLASS_I	29.01.01.00.1	genuine
  VISTA CTO CERVICAL	 VISTA CTO CERVICAL	 VISTA CTO CERVICAL	Aspen Medical Products LLC	MDR	CLASS_I	22.12.01.00.1	genuine
@@ -847,3 +847,5 @@ Aerosoltherapy Nebulizer SIH 13	Aerosoltherapy Nebulizer SIH 13	Aerosoltherapy N
  WRIST LACER 8 LT M DOC 701-05 WRIST	 WRIST LACER 8 LT M DOC 701-05 WRIST	 WRIST LACER 8 LT M DOC 701-05 WRIST	Breg, Inc	MDR	CLASS_I	22.07.01.00.1	breg-wrist-lacer-ch22-audit-18.11.2026
  SHOULDER ABDUCTION PILLOW INT DOC 601-01 SLINGSHOT	 SHOULDER ABDUCTION PILLOW INT DOC 601-01 SLINGSHOT	 SHOULDER ABDUCTION PILLOW INT DOC 601-01 SLINGSHOT	Breg, Inc	MDR	CLASS_I	22.09.03.00.1	breg-abduction-pillow-ch22-audit-18.11.2026
  STRUMENTI CHIRURGICI RIUTILIZZABILI CANNULA PER ASPIRAZIONE mm4	 STRUMENTI CHIRURGICI RIUTILIZZABILI CANNULA PER ASPIRAZIONE mm4	 STRUMENTI CHIRURGICI RIUTILIZZABILI CANNULA PER ASPIRAZIONE mm4	Medesy srl	MDR	CLASS_I	NONE	medesy-surgical-cannula-excluded-18.11.2026
+ Ellenbogenschiene ROM Ellenbogen ROM-Schiene links	 Ellenbogenschiene ROM Ellenbogen ROM-Schiene links	 Ellenbogenschiene ROM Ellenbogen ROM-Schiene links	Achim Ruthner GmbH	MDR	CLASS_I	22.08.04.00.1	ruthner-elbow-rom-ch22-audit-18.11.2026
+ Ellenbogenschienen lang Ellenbogenschiene lang Gr. medium links	 Ellenbogenschienen lang Ellenbogenschiene lang Gr. medium links	 Ellenbogenschienen lang Ellenbogenschiene lang Gr. medium links	Achim Ruthner GmbH	MDR	CLASS_I	22.08.03.00.1	ruthner-elbow-long-ch22-audit-18.11.2026

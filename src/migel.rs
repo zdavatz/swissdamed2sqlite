@@ -3707,6 +3707,10 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["elbow brace hex", "breg"], &[], "22.08.04.00.1"),
     (&["wrist lacer", "breg"], &[], "22.07.01.00.1"),
     (&["shoulder abduction pillow", "breg"], &[], "22.09.03.00.1"),
+    // Ch. 22 audit, part 12 — Achim Ruthner serial elbow splints (maintainer 18.11.2026):
+    // ROM hinge -> adjustable immobilisation; "lang" (no hinge stated) -> fixed position.
+    (&["ellenbogenschiene rom", "achim ruthner"], &[], "22.08.04.00.1"),
+    (&["ellenbogenschiene lang", "achim ruthner"], &[], "22.08.03.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
