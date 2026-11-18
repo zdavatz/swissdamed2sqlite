@@ -2741,6 +2741,9 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["venosan medical compression stockings"],
     // Breg "Post Op T Scope Elbow Hnd Piece" (18.11.2026): accessory of the T Scope elbow brace.
     &["hnd piece", "breg"],
+    // Catell "Finger More" finger oedema compression sleeves (18.11.2026) — no serial
+    // finger-compression position, same call as the Mediroyal edema sleeves above.
+    &["finger more", "catell"],
     // SWASH hip-abduction system parts (pelvic bands, uprights, thigh cuffs, pads): only the
     // joint set is pinned to 22.05.02 (pins run before this list); the rest has no position.
     &["swash", "prim, s.a."],
@@ -3711,6 +3714,10 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // ROM hinge -> adjustable immobilisation; "lang" (no hinge stated) -> fixed position.
     (&["ellenbogenschiene rom", "achim ruthner"], &[], "22.08.04.00.1"),
     (&["ellenbogenschiene lang", "achim ruthner"], &[], "22.08.03.00.1"),
+    // Ch. 22 audit, part 13 — Catell AB arm slings (maintainer 18.11.2026). Standard sling
+    // follows the corpus precedent on 05.10.01 (open question: 05.10.01 is the child position).
+    (&["armsling abduction", "catell"], &[], "22.09.03.00.1"),
+    (&["armsling standard", "catell"], &[], "05.10.01.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
