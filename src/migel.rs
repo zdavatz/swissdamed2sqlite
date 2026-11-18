@@ -959,6 +959,10 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Zhermack S.p.A.",
     // 17.11.2026: Corega denture cleansing tablets and adhesive cream -> 99.50.20 Tablettenteiler.
     "Stafford-Miller (Ireland) Limited",
+    "Zimmer CAS",
+    "Biomet France",
+    "Johnson & Johnson Surgical Vision, Inc.",
+    "Multimedical s.r.l.",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2728,6 +2732,10 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["non-insulin"],
     // Arion Swash perineum wipes and wash gloves (17.11.2026): not absorbent incontinence aids.
     &["swash perineum"],
+    // Bard X-Force nephrostomy balloon dilation catheter (interventional) -> 29.01.01 Stoma.
+    &["balloon dilation"],
+    // Swisslastic VENOSAN stockings state no compression class or length -> cannot be coded.
+    &["venosan medical compression stockings"],
     // SWASH hip-abduction system parts (pelvic bands, uprights, thigh cuffs, pads): only the
     // joint set is pinned to 22.05.02 (pins run before this list); the rest has no position.
     &["swash", "prim, s.a."],
@@ -3637,6 +3645,11 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // KOB "Short Stretch Compression Bandage" (17.11.2026) had scored to 17.15.03 (flat-knit arm, nach
     // Mass) -> Kurzzug compression bandage; no width stated, narrowest (6 cm) as accepted default.
     (&["short stretch compression bandage", "kob gmbh"], &[], "17.30.01.01.1"),
+    // KOB long-stretch bandages 656 fine / 666 forte -> Langzug; no width stated, 8 cm as default.
+    (&["long stretch compression bandage", "kob gmbh"], &[], "17.30.01.10.1"),
+    // Bard hydrogel-coated Foley (indwelling) catheters had scored to a hydrogel wound dressing.
+    (&["foley catheter", "all-silicone", "c. r. bard"], &[], "15.11.10.00.1"),
+    (&["foley catheter", "latex", "c. r. bard"], &["silicone"], "15.11.01.00.1"),
     (&["bellavar", "mtm", "bsn jobst"], &["ccl1"], "17.15.01.00.1"),
     (&["elvarex", "glove", "bsn jobst"], &["ccl1"], "17.15.02.00.1"),
     (&["elvarex", "upper", "bsn jobst"], &["ccl1"], "17.15.03.00.1"),
@@ -3649,6 +3662,27 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // Gauntlet (no hand position) and liners (included in the system position) stay unmatched.
     (&["farrowwrap", "arm", "bsn medical"], &["liner", "gauntlet"], "17.06.01.00.1"),
     (&["farrowwrap", "lg ft th", "bsn medical"], &["liner", "gauntlet"], "17.06.01.02.1"),
+    // Ch. 22 audit, part 9 — Shanae Servicios Geriatricos (IVF Hartmann DermaPlast ACTIVE,
+    // serial supports and orthoses; maintainer 18.11.2026). The deviceName is the generic
+    // EMDN term, so the trade-name family decides; "plus" before the plain variant.
+    // Readings from the product line: Soft = elastic, Soft plus = with pad(s).
+    (&["dermaplast active", "malleo soft plus", "shanae"], &[], "05.02.12.00.1"),
+    (&["dermaplast active", "malleo soft", "shanae"], &[], "05.02.10.00.1"),
+    (&["dermaplast active", "malleo pro", "shanae"], &[], "22.02.01.00.1"),
+    (&["dermaplast active", "genu soft plus", "shanae"], &[], "05.04.12.00.1"),
+    (&["dermaplast active", "genu soft", "shanae"], &[], "05.04.10.00.1"),
+    (&["dermaplast active", "epi soft plus", "shanae"], &[], "05.08.07.00.1"),
+    (&["dermaplast active", "epi soft", "shanae"], &[], "05.08.05.00.1"),
+    (&["dermaplast active", "epi spot", "shanae"], &[], "22.08.06.00.1"),
+    (&["dermaplast active", "manu soft plus", "shanae"], &[], "05.07.11.00.1"),
+    (&["dermaplast active", "manu soft universal", "shanae"], &[], "05.07.10.00.1"),
+    (&["dermaplast active", "manu universal", "shanae"], &[], "22.07.01.00.1"),
+    (&["dermaplast active", "manu easy", "shanae"], &[], "22.07.01.00.1"),
+    (&["dermaplast active", "manu pro", "shanae"], &[], "22.07.01.00.1"),
+    (&["dermaplast active", "rhizo soft", "shanae"], &[], "05.07.01.00.1"),
+    (&["dermaplast active", "rhizo pro", "shanae"], &[], "22.07.01.00.1"),
+    (&["dermaplast active", "uni belt abdomen", "shanae"], &[], "05.11.10.00.1"),
+    (&["dermaplast active", "uni belt thorax", "shanae"], &[], "05.13.02.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
