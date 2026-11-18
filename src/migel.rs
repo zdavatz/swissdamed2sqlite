@@ -3141,7 +3141,9 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["livaroknee"], &[], "22.04.03.00.1"),
     // 12.10.2026: BioSkin "Q BRACE CrossFire" is a patellofemoral knee brace
     // (EMDN Y061209 KNEE ORTHOSES); unpinned it scored to 23.21.01 Hand-Orthesen.
-    (&["q brace", "bioskin"], &[], "23.04.01.00.1"),
+    // Ch. 22 audit, part 10 (18.11.2026, maintainer): Q Brace is a patellofemoral sleeve with
+    // buttress and cross straps, no hinge -> bandage with pad + functional element.
+    (&["q brace", "bioskin"], &[], "05.04.13.00.1"),
     // 16.10.2026: Breg "ARC 2.0 Sling" is a shoulder abduction orthosis
     // (EMDN SHOULDER ORTHOSES); unpinned it scored to 23.10.01 Rumpf-Orthesen.
     (&["arc 2.0 sling", "breg"], &[], "23.25.01.00.1"),
@@ -3683,6 +3685,16 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["dermaplast active", "rhizo pro", "shanae"], &[], "22.07.01.00.1"),
     (&["dermaplast active", "uni belt abdomen", "shanae"], &[], "05.11.10.00.1"),
     (&["dermaplast active", "uni belt thorax", "shanae"], &[], "05.13.02.00.1"),
+    // Ch. 22 audit, part 10 — BioSkin Cropper Medical (Skintech serial supports; maintainer
+    // 18.11.2026). Re-route only: the families below were all on ch. 23; specific before generic.
+    (&["hinged knee sleeve", "bioskin"], &[], "22.04.01.00.1"),
+    (&["knee sleeve", "straps", "bioskin"], &["hinged"], "05.04.13.00.1"),
+    (&["knee sleeve", "bioskin"], &["hinged"], "05.04.10.00.1"),
+    (&["ankle sleeve wrap", "bioskin"], &[], "05.02.13.00.1"),
+    (&["sto ankle brace", "bioskin"], &[], "22.02.02.00.1"),
+    (&["tennis elbow band", "bioskin"], &[], "22.08.06.00.1"),
+    (&["tennis elbow sleeve", "bioskin"], &[], "05.08.09.00.1"),
+    (&["standard elbow sleeve", "bioskin"], &[], "05.08.05.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
