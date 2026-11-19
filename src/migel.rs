@@ -967,6 +967,8 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // suction cannulas -> 03.07.09.09 Aufziehkanüle.
     "Medesy srl",
     "Arthrex, Inc", // TightRope Knee ligament-fixation implant (Class IIb, EMDN P09) on 23.04.01; 19.11.2026
+    "Sentec AG", // transcutaneous pCO2 / SpO2 hospital monitoring sensors and cables -> 21.07.02 Sensoren magnet; 19.11.2026
+    "BK Medical Aps", // ultrasound probes / needle guides, "Water Standoff Collar" -> 17.12.01.01; 19.11.2026
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2845,6 +2847,9 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // Safety pins (NOBAMED SICHERHEITSNADELN -> 03.07.09.12) and NOBASPLINT splint material (-> 23.22.01): no position; 19.11.2026.
     &["sicherheitsnadel"],
     &["nobasplint"],
+    // Gastrostomy feeding tubes (Cardinal KANGAROO -> 29.01.01): enteral feeding is Spezialnahrung, not MiGeL —
+    // generalises the 30.10. Cedic "feeding tube extension" decision; 19.11.2026.
+    &["feeding tube"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3746,6 +3751,10 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["nobalinge", "nobamed"], &[], "35.01.14.10.1"),
     (&["nobafrott", "nobamed"], &[], "35.01.08.01.1"),
     (&["rudamed", "elastisch", "nobamed"], &[], "35.01.07.01.1"),
+    // Daily 19.11.2026: Allenspach foam knee positioning splint (EMDN knee orthoses) had scored to 17.30.15 Pelotte
+    // Schaumstoff; TZMO re-filed a Seni Active pants row without deviceName as "Elastische Einwegunterwäsche" -> elastic bandage.
+    (&["schaumstoff-lagerungsschiene", "allenspach"], &[], "22.04.03.00.1"),
+    (&["elastische einwegunterw", "tzmo"], &["mittlere"], "15.01.03.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
