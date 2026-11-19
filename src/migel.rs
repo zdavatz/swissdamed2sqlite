@@ -3727,6 +3727,9 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // Ch. 22 audit, part 15 — Bauerfeind SofTec Dorso serial TLSO (adjustable back shell; Smartspine TLSO
     // precedent), off 23.10.01 Rumpf-Orthesen; also recall of the hip-loop-less Short / Long Titan rows. Maintainer 19.11.2026.
     (&["softec dorso", "bauerfeind"], &[], "22.15.02.00.1"),
+    // Ch. 22 audit, part 16 — Camp Scandinavia VISSION shoulder orthosis (6 sizes), off 23.25.01; maintainer 19.11.2026
+    // chose 22.09.03 (Schulterabduktionsorthese) over the immobilisation position 22.09.01.
+    (&["vission shoulder orthosis", "camp scandinavia"], &[], "22.09.03.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
