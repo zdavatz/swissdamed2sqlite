@@ -966,6 +966,7 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     // 18.11.2026: reusable surgical instruments ("Strumenti chirurgici riutilizzabili"),
     // suction cannulas -> 03.07.09.09 Aufziehkanüle.
     "Medesy srl",
+    "Arthrex, Inc", // TightRope Knee ligament-fixation implant (Class IIb, EMDN P09) on 23.04.01; 19.11.2026
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2841,6 +2842,9 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["babycontrol"],
     // Same SISS infant apnoea monitor filed as "SISS BABCONTROL" (sic), slipped past the token above; 19.11.2026.
     &["babcontrol"],
+    // Safety pins (NOBAMED SICHERHEITSNADELN -> 03.07.09.12) and NOBASPLINT splint material (-> 23.22.01): no position; 19.11.2026.
+    &["sicherheitsnadel"],
+    &["nobasplint"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3732,6 +3736,16 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // Ch. 22 audit, part 16 — Camp Scandinavia VISSION shoulder orthosis (6 sizes), off 23.25.01; maintainer 19.11.2026
     // chose 22.09.03 (Schulterabduktionsorthese) over the immobilisation position 22.09.01.
     (&["vission shoulder orthosis", "camp scandinavia"], &[], "22.09.03.00.1"),
+    // Ch. 22 audit, part 18 — Turtlebrace prefab rigid-shell braces, maintainer 19.11.2026: SMO ankle brace off 23.02.01,
+    // infant / pediatric wrist braces off 05.07.10 (elastic bandage — these are thermoplastic shells).
+    (&["smo ankle brace", "turtlebrace"], &[], "22.02.02.00.1"),
+    (&["wrist brace", "turtlebrace"], &[], "22.07.01.00.1"),
+    // NOBAMED Paul Danz AG first-aid / dressing catalogue, maintainer 19.11.2026: net and terry tubular bandages and
+    // finger cots had scored to ch. 23 orthosis codes by their body-region size names; RUDAMED elastic to Tape elastisch.
+    (&["nobanetz", "nobamed"], &[], "35.01.08.20.1"),
+    (&["nobalinge", "nobamed"], &[], "35.01.14.10.1"),
+    (&["nobafrott", "nobamed"], &[], "35.01.08.01.1"),
+    (&["rudamed", "elastisch", "nobamed"], &[], "35.01.07.01.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
