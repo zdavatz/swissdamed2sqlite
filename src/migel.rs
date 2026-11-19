@@ -2744,6 +2744,8 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // Catell "Finger More" finger oedema compression sleeves (18.11.2026) — no serial
     // finger-compression position, same call as the Mediroyal edema sleeves above.
     &["finger more", "catell"],
+    // Bard StatLock Foley catheter securement device (adhesive anchor) — no MiGeL position; scored to 22.07.01 Hand-Orthese, 19.11.2026.
+    &["statlock"],
     // SWASH hip-abduction system parts (pelvic bands, uprights, thigh cuffs, pads): only the
     // joint set is pinned to 22.05.02 (pins run before this list); the rest has no position.
     &["swash", "prim, s.a."],
@@ -3661,6 +3663,8 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // Bard hydrogel-coated Foley (indwelling) catheters had scored to a hydrogel wound dressing.
     (&["foley catheter", "all-silicone", "c. r. bard"], &[], "15.11.10.00.1"),
     (&["foley catheter", "latex", "c. r. bard"], &["silicone"], "15.11.01.00.1"),
+    // Bard BIOCATH = hydrogel-coated latex Foley (latex not stated in the row — a reading from the product line), 19.11.2026.
+    (&["foley catheter", "biocath", "c. r. bard"], &["silicone"], "15.11.01.00.1"),
     (&["bellavar", "mtm", "bsn jobst"], &["ccl1"], "17.15.01.00.1"),
     (&["elvarex", "glove", "bsn jobst"], &["ccl1"], "17.15.02.00.1"),
     (&["elvarex", "upper", "bsn jobst"], &["ccl1"], "17.15.03.00.1"),
@@ -3720,6 +3724,9 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["armsling standard", "catell"], &[], "05.10.01.00.1"),
     // Ch. 22 audit, part 14 — thuasne serial OA unloader knee brace (sizes 1A–4B), maintainer 18.11.2026.
     (&["knee osteoarthritis brace", "thuasne"], &[], "22.04.02.00.1"),
+    // Ch. 22 audit, part 15 — Bauerfeind SofTec Dorso serial TLSO (adjustable back shell; Smartspine TLSO
+    // precedent), off 23.10.01 Rumpf-Orthesen; also recall of the hip-loop-less Short / Long Titan rows. Maintainer 19.11.2026.
+    (&["softec dorso", "bauerfeind"], &[], "22.15.02.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
