@@ -2839,6 +2839,8 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["warm-kompresse"], &["warm kompresse"],
     &["vitrectomy"], &["finger protector"],
     &["babycontrol"],
+    // Same SISS infant apnoea monitor filed as "SISS BABCONTROL" (sic), slipped past the token above; 19.11.2026.
+    &["babcontrol"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
