@@ -8,6 +8,7 @@ pub mod download;
 mod error_report;
 pub mod export;
 pub mod gdrive;
+pub mod gtin_lookup;
 pub mod gtin_report;
 mod gui;
 pub mod linkedin;
@@ -318,6 +319,16 @@ pub struct Args {
     #[arg(long, value_name = "XLSX")]
     pub gtin_report: Option<PathBuf>,
 
+    /// Look up one or more GTINs / UDI-DIs in the local DBs and print the full
+    /// basic UDI-DI and UDI-DI detail record, triage and MiGeL match. EAN-13 and
+    /// GTIN-14 spellings both work; package UDI-DIs resolve to their base unit.
+    #[arg(long, num_args = 1.., value_name = "GTIN")]
+    pub gtin: Option<Vec<String>>,
+
+    /// With --gtin: print one JSON array (raw detail JSON + triage + MiGeL row) instead of text.
+    #[arg(long)]
+    pub gtin_json: bool,
+
     /// EUDAMED mirror DB for --gtin-report (from `eudamed2firstbase mirror`).
     #[arg(long, value_name = "DB")]
     pub eudamed_db: Option<PathBuf>,
@@ -409,6 +420,11 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Handle --status-pdf mode (render one-page status PDF from latest details DB)
     if args.status_pdf {
         return status_pdf::run();
+    }
+
+    // Single-GTIN lookup. Standalone: reads local DBs only, no download.
+    if let Some(ref codes) = args.gtin {
+        return gtin_lookup::run(codes, &app_data_dir().join("db"), args.gtin_json);
     }
 
     // Join a partner's GTIN list against our sources. Standalone: reads local

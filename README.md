@@ -149,6 +149,10 @@ swissdamed2sqlite --migel-stats
 # List MiGeL positions by number prefix (no download)
 swissdamed2sqlite --migel-positions 05.02 22.07
 
+# Look up GTINs / UDI-DIs: full basic UDI-DI + UDI-DI detail record, triage, MiGeL match (no download)
+swissdamed2sqlite --gtin 5900516699673 07640127798065
+swissdamed2sqlite --gtin 5900516699673 --gtin-json   # one JSON array instead of text
+
 # Publish the MiGeL stats PNG to LinkedIn / X-Twitter
 swissdamed2sqlite --migel --linkedin --twitter
 swissdamed2sqlite --migel-stats --linkedin --twitter
