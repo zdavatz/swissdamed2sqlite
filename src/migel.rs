@@ -969,6 +969,15 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Arthrex, Inc", // TightRope Knee ligament-fixation implant (Class IIb, EMDN P09) on 23.04.01; 19.11.2026
     "Sentec AG", // transcutaneous pCO2 / SpO2 hospital monitoring sensors and cables -> 21.07.02 Sensoren magnet; 19.11.2026
     "BK Medical Aps", // ultrasound probes / needle guides, "Water Standoff Collar" -> 17.12.01.01; 19.11.2026
+    // 20.11.2026: lift slings / standing-transfer vests; FES stimulation garments; ophthalmic I/A cannulas; cerebral
+    // oximetry sensors; bone screws and plates; dental cleaner; reusable surgical instruments (ENT atomizers).
+    "Invacare Portugal Unipessoal, Lda.",
+    "Evomotion GmbH",
+    "PSI/EYE-KO, Inc. Anodyne",
+    "Covidien llc",
+    "Intercus GmbH",
+    "Mid-Continental Dental Supply Co. Ltd.",
+    "ASANUS Medizintechnik GmbH",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2850,6 +2859,11 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // Gastrostomy feeding tubes (Cardinal KANGAROO -> 29.01.01): enteral feeding is Spezialnahrung, not MiGeL —
     // generalises the 30.10. Cedic "feeding tube extension" decision; 19.11.2026.
     &["feeding tube"],
+    // Symmetric Designs wheelchair seating (Respira back supports via the back-support pin, 343) and Headmaster
+    // collar accessories (pads, straps, anterior supports, TOT tubing); the collar itself is pinned. 20.11.2026.
+    &["wheelchair accessories", "symmetric designs"],
+    &["headmaster", "symmetric designs"],
+    &["tot collar"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3182,7 +3196,7 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // 19.09.2026: the pin also lifted 101 previously unmatched genuine rows
     // (PRIM Fajas 70, Orthobroker 22, Mediroyal SRX 9); "rib belt" / "splint"
     // added so Orthobroker rib belts and SpineBoard splint inserts stay out.
-    (&["back support"], &["abdominal", "cervical", "lumbo sacral", "orthosis", "rib belt", "splint", "armrest"], "05.14.01.00.1"),
+    (&["back support"], &["abdominal", "cervical", "lumbo sacral", "orthosis", "rib belt", "splint", "armrest", "wheelchair"], "05.14.01.00.1"),
     // Respironics home ventilators → 14.12.02 Heimbeatmungsgerät, Miete.
     // The Bezeichnung compound "Heimbeatmungsgerät" is unreachable via the
     // ventilator→beatmungsgeraet enrichment. MUST come before the PAP rules:
@@ -3755,6 +3769,11 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // Schaumstoff; TZMO re-filed a Seni Active pants row without deviceName as "Elastische Einwegunterwäsche" -> elastic bandage.
     (&["schaumstoff-lagerungsschiene", "allenspach"], &[], "22.04.03.00.1"),
     (&["elastische einwegunterw", "tzmo"], &["mittlere"], "15.01.03.00.1"),
+    // Daily 20.11.2026: Symmetric Designs "Headmaster Collar" (serial cervical collar, EMDN cervical spine orthoses,
+    // deviceName "Truncal Orthoses") had scored to 23.21.01 Hand-Orthesen; Allenspach "Gilet-Orthopädie PRO" (shoulder
+    // immobilisation vest, EMDN upper-extremity orthoses) to 23.21.01. Readings from the product names.
+    (&["headmaster collar", "symmetric designs"], &[], "22.12.01.00.1"),
+    (&["gilet-orthop", "allenspach"], &[], "22.09.01.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
