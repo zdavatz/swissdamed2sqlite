@@ -430,6 +430,13 @@ pub fn run(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
     let db_path = export::output_db("udi_details")?;
     export::write_sqlite_table(&headers, &rows, &db_path, "udi_details")?;
     eprintln!("[details] SQLite written: {} ({} rows)", db_path, rows.len());
+    {
+        let conn = rusqlite::Connection::open(&db_path)?;
+        conn.execute_batch("DROP TABLE IF EXISTS udi_packages;")?;
+        if let Some(n) = ensure_package_index(&conn)? {
+            eprintln!("[details] built package UDI-DI index: {} package codes", n);
+        }
+    }
 
     if args.csv {
         let csv_path = export::output_csv("udi_details")?;
@@ -545,6 +552,48 @@ fn ensure_schema(conn: &rusqlite::Connection) -> Result<(), Box<dyn std::error::
     Ok(())
 }
 
+/// Package UDI-DI index (20.11.2026): one row per package `diCode` found
+/// anywhere in a base unit's `udiDi.packages` tree (nested `children` = outer
+/// levels; level 1 = directly around the base unit). Lets `--gtin` resolve a
+/// package code with an index hit instead of a ~8 s `rawJson LIKE` scan.
+const PACKAGE_INDEX_SELECT: &str = "SELECT j.value, d.udiDiCode, d.udiDiId, \
+     CAST((length(j.fullkey) - length(replace(j.fullkey, 'children', ''))) / 8 + 1 AS TEXT) \
+     FROM udi_details d, json_tree(d.rawJson, '$.udiDi.packages') j \
+     WHERE j.key = 'diCode' AND j.type = 'text'";
+
+/// Create `udi_packages` if missing and fill it from the whole corpus (one-time,
+/// ~10–30 s on 660k rows). Returns `Some(rows)` when it built the table, `None`
+/// when it already existed (then the incremental update keeps it current).
+pub fn ensure_package_index(
+    conn: &rusqlite::Connection,
+) -> Result<Option<usize>, Box<dyn std::error::Error>> {
+    let exists: bool = conn
+        .query_row(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='udi_packages'",
+            [],
+            |_| Ok(true),
+        )
+        .unwrap_or(false);
+    if exists {
+        return Ok(None);
+    }
+    conn.execute_batch(
+        "CREATE TABLE udi_packages (packageUdiDiCode TEXT, udiDiCode TEXT, udiDiId TEXT, level TEXT);",
+    )?;
+    let n = conn.execute(
+        &format!(
+            "INSERT INTO udi_packages {} AND d.rawJson LIKE '%\"packages\":[{{%'",
+            PACKAGE_INDEX_SELECT
+        ),
+        [],
+    )?;
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_pkg_code ON udi_packages(packageUdiDiCode);
+         CREATE INDEX IF NOT EXISTS idx_pkg_udi ON udi_packages(udiDiId);",
+    )?;
+    Ok(Some(n))
+}
+
 /// Incrementally update the `udi_details` DB from an already-downloaded basic-UDI
 /// list. Fetches details only for NEW or CHANGED udiDis (change key:
 /// `lastModifiedAt`), replaces changed rows, and removes delisted ones. Carries
@@ -577,6 +626,9 @@ pub fn update_details(
 
     let mut conn = rusqlite::Connection::open(&today_path)?;
     ensure_schema(&conn)?;
+    if let Some(n) = ensure_package_index(&conn)? {
+        eprintln!("[details] built package UDI-DI index: {} package codes", n);
+    }
 
     // One-time backfill: fill lastModifiedAt for legacy rows from rawJson so
     // change-detection works for the whole corpus, not just newly-added rows.
@@ -652,14 +704,21 @@ pub fn update_details(
     let tx = conn.transaction()?;
     {
         let mut del = tx.prepare("DELETE FROM udi_details WHERE udiDiId = ?")?;
+        let mut del_pkg = tx.prepare("DELETE FROM udi_packages WHERE udiDiId = ?")?;
         for id in fetched_ids.iter().chain(delisted.iter()) {
             del.execute([id])?;
+            del_pkg.execute([id])?;
         }
         let mut ins = tx.prepare(&insert_sql)?;
+        let mut ins_pkg = tx.prepare(&format!(
+            "INSERT INTO udi_packages {} AND d.udiDiId = ?1",
+            PACKAGE_INDEX_SELECT
+        ))?;
         for row in &rows {
             let params: Vec<&dyn rusqlite::types::ToSql> =
                 row.iter().map(|s| s as &dyn rusqlite::types::ToSql).collect();
             ins.execute(params.as_slice())?;
+            ins_pkg.execute([&row[1]])?;
         }
     }
     tx.commit()?;

@@ -88,7 +88,38 @@ fn detail_by_code(c: &Connection, codes: &[String]) -> R<Option<DetailRow>> {
 
 /// Package-level fallback: the code appears as a `diCode` somewhere in a base
 /// unit's detail JSON (its `udiDi.packages` tree). Full scan, so only on a miss.
-fn detail_by_package(c: &Connection, codes: &[String]) -> R<Option<DetailRow>> {
+fn detail_by_package(c: &Connection, codes: &[String]) -> R<Option<(DetailRow, String)>> {
+    // Fast path: the `udi_packages` index built by the details update.
+    let has_index: bool = c
+        .query_row(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='udi_packages'",
+            [],
+            |_| Ok(true),
+        )
+        .optional()?
+        .unwrap_or(false);
+    if has_index {
+        let sql = format!(
+            "SELECT d.udiDiCode, d.rawJson, coalesce(d.intendedUser,''), coalesce(d.iuConfidence,''), \
+             coalesce(d.iuReason,''), p.level \
+             FROM udi_packages p JOIN udi_details d ON d.udiDiId = p.udiDiId \
+             WHERE p.packageUdiDiCode IN ({}) LIMIT 1",
+            placeholders(codes.len())
+        );
+        return Ok(c
+            .query_row(&sql, rusqlite::params_from_iter(codes), |r| {
+                Ok((
+                    DetailRow { udi: r.get(0)?, raw: r.get(1)?, intended: r.get(2)?, conf: r.get(3)?, reason: r.get(4)? },
+                    r.get::<_, String>(5)?,
+                ))
+            })
+            .optional()?);
+    }
+    Ok(detail_by_package_scan(c, codes)?.map(|d| (d, "?".to_string())))
+}
+
+/// Fallback for a details DB that predates the index: scan `rawJson`.
+fn detail_by_package_scan(c: &Connection, codes: &[String]) -> R<Option<DetailRow>> {
     // One pass over the table for all spellings — each extra LIKE scan costs ~5 s on 660k rows.
     let likes = vec!["rawJson LIKE ?"; codes.len()].join(" OR ");
     let sql = format!(
@@ -150,14 +181,18 @@ pub fn run(inputs: &[String], db_dir: &Path, json: bool) -> R<()> {
     for input in inputs {
         let codes = candidates(input);
         let mut via_package = false;
+        let mut pkg_level: Option<String> = None;
         let mut det = match &details {
             Some(c) => detail_by_code(c, &codes)?,
             None => None,
         };
         if det.is_none() {
             if let Some(c) = &details {
-                det = detail_by_package(c, &codes)?;
-                via_package = det.is_some();
+                if let Some((d, lvl)) = detail_by_package(c, &codes)? {
+                    det = Some(d);
+                    via_package = true;
+                    pkg_level = Some(lvl);
+                }
             }
         }
         // The MiGeL row is keyed on the base unit, so a package hit looks up its owner.
@@ -184,6 +219,7 @@ pub fn run(inputs: &[String], db_dir: &Path, json: bool) -> R<()> {
                 "input": input,
                 "udiDiCode": det.as_ref().map(|d| d.udi.clone()),
                 "matchedAsPackage": via_package,
+                "packageLevel": pkg_level,
                 "triage": det.as_ref().map(|d| serde_json::json!({
                     "intendedUser": d.intended, "iuConfidence": d.conf, "iuReason": d.reason })),
                 "migel": migel_obj,
@@ -204,7 +240,11 @@ pub fn run(inputs: &[String], db_dir: &Path, json: bool) -> R<()> {
             continue;
         };
         if via_package {
-            println!("  package UDI-DI of base unit {}", d.udi);
+            println!(
+                "  package UDI-DI (level {}) of base unit {}",
+                pkg_level.as_deref().unwrap_or("?"),
+                d.udi
+            );
         } else {
             println!("  UDI-DI {}", d.udi);
         }
