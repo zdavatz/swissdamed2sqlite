@@ -161,7 +161,7 @@ swissdamed2sqlite --migel-stats --linkedin --twitter
 SWISSDAMED_CAPTION_EXTRA="+81 today, +3 MiGeL matches: embecta pen needles" \
   swissdamed2sqlite --migel-stats --linkedin --twitter
 
-# Enrich devices with per-device details (EMDN, MDR/IVD characteristics) → db/udi_details_*.db
+# Enrich devices with per-device details (EMDN, MDR/IVD characteristics) → db/udi_details.db (one file, updated in place)
 swissdamed2sqlite --details --details-limit 0 --details-threads 32   # full rebuild
 swissdamed2sqlite --details-update                                    # incremental (new/changed only)
 

@@ -459,22 +459,10 @@ pub fn load_migel_matches(db_dir: &std::path::Path) -> std::collections::HashMap
     map
 }
 
-/// Find the newest `udi_details_*.db` in the app-data db dir (by mtime).
+/// The details DB to classify: the single `udi_details.db`, else the newest
+/// legacy dated file (shared lookup in `details::find_latest_db`).
 fn find_latest_details_db(db_dir: &std::path::Path) -> Option<PathBuf> {
-    let mut best: Option<(std::time::SystemTime, PathBuf)> = None;
-    for entry in std::fs::read_dir(db_dir).ok()?.flatten() {
-        let p = entry.path();
-        let name = p.file_name()?.to_string_lossy().to_string();
-        if name.starts_with("udi_details_") && name.ends_with(".db") {
-            let mt = entry.metadata().ok().and_then(|m| m.modified().ok());
-            if let Some(mt) = mt {
-                if best.as_ref().map(|(t, _)| mt > *t).unwrap_or(true) {
-                    best = Some((mt, p));
-                }
-            }
-        }
-    }
-    best.map(|(_, p)| p)
+    crate::details::find_latest_db(db_dir)
 }
 
 /// Standalone `--triage`: classify the latest `udi_details` DB in place,

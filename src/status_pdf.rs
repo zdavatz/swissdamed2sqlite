@@ -236,11 +236,50 @@ fn delta_pp(n: i64, total: i64, prev_n: Option<i64>, prev_total: i64) -> String 
     format!("({}{:.2} Pp.)", sign, rounded.abs())
 }
 
-/// Find the udi_details DB immediately preceding `latest` by the DD.MM.YYYY
-/// date embedded in the filename (robust against carry-forward mtimes).
-fn find_prev_db(db_dir: &Path, latest: &Path) -> Option<PathBuf> {
+/// Day-over-day baseline since the single `udi_details.db` (20.11.2026): one
+/// row of triage counts per day in a small `db/triage_history.db`, written on
+/// every `--status-pdf`. Kept outside the details DB so a full `--details`
+/// rebuild (which recreates that file) cannot erase the history.
+fn history_path(db_dir: &Path) -> PathBuf {
+    db_dir.join("triage_history.db")
+}
+
+fn history_conn(db_dir: &Path) -> Result<Connection, Box<dyn Error>> {
+    let c = Connection::open(history_path(db_dir))?;
+    c.execute_batch(
+        "CREATE TABLE IF NOT EXISTS triage_history (day TEXT PRIMARY KEY, prof TEXT, ph TEXT, pm TEXT, pl TEXT, rev TEXT);",
+    )?;
+    Ok(c)
+}
+
+/// Newest stored day strictly before `today` (`YYYYMMDD`).
+fn history_prev(db_dir: &Path, today: u32) -> Option<Dist> {
+    let c = history_conn(db_dir).ok()?;
+    c.query_row(
+        "SELECT prof, ph, pm, pl, rev FROM triage_history WHERE CAST(day AS INTEGER) < ?1 ORDER BY CAST(day AS INTEGER) DESC LIMIT 1",
+        [today],
+        |r| {
+            let n = |i: usize| -> rusqlite::Result<i64> { Ok(r.get::<_, String>(i)?.parse().unwrap_or(0)) };
+            Ok(Dist { prof: n(0)?, ph: n(1)?, pm: n(2)?, pl: n(3)?, rev: n(4)? })
+        },
+    )
+    .ok()
+}
+
+fn history_save(db_dir: &Path, today: u32, d: &Dist) -> Result<(), Box<dyn Error>> {
+    let c = history_conn(db_dir)?;
+    c.execute(
+        "INSERT OR REPLACE INTO triage_history (day, prof, ph, pm, pl, rev) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        [today.to_string(), d.prof.to_string(), d.ph.to_string(), d.pm.to_string(), d.pl.to_string(), d.rev.to_string()],
+    )?;
+    Ok(())
+}
+
+/// Legacy baseline: the dated udi_details DB immediately preceding `latest_key`
+/// (`YYYYMMDD`) by the DD.MM.YYYY date in the filename. Used only until the
+/// history has a previous day.
+fn find_prev_db(db_dir: &Path, latest_key: u32) -> Option<PathBuf> {
     let key = |name: &str| crate::export::dated_db_key(name, "udi_details_");
-    let latest_key = key(&latest.file_name()?.to_string_lossy())?;
     let mut best: Option<(u32, PathBuf)> = None;
     for entry in std::fs::read_dir(db_dir).ok()?.flatten() {
         let p = entry.path();
@@ -548,10 +587,20 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     eprintln!("[status-pdf] Reading distribution from {}", db_path.display());
 
     let d = read_dist(&db_path)?;
-    let prev = find_prev_db(&db_dir, &db_path).and_then(|p| {
-        eprintln!("[status-pdf] Δ baseline: {}", p.display());
-        read_dist(&p).ok()
-    });
+    let today: u32 = chrono::Local::now().format("%Y%m%d").to_string().parse()?;
+    let prev = match history_prev(&db_dir, today) {
+        Some(p) => {
+            eprintln!("[status-pdf] Δ baseline: {}", history_path(&db_dir).display());
+            Some(p)
+        }
+        None => find_prev_db(&db_dir, today).and_then(|p| {
+            eprintln!("[status-pdf] Δ baseline (legacy dated DB): {}", p.display());
+            read_dist(&p).ok()
+        }),
+    };
+    if let Err(e) = history_save(&db_dir, today, &d) {
+        eprintln!("[status-pdf] WARN: could not store today's distribution: {}", e);
+    }
     let doc = build(&d, prev.as_ref(), &dbname)?;
     let out = crate::export::output_pdf("swissdamed_triage_status")?;
     doc.render_to_file(&out)

@@ -427,7 +427,7 @@ pub fn run(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
     let failed = total - ok;
 
     let headers: Vec<String> = HEADERS.iter().map(|h| h.to_string()).collect();
-    let db_path = export::output_db("udi_details")?;
+    let db_path = export::output_db_fixed("udi_details")?;
     export::write_sqlite_table(&headers, &rows, &db_path, "udi_details")?;
     eprintln!("[details] SQLite written: {} ({} rows)", db_path, rows.len());
     {
@@ -437,6 +437,7 @@ pub fn run(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
             eprintln!("[details] built package UDI-DI index: {} package codes", n);
         }
     }
+    prune_old_dbs(&db_dir);
 
     if args.csv {
         let csv_path = export::output_csv("udi_details")?;
@@ -462,8 +463,18 @@ pub fn run(args: &crate::Args) -> Result<(), Box<dyn std::error::Error>> {
 /// and lexical order is worse still, `udi_details_01.09.2026.db` sorting
 /// *before* `udi_details_28.08.2026.db`.
 pub fn find_latest_db(db_dir: &std::path::Path) -> Option<std::path::PathBuf> {
+    let fixed = db_dir.join(DETAILS_DB_FILE);
+    if fixed.exists() {
+        return Some(fixed);
+    }
     crate::export::find_latest_dated_db(db_dir, "udi_details_")
 }
+
+/// The single details DB (20.11.2026, maintainer decision): `db/udi_details.db`,
+/// updated in place every day instead of a new ~3 GB dated copy per day.
+/// Legacy dated `udi_details_DD.MM.YYYY.db` files are only read as a fallback
+/// (and once, to seed this file).
+pub const DETAILS_DB_FILE: &str = "udi_details.db";
 
 /// EMDN prefixes for limb prostheses (Y0618 upper, Y0624 lower extremity).
 /// Routed to MiGeL `24.03.01.00.1` *Prothesen der Extremitäten, inkl.
@@ -552,6 +563,25 @@ fn ensure_schema(conn: &rusqlite::Connection) -> Result<(), Box<dyn std::error::
     Ok(())
 }
 
+/// How many legacy dated `udi_details_*.db` files to keep (maintainer decision
+/// 20.11.2026). No new dated files are written since the switch to the single
+/// `udi_details.db`; the newest three stay as fallback copies.
+pub const KEEP_DETAILS_DBS: usize = 3;
+
+/// Delete older dated details DBs after a successful write. Non-fatal: a
+/// failed deletion is logged, never fails the run.
+fn prune_old_dbs(db_dir: &std::path::Path) {
+    match export::prune_dated_dbs(db_dir, "udi_details_", KEEP_DETAILS_DBS) {
+        Ok(deleted) if !deleted.is_empty() => eprintln!(
+            "[details] pruned {} old details DB(s), keeping the newest {}",
+            deleted.len(),
+            KEEP_DETAILS_DBS
+        ),
+        Ok(_) => {}
+        Err(e) => eprintln!("[details] warning: could not prune old details DBs: {e}"),
+    }
+}
+
 /// Package UDI-DI index (20.11.2026): one row per package `diCode` found
 /// anywhere in a base unit's `udiDi.packages` tree (nested `children` = outer
 /// levels; level 1 = directly around the base unit). Lets `--gtin` resolve a
@@ -607,16 +637,18 @@ pub fn update_details(
 
     let db_dir = crate::app_data_dir().join("db");
     std::fs::create_dir_all(&db_dir)?;
-    let today_path = export::output_db("udi_details")?;
+    let today_path = db_dir.join(DETAILS_DB_FILE).to_string_lossy().to_string();
 
-    // Carry the latest existing DB forward into today's file (unless it IS today's).
-    if let Some(src) = find_latest_db(&db_dir) {
-        if src.to_string_lossy() != today_path {
+    // One-time migration: seed the single DB from the newest legacy dated file.
+    // From then on it is updated in place (SQLite transactions keep a failed
+    // run from leaving it half-written).
+    if !std::path::Path::new(&today_path).exists() {
+        if let Some(src) = crate::export::find_latest_dated_db(&db_dir, "udi_details_") {
             std::fs::copy(&src, &today_path)?;
             eprintln!(
-                "[details] Carried {} -> {} for incremental update",
-                src.display(),
-                today_path
+                "[details] Seeded {} from {} (single details DB, updated in place from now on)",
+                today_path,
+                src.display()
             );
         }
     }
@@ -732,6 +764,8 @@ pub fn update_details(
         final_count,
         today_path
     );
+    drop(conn);
+    prune_old_dbs(&db_dir);
     Ok(())
 }
 

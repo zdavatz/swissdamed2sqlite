@@ -75,6 +75,32 @@ pub fn find_latest_dated_db(dir: &std::path::Path, prefix: &str) -> Option<std::
     best.map(|(_, _, p)| p)
 }
 
+/// Delete all but the `keep` newest `<prefix>DD.MM.YYYY.db` files in `dir`,
+/// newest by filename date (never lexical / mtime order, see [`dated_db_key`]).
+/// Files without a well-formed stamp are never touched. Returns the deleted
+/// paths. Deletion is permanent — callers run it only after a successful write.
+pub fn prune_dated_dbs(
+    dir: &std::path::Path,
+    prefix: &str,
+    keep: usize,
+) -> std::io::Result<Vec<std::path::PathBuf>> {
+    let mut dated: Vec<(u32, std::path::PathBuf)> = fs::read_dir(dir)?
+        .flatten()
+        .filter_map(|e| {
+            let p = e.path();
+            let name = p.file_name()?.to_string_lossy().into_owned();
+            dated_db_key(&name, prefix).map(|k| (k, p))
+        })
+        .collect();
+    dated.sort_by(|a, b| b.0.cmp(&a.0));
+    let mut deleted = Vec::new();
+    for (_, p) in dated.into_iter().skip(keep) {
+        fs::remove_file(&p)?;
+        deleted.push(p);
+    }
+    Ok(deleted)
+}
+
 /// Like [`output_db`] but without the date stamp — a stable filename that is
 /// overwritten on each run (used for the MiGeL match DB so it no longer
 /// accumulates one file per day).
@@ -272,6 +298,29 @@ pub fn write_sqlite_table(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn prune_keeps_newest_by_date_and_leaves_other_files() {
+        let dir = std::env::temp_dir().join(format!("prune_test_{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        // 01.09. sorts lexically before 28.08. — it must survive as the newest.
+        for n in [
+            "udi_details_28.08.2026.db",
+            "udi_details_29.08.2026.db",
+            "udi_details_30.08.2026.db",
+            "udi_details_01.09.2026.db",
+            "udi_details_keep-me.db",
+            "swissdamed_migel.db",
+        ] {
+            fs::write(dir.join(n), b"x").unwrap();
+        }
+        let deleted = prune_dated_dbs(&dir, "udi_details_", 3).unwrap();
+        assert_eq!(deleted, vec![dir.join("udi_details_28.08.2026.db")]);
+        for n in ["udi_details_29.08.2026.db", "udi_details_30.08.2026.db", "udi_details_01.09.2026.db", "udi_details_keep-me.db", "swissdamed_migel.db"] {
+            assert!(dir.join(n).exists(), "{n} should survive");
+        }
+        fs::remove_dir_all(&dir).unwrap();
+    }
 
     #[test]
     fn dated_db_keys_order_by_date_not_lexically() {
