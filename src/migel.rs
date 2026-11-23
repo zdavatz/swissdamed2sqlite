@@ -3798,6 +3798,15 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["postoperativer schuh", "improving mobility"], &[], "26.01.04.02.1"),
     (&["walker boot", "improving mobility"], &[], "22.02.04.00.1"),
     (&["arthritis elbow sleeve", "brownmed"], &[], "05.08.05.00.1"),
+    // Anita Dr. Helbig (Anita care), 23.11.2026, maintainer decision (the Trulife ch. 24 precedent): external breast
+    // prostheses (EMDN Y063018) -> definitive Brust-Exoprothese; the post-mastectomy bras filed as "Accessories" (incl.
+    // Lymph O Fit inserts) and the prosthetic swimwear (EMDN Y063099) -> Brust-Exoprothesen-BH und Zubehör; BabyBelt /
+    // BabyBelt+ maternity support belts -> 05.11.06. Compression bras, the other body bandages (Florence, Basic,
+    // Ontario, Medical Garments) and the lymph garments stay unmatched.
+    (&["breast prostheses, external", "helbig"], &[], "24.02.01.00.1"),
+    (&["prosthetic swimwear", "helbig"], &[], "24.02.01.01.1"),
+    (&["accessories", "helbig"], &["compression bra", "lymph drainage"], "24.02.01.01.1"),
+    (&["babybelt", "helbig"], &[], "05.11.06.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
