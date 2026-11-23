@@ -978,6 +978,8 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Intercus GmbH",
     "Mid-Continental Dental Supply Co. Ltd.",
     "ASANUS Medizintechnik GmbH",
+    // Seismocardiography sensor / patch / app (EMDN Z1204) -> the 21.07.02 Sensoren magnet; 23.11.2026.
+    "VentriJect Aps",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2864,6 +2866,18 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["wheelchair accessories", "symmetric designs"],
     &["headmaster", "symmetric designs"],
     &["tot collar"],
+    // Daily 23.11.2026: aneroid sphygmomanometers (Kirchner & Wilhelm, 15) -> 31.10.01 Cuff-Manometer; Pharma systems
+    // Bact-HME breathing filters -> 23.23.01; Sunmedic VivereX NPWT dressings -> 35.07.01.12 honey dressing; B. Braun
+    // Avitum TPN filling sets -> 03.07.09.20 (the sixteenth "transfer" homonym); Brownmed IMAK shin sleeves / arthritis
+    // socks (no compression class) -> 17.15.03 arm code; Anita "Lymph drainage and compression garments" (serial, body
+    // region not stated) -> 17.15.03 arm code, pending the Anita care decision.
+    &["aneroid sphygmomanometer"],
+    &["bact-hme"],
+    &["npwt dressing"],
+    &["filling sets and accessories for tpn"],
+    &["shin sleeve", "brownmed"],
+    &["arthritis socks", "brownmed"],
+    &["lymph drainage and compression garments", "helbig"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3326,6 +3340,9 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // "dermaplast" (nasal sprays) or bare "conviva" (STE Pharma sea water). ---
     // Compress Gel/Plus/Protect → beschichtete Wundkompresse. Also corrects
     // the one Gel row that previously drifted to 99.30.03 (M-Plast).
+    // PAUL HARTMANN AG's plain "DermaPlast Compress" (sterile folded gauze swabs, EN 14079, EMDN M0201020101) is not
+    // a coated compress -> Falt-Kompresse (the Medline gauze precedent, 10x10 cm default); must run first. 23.11.2026.
+    (&["dermaplast compress", "paul hartmann"], &["gel", "plus", "protect"], "35.01.01.03.1"),
     (&["dermaplast compress"], &[], "35.01.02.02.1"),
     // Sparablanc (transparent + textile) plaster spools → Heft-/Fixier-Pflaster.
     (&["sparablanc"], &[], "35.01.09.03.1"),
@@ -3774,6 +3791,13 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // immobilisation vest, EMDN upper-extremity orthoses) to 23.21.01. Readings from the product names.
     (&["headmaster collar", "symmetric designs"], &[], "22.12.01.00.1"),
     (&["gilet-orthop", "allenspach"], &[], "22.09.01.00.1"),
+    // Daily 23.11.2026: 3M Nexcare finger plaster (adhesive dressing with pad) -> 23.20.01 Finger-Orthesen (the Flawa
+    // precedent); KMINA post-op shoes -> 23.21.01 and walker boots (GloboPed / walker policy); Brownmed IMAK elastic
+    // elbow sleeve -> 23.23.01 Massorthesen (Hartmann DermaPlast Compress gauze: see the DermaPlast block).
+    (&["finger plaster", "3m deutschland"], &[], "35.01.10.10.1"),
+    (&["postoperativer schuh", "improving mobility"], &[], "26.01.04.02.1"),
+    (&["walker boot", "improving mobility"], &[], "22.02.04.00.1"),
+    (&["arthritis elbow sleeve", "brownmed"], &[], "05.08.05.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
