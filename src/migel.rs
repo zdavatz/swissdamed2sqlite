@@ -3807,7 +3807,7 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["elastische einwegunterw", "tzmo"], &["mittlere"], "15.01.03.00.1"),
     // Daily 20.11.2026: Symmetric Designs "Headmaster Collar" (serial cervical collar, EMDN cervical spine orthoses,
     // deviceName "Truncal Orthoses") had scored to 23.21.01 Hand-Orthesen; Allenspach "Gilet-Orthopädie PRO" (shoulder
-    // immobilisation vest, EMDN upper-extremity orthoses) to 23.21.01. Readings from the product names.
+    // immobilisation vest, EMDN upper-extremity orthoses) to 23.21.01. Readings from the product names, maintainer-approved 24.11.2026.
     (&["headmaster collar", "symmetric designs"], &[], "22.12.01.00.1"),
     (&["gilet-orthop", "allenspach"], &[], "22.09.01.00.1"),
     // Daily 23.11.2026: 3M Nexcare finger plaster (adhesive dressing with pad) -> 23.20.01 Finger-Orthesen (the Flawa
