@@ -3828,7 +3828,7 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["babybelt", "helbig"], &[], "05.11.06.00.1"),
     // Daily 24.11.2026 (ch. 22 audit policy, serial products off the ch. 23 Massorthesen codes): Allenspach "Hip Spica AL
     // Hüftbandage" S–XXL (EMDN hip orthoses) 23.10.01 -> Hüft-Kompressionsbandage (the CoxaTrain precedent; ch. 22 has
-    // only the adjustable hip orthosis 22.05.02); "Shoulder Immobiliser with Shape" 23.25.01 -> 22.09.01. Readings.
+    // only the adjustable hip orthosis 22.05.02); "Shoulder Immobiliser with Shape" 23.25.01 -> 22.09.01. Maintainer-approved.
     (&["hip spica", "allenspach"], &[], "05.06.02.00.1"),
     (&["shoulder immobiliser", "allenspach"], &[], "22.09.01.00.1"),
 ];
