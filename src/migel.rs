@@ -980,6 +980,21 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "ASANUS Medizintechnik GmbH",
     // Seismocardiography sensor / patch / app (EMDN Z1204) -> the 21.07.02 Sensoren magnet; 23.11.2026.
     "VentriJect Aps",
+    // 24.11.2026, whole catalogues: spinal cages / disc prostheses / instrument boxes (-> 22.15.01, 22.12.01, 17.15.03);
+    // hospital infusion / syringe pumps (-> 99.30.06.02); aesthetic liposuction cannulas (-> 03.07.09.12); radiotherapy
+    // patient positioning (HeadSTEP shoulder -> 23.25.01); dental implant instruments (-> 15.01.03); dental impression
+    // alginate (-> 35.06.06.20); patient lifts and transfer / bath slings (-> 03.07.09.20, the seventeenth "transfer"
+    // homonym, and 31.20.04); rehab buggy / car-seat accessories (-> 23.25.01, 05.14.01, 15.01.03, 24.02.01.01, 14.10.22).
+    "SpineArt SA",
+    "Shenzhen Mindray Bio-Medical Electronics Co., Ltd.",
+    "Solta Medical, Inc.",
+    "IT-V Medizintechnik GmbH",
+    "Altatec GmbH",
+    "SpofaDental a.s.",
+    "BEKA-Hospitec GmbH",
+    "Thomas Hilfen für Körperbehinderte GmbH & Co. Medico KG",
+    // Custom hip-implant instruments (rasp handle, stem impactor -> 23.10.01; compression clamp -> 17.15.03). 24.11.2026.
+    "Symbios Orthopédie S.A.",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2878,6 +2893,9 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["shin sleeve", "brownmed"],
     &["arthritis socks", "brownmed"],
     &["lymph drainage and compression garments", "helbig"],
+    // Allenspach PUR protective covers for its foam splints (accessory, EMDN medical cushions); without the pin they
+    // scored to 17.30.15 Pelotte Schaumstoff. 24.11.2026.
+    &["schutzh", "allenspach"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3784,7 +3802,8 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["rudamed", "elastisch", "nobamed"], &[], "35.01.07.01.1"),
     // Daily 19.11.2026: Allenspach foam knee positioning splint (EMDN knee orthoses) had scored to 17.30.15 Pelotte
     // Schaumstoff; TZMO re-filed a Seni Active pants row without deviceName as "Elastische Einwegunterwäsche" -> elastic bandage.
-    (&["schaumstoff-lagerungsschiene", "allenspach"], &[], "22.04.03.00.1"),
+    // stop-word "schutzh": the PUR protective covers for the splint (EMDN medical cushions) are accessories. 24.11.2026.
+    (&["schaumstoff-lagerungsschiene", "allenspach"], &["schutzh"], "22.04.03.00.1"),
     (&["elastische einwegunterw", "tzmo"], &["mittlere"], "15.01.03.00.1"),
     // Daily 20.11.2026: Symmetric Designs "Headmaster Collar" (serial cervical collar, EMDN cervical spine orthoses,
     // deviceName "Truncal Orthoses") had scored to 23.21.01 Hand-Orthesen; Allenspach "Gilet-Orthopädie PRO" (shoulder
@@ -3807,6 +3826,11 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["prosthetic swimwear", "helbig"], &[], "24.02.01.01.1"),
     (&["accessories", "helbig"], &["compression bra", "lymph drainage"], "24.02.01.01.1"),
     (&["babybelt", "helbig"], &[], "05.11.06.00.1"),
+    // Daily 24.11.2026 (ch. 22 audit policy, serial products off the ch. 23 Massorthesen codes): Allenspach "Hip Spica AL
+    // Hüftbandage" S–XXL (EMDN hip orthoses) 23.10.01 -> Hüft-Kompressionsbandage (the CoxaTrain precedent; ch. 22 has
+    // only the adjustable hip orthosis 22.05.02); "Shoulder Immobiliser with Shape" 23.25.01 -> 22.09.01. Readings.
+    (&["hip spica", "allenspach"], &[], "05.06.02.00.1"),
+    (&["shoulder immobiliser", "allenspach"], &[], "22.09.01.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
