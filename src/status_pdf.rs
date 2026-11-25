@@ -58,7 +58,7 @@ const LEGEND: &[(&str, &str, Option<&str>)] = &[
     ("MDD", "Medical Device Directive 93/42/EWG — Alt-Recht-Medizinprodukte (Legacy-Bestand vor MDR).", Some("https://eur-lex.europa.eu/eli/dir/1993/42/oj")),
     ("EUDAMED", "European Database on Medical Devices — EU-Datenbank; swissdamed spiegelt ihren Datenbestand.", Some("https://ec.europa.eu/tools/eudamed")),
     ("swissdamed", "Schweizer UDI-/Medizinprodukte-Datenbank (Swissmedic) — Quelle dieses Korpus.", Some("https://swissdamed.ch")),
-    ("MiGeL", "Mittel- und Gegenständeliste (BAG) — von der OKP vergütete Mittel; Ausgabe per 01.01.2026.", Some("https://www.bag.admin.ch/de/mittel-und-gegenstaendeliste-migel")),
+    ("MiGeL", "Mittel- und Gegenständeliste (BAG) — von der OKP vergütete Mittel; Ausgabe per {edition}.", Some("https://www.bag.admin.ch/de/mittel-und-gegenstaendeliste-migel")),
     ("KLV Art. 20", "Krankenpflege-Leistungsverordnung (SR 832.112.31) — MiGeL = Mittel zur Selbstanwendung (Laienanwendung).", Some("https://www.fedlex.admin.ch/eli/cc/1995/4964_4964_4964/de")),
     ("MepV", "Medizinprodukteverordnung (SR 812.213) — Schweizer Abgabe-/Inverkehrbringen-Regeln für Medizinprodukte.", Some("https://www.fedlex.admin.ch/eli/cc/2020/552/de")),
     ("UDI / udiDi", "Unique Device Identification — udiDi ist die marktspezifische Geräte-ID (nicht die GTIN/udiDiCode).", None),
@@ -381,7 +381,7 @@ fn build(d: &Dist, prev: Option<&Dist>, dbname: &str) -> Result<genpdf::Document
     h2(&mut doc, "Kernbefunde");
     bullet(&mut doc, "swissdamed / EUDAMED führen KEIN Intended-User-Feld für MDR oder IVD (das EUDAMED-Feld medicalPurpose ist nur bei System-/Prozedurpacks befüllt) — durch Regulatory-Review bestätigt. Das einzige strukturierte Signal ist die IVD-Trias Selbst-/patientennahe/Profi-Testung, die die Testmodalität beschreibt, nicht den Anwender.");
     bullet(&mut doc, "Freitext-Laienphrasen (laien, selbstanwendung, home use, …) treffen unter 100 des gesamten Korpus — Text-Mining ist für diese Frage eine Sackgasse.");
-    bullet(&mut doc, "MiGeL (KLV Art. 20) ist das stärkste ableitbare Laienanwendungs-Signal, aber eine Vergütungsliste ist schmaler als «an Konsumenten verkäuflich»: die offizielle BAG-MiGeL per 01.01.2026 (884 Positionen) enthält null Matratzen-Positionen — Konsumgüter wie Antidekubitus-Matratzen brauchen daher die kuratierte Liste, nicht MiGeL.");
+    bullet(&mut doc, &format!("MiGeL (KLV Art. 20) ist das stärkste ableitbare Laienanwendungs-Signal, aber eine Vergütungsliste ist schmaler als «an Konsumenten verkäuflich»: die offizielle BAG-MiGeL (Ausgabe per {}) enthält null Matratzen-Positionen — Konsumgüter wie Antidekubitus-Matratzen brauchen daher die kuratierte Liste, nicht MiGeL.", migel_edition()));
     bullet(&mut doc, &format!("Wie der Review-Anteil von {} auf {} fiel: ohne die drei positiven Signale lägen all diese Geräte in «review» — MiGeL-/KLV-Art.-20-Listung (Laienanwendung), die kuratierte Konsum-EMDN-Liste (Antidekubitus) und die MepV-Abgabevermutung für risikoarme Klasse-I/IIa-Geräte ordnen sie neu als «public» ein; im «review» bleibt nur der höher-riskante Rest.",
         pct(d.rev + d.pm + d.pl, total), pct(d.rev, total)));
 
@@ -390,8 +390,10 @@ fn build(d: &Dist, prev: Option<&Dist>, dbname: &str) -> Result<genpdf::Document
     h2(&mut doc, "Legende — Nomenklatur & Quellen");
     meta(&mut doc, "Kürzel dieses Berichts mit Links zu den amtlichen Erklärungen (klickbar).");
     doc.push(Break::new(0.25));
-    for (term, expl, url) in LEGEND {
-        legend_entry(&mut doc, term, expl, *url);
+    let edition = migel_edition();
+    for (term, expl, url) in LEGEND.iter() {
+        let expl = expl.replace("{edition}", &edition);
+        legend_entry(&mut doc, term, &expl, *url);
     }
 
     doc.push(Break::new(0.6));
@@ -682,4 +684,19 @@ mod tests {
         s.push_str(".pdf**](pdf/swissdamed_triage_status_09.09.2026.pdf)");
         assert!(rewrite_readme_link(&s, "swissdamed_triage_status_10.09.2026.pdf").is_none());
     }
+}
+
+/// Edition of the MiGeL XLSX the last `--migel` run used (`meta.migel_edition`
+/// in `db/swissdamed_migel.db`, written since 25.11.2026 by
+/// `migel_source::download_latest`); "unbekannt" if no run recorded it.
+fn migel_edition() -> String {
+    let db = crate::app_data_dir().join("db").join("swissdamed_migel.db");
+    rusqlite::Connection::open_with_flags(&db, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .ok()
+        .and_then(|c| {
+            c.query_row("SELECT value FROM meta WHERE key = 'migel_edition'", [], |r| r.get::<_, String>(0))
+                .ok()
+        })
+        .filter(|s| !s.is_empty() && s != "unknown")
+        .unwrap_or_else(|| "unbekannt".to_string())
 }

@@ -100,21 +100,11 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
         headers.len()
     );
 
-    // 2. Download MiGel XLSX
-    let migel_url = "https://www.bag.admin.ch/dam/de/sd-web/77j5rwUTzbkq/Mittel-%20und%20Gegenst%C3%A4ndeliste%20per%2001.01.2026%20in%20Excel-Format.xlsx";
+    // 2. Download the newest MiGel XLSX listed on the BAG page (src/migel_source.rs)
     let migel_file = "migel.xlsx";
-
     eprintln!("Downloading MiGel XLSX...");
-    let client = reqwest::blocking::Client::builder()
-        .user_agent("swissdamed2sqlite/0.1")
-        .build()?;
-    let response = client.get(migel_url).send()?;
-    if !response.status().is_success() {
-        return Err(format!("Failed to download MiGel XLSX: HTTP {}", response.status()).into());
-    }
-    let bytes = response.bytes()?;
-    std::fs::write(migel_file, &bytes)?;
-    eprintln!("MiGel XLSX saved ({} bytes)", bytes.len());
+    let migel_source =
+        crate::migel_source::download_latest(std::path::Path::new(migel_file), &|m: &str| eprintln!("{m}"))?;
 
     // 3. Parse MiGel items and build keyword index
     eprintln!("Parsing MiGel items...");
@@ -358,6 +348,9 @@ pub fn run_migel(args: &Args) -> Result<(), Box<dyn std::error::Error>> {
             ("total_products", total_str.as_str()),
             ("override_matched", oh_str.as_str()),
             ("override_skipped", os_str.as_str()),
+            ("migel_edition", migel_source.edition.as_str()),
+            ("migel_url", migel_source.url.as_str()),
+            ("migel_source", migel_source.how),
         ] {
             conn.execute(
                 "INSERT OR REPLACE INTO meta (key, value) VALUES (?1, ?2)",

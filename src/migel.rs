@@ -995,6 +995,14 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "Thomas Hilfen für Körperbehinderte GmbH & Co. Medico KG",
     // Custom hip-implant instruments (rasp handle, stem impactor -> 23.10.01; compression clamp -> 17.15.03). 24.11.2026.
     "Symbios Orthopédie S.A.",
+    // 25.11.2026, whole catalogues: gas-monitoring O2 sensors (-> the 21.07.02 Sensoren magnet); aesthetic devices
+    // ("Sensor Blend" -> 21.07.02); spinal surgery instruments ("Compression Forceps" -> 17.15.03); laser-Doppler
+    // perfusion kits ("Finger Pressure Kit" -> 23.20.01); surgical chairs ("Additive Back support" -> 05.14.01).
+    "IT Dr. Gambert GmbH",
+    "Top Engineering Sàrl",
+    "SpineSave AG",
+    "Perimed AB",
+    "Akrus GmbH & Co. KG",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2896,6 +2904,10 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // Allenspach PUR protective covers for its foam splints (accessory, EMDN medical cushions); without the pin they
     // scored to 17.30.15 Pelotte Schaumstoff. 24.11.2026.
     &["schutzh", "allenspach"],
+    // Cardinal Health Kendall SCD / SmartFlow sequential compression for hospital DVT prophylaxis (sleeves, foot
+    // cuffs, controller, tubing) -> 17.15.03 Arm-Kompressionsbandage nach Mass; its KENDALL alginates stay. 25.11.2026.
+    &["smartflow"],
+    &["compression sleeve", "cardinal health"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3831,6 +3843,10 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // only the adjustable hip orthosis 22.05.02); "Shoulder Immobiliser with Shape" 23.25.01 -> 22.09.01. Maintainer-approved.
     (&["hip spica", "allenspach"], &[], "05.06.02.00.1"),
     (&["shoulder immobiliser", "allenspach"], &[], "22.09.01.00.1"),
+    // 25.11.2026, same policy: "Shoulder Abduction Pillow 30°-45°" -> 22.09.03 (the Breg / PRIM precedent) and the
+    // "Shoulder NRS" arm-pocket shoulder orthosis -> 22.09.01; both had scored to 23.25.01. Readings.
+    (&["shoulder abduction pillow", "allenspach"], &[], "22.09.03.00.1"),
+    (&["shoulder nrs", "allenspach"], &[], "22.09.01.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)

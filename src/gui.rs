@@ -646,38 +646,11 @@ fn run_migel_pipeline(tx: mpsc::Sender<WorkerMsg>, ctx: egui::Context) {
 
     // 2. Download MiGeL XLSX
     log("Downloading MiGeL XLSX...");
-    let migel_url = "https://www.bag.admin.ch/dam/de/sd-web/77j5rwUTzbkq/Mittel-%20und%20Gegenst%C3%A4ndeliste%20per%2001.01.2026%20in%20Excel-Format.xlsx";
     let migel_file = crate::app_data_dir().join("migel.xlsx");
-    let client = match reqwest::blocking::Client::builder()
-        .user_agent("swissdamed2sqlite/0.1")
-        .build()
-    {
-        Ok(c) => c,
-        Err(e) => {
-            done(false, &format!("Failed to create HTTP client: {}", e));
-            return;
-        }
-    };
-    let response = match client.get(migel_url).send() {
-        Ok(r) => r,
-        Err(e) => {
-            done(false, &format!("MiGeL download failed: {}", e));
-            return;
-        }
-    };
-    if !response.status().is_success() {
-        done(false, &format!("MiGeL download HTTP {}", response.status()));
+    if let Err(e) = crate::migel_source::download_latest(&migel_file, &|m: &str| log(m)) {
+        done(false, &format!("MiGeL download failed: {}", e));
         return;
     }
-    let bytes = match response.bytes() {
-        Ok(b) => b,
-        Err(e) => {
-            done(false, &format!("Failed to read MiGeL response: {}", e));
-            return;
-        }
-    };
-    let _ = std::fs::write(&migel_file, &bytes);
-    log(&format!("MiGeL XLSX saved ({} bytes)", bytes.len()));
 
     // 3. Parse MiGeL items
     log("Parsing MiGeL items...");

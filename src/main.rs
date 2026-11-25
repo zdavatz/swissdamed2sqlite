@@ -13,6 +13,7 @@ pub mod gtin_report;
 mod gui;
 pub mod linkedin;
 pub mod migel;
+pub mod migel_source;
 mod migel_stats;
 pub mod reports;
 pub mod sigvaris_shop;
