@@ -1003,6 +1003,13 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "SpineSave AG",
     "Perimed AB",
     "Akrus GmbH & Co. KG",
+    // 26.11.2026, whole catalogues: US hospital IV administration / pharmacy transfer sets ("Fluid Transfer Set" ->
+    // the 03.07.09.20 Transfer-Set code); dental intraoral-scanner software ("Ortho System" -> 23.21.01); aesthetic
+    // exosome preparation kit (-> 03.07.09.09); a Class IIb clinical puncture kit (EMDN V0502 -> 99.30.04.01).
+    "B. Braun Medical, Inc.",
+    "3Shape A/S",
+    "IMDA (Innovative Medtech Distribution & Academy) SA",
+    "SMD Medical AG",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2908,6 +2915,20 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     // cuffs, controller, tubing) -> 17.15.03 Arm-Kompressionsbandage nach Mass; its KENDALL alginates stay. 25.11.2026.
     &["smartflow"],
     &["compression sleeve", "cardinal health"],
+    // 26.11.2026: TZMO Ambulex examination / protective gloves (-> 03.06.02.01 Infusionspumpe); BD Vacutainer blood
+    // transfer device and B. Braun Cyto-Set chemotherapy infusion sets (the 03.07.09.20 / 99.30.06.02 watch codes);
+    // InsuJet needle-free injector nozzles and adapters (-> 03.07.09.11 Sicherheits-Injektionskanüle, a wrong code;
+    // held for a maintainer call); Meditrade non-sterile absorbent pads, gauze rolls and injection plasters, which
+    // have no unsterile MiGeL position (they had scored to Superabsorber, steril / Sicherheits-Injektionskanüle).
+    // Scoped to the Ambulex glove line: a bare "untersuchungshandschuh" also sits on TZMO's Matoset suture-removal /
+    // catheter sets, which list gloves among their contents.
+    &["ambulex", "handschuh"],
+    &["blood transfer device"],
+    &["cyto-set"],
+    &["insujet"],
+    &["saugkompresse", "meditrade"],
+    &["verbandmull", "meditrade"],
+    &["injektionspflaster", "meditrade"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3847,6 +3868,30 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     // "Shoulder NRS" arm-pocket shoulder orthosis -> 22.09.01; both had scored to 23.25.01. Readings.
     (&["shoulder abduction pillow", "allenspach"], &[], "22.09.03.00.1"),
     (&["shoulder nrs", "allenspach"], &[], "22.09.01.00.1"),
+    // 26.11.2026, same policy: "Shoulder Sling PRO" / "PRO PED" (adult / child shoulder slings) 23.25.01 -> 22.09.01.
+    // A reading. Its "Armtraggurte - Erwachsene" rows score to 05.10.02 by themselves and stay.
+    (&["shoulder sling pro", "allenspach"], &[], "22.09.01.00.1"),
+    // 26.11.2026, W. Söhngen (aluderm first-aid plasters, EMDN M040101 adhesive dressings with pad): the
+    // "Pflasterverband elastisch / stabil / detectable" strips and finger dressings had scored to 17.30.01.01 Elastische
+    // Binden Kompression, 22.06.01 / 23.20.01 Finger-Orthesen and 05.20.04 Tape elastisch; the children's elbow / knee
+    // dressing to 23.23.01. All are Schnellverbände (the WUNDmed / Flawa precedent). Also recall for the same families.
+    (&["pflaster/fingerverbaende/strips", "soehngen"], &[], "35.01.10.10.1"),
+    (&["pflaster fingerverbaende/strips", "soehngen"], &[], "35.01.10.10.1"),
+    (&["pflasterverband", "soehngen"], &[], "35.01.10.10.1"),
+    (&["wundpflaster", "soehngen"], &[], "35.01.10.10.1"),
+    (&["alufinger", "soehngen"], &[], "35.01.10.10.1"),
+    (&["knieverband", "soehngen"], &[], "35.01.10.10.1"),
+    // 26.11.2026, Meditrade (German dressings wholesaler, all "non-sterile"): BeeSana / Rogg / PARAM gauze compresses had
+    // scored to 99.50.15 Tablettenmörser and 99.30.03.01 Set mit Schlitzkompresse, the Vlieskompressen to the sterile
+    // 35.01.01.01 -> the unsterile Falt- und Vlieskompressen block (size refinement picks the sibling); cohesive
+    // bandages -> 35.01.07.20 kohäsiv (the Kalff precedent); ABE Fixiervlies off 15.16.99.01 Urinalkondom-Klebestreifen
+    // -> 35.01.09.30 Fixationsvlies; ABE Kurzzug compression bandages off 17.15.03 -> 17.30.01.01 (the KOB precedent).
+    (&["mullkompresse", "meditrade"], &[], "35.01.01.20.1"),
+    (&["schlitzkompresse", "meditrade"], &[], "35.01.01.20.1"),
+    (&["vlieskompresse", "meditrade"], &[], "35.01.01.20.1"),
+    (&["kohaesiv", "meditrade"], &[], "35.01.07.20.1"),
+    (&["fixiervlies", "meditrade"], &[], "35.01.09.30.1"),
+    (&["kurzzug", "meditrade"], &[], "17.30.01.01.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
