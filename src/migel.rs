@@ -1010,6 +1010,15 @@ pub const EXCLUDED_COMPANIES: &[&str] = &[
     "3Shape A/S",
     "IMDA (Innovative Medtech Distribution & Academy) SA",
     "SMD Medical AG",
+    // 27.11.2026: NGMedical = spinal cage trials and instrument trays (EMDN L09/L11/P09,
+    // "Cervical Trial" / "Lumbar Instruments" -> 22.12.01 / 22.15.01, 548 rows);
+    // ArjoHuntleigh AB = patient lifts and standing slings (EMDN V0805, "SLING - STANDING"
+    // -> 23.10.01, 77); Soleko = contact-lens care solutions only (EMDN Q020302, -> 25.01.01, 51);
+    // Adept Medical = interventional-radiology arm boards (EMDN Z1103, -> 22.07.03, 2).
+    "NGMedical GmbH",
+    "ArjoHuntleigh AB",
+    "Soleko S.p.A.",
+    "Adept Medical Limited",
     "Metrex Research LLC",
     "Metrex Research LLC dba Orascoptic",
     "Stryker Leibinger GmbH & Co. KG",
@@ -2929,6 +2938,7 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["saugkompresse", "meditrade"],
     &["verbandmull", "meditrade"],
     &["injektionspflaster", "meditrade"],
+    &["ersatz klettverschluss", "allenspach"],
     // Diabetic (protective) socks are not a medical compression Pflichtleistung.
     // SIGVARIS's "DIABETIC COMPRESSION SOCKS" (14 rows) rode "compression" onto
     // 17.15.03 Arm-Kompressionsbandage (wrong region) and, once fenced there,
@@ -3892,6 +3902,11 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["kohaesiv", "meditrade"], &[], "35.01.07.20.1"),
     (&["fixiervlies", "meditrade"], &[], "35.01.09.30.1"),
     (&["kurzzug", "meditrade"], &[], "17.30.01.01.1"),
+    // 27.11.2026: Allenspach "Clavicle Brace PRO Rucksackverband" scored to 23.21.01
+    // Hand-Orthesen; MiGeL names it verbatim. "Air Knee Brace PED 40 cm / 0°" (a
+    // fixed-angle knee immobiliser, a reading) scored to 23.04.01 (Massorthesen).
+    (&["clavicle brace", "allenspach"], &[], "22.09.05.00.1"),
+    (&["air knee brace", "allenspach"], &[], "22.04.03.00.1"),
 ];
 
 /// Check the curated forced-match rules against the raw (pre-enrichment)
