@@ -2934,7 +2934,6 @@ const UNIVERSAL_EXCLUSIONS: &[&[&str]] = &[
     &["ambulex", "handschuh"],
     &["blood transfer device"],
     &["cyto-set"],
-    &["insujet"],
     &["saugkompresse", "meditrade"],
     &["verbandmull", "meditrade"],
     &["injektionspflaster", "meditrade"],
@@ -3902,6 +3901,11 @@ const FORCED_MATCHES: &[(&[&str], &[&str], &str)] = &[
     (&["kohaesiv", "meditrade"], &[], "35.01.07.20.1"),
     (&["fixiervlies", "meditrade"], &[], "35.01.09.30.1"),
     (&["kurzzug", "meditrade"], &[], "17.30.01.01.1"),
+    // 27.11.2026 (maintainer): EUROPEAN PHARMA GROUP "InsuJet" needle-free insulin injector,
+    // its nozzles and adapters (held since 26.11., had scored to 03.07.09.11
+    // Sicherheits-Injektionskanüle) -> 03.05.20 Injektionshilfegerät; accessories ride the
+    // device position (the Omnipod / YpsoPump precedent).
+    (&["insujet"], &[], "03.05.20.00.1"),
     // 27.11.2026: Allenspach "Clavicle Brace PRO Rucksackverband" scored to 23.21.01
     // Hand-Orthesen; MiGeL names it verbatim. "Air Knee Brace PED 40 cm / 0°" (a
     // fixed-angle knee immobiliser, a reading) scored to 23.04.01 (Massorthesen).
